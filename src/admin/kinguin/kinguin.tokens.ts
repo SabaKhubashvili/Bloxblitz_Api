@@ -1,0 +1,1 @@
+export const KINGUIN_PROVIDER = Symbol('KINGUIN_PROVIDER');
