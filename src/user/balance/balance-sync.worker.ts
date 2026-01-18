@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class BalanceSyncWorker {
@@ -21,7 +23,6 @@ export class BalanceSyncWorker {
    */
   @Cron(CronExpression.EVERY_SECOND)
   async syncBalances() {
-
     // Skip if already syncing (prevent overlapping)
     if (this.isSyncing) {
       return;
@@ -31,7 +32,7 @@ export class BalanceSyncWorker {
 
     try {
       const synced = await this.executeSyncBatch();
-      
+
       if (synced > 0) {
         const duration = Date.now() - startTime;
         this.logger.log(`✅ Synced ${synced} balances in ${duration}ms`);
@@ -46,8 +47,7 @@ export class BalanceSyncWorker {
   private async executeSyncBatch(): Promise<number> {
     // 1️⃣ Get all dirty usernames (single Redis call)
     const dirtyUsernames = await this.redis.smembers('balance:dirty');
-    
-      
+
     if (dirtyUsernames.length === 0) {
       return 0;
     }
@@ -59,7 +59,7 @@ export class BalanceSyncWorker {
     const balances = await this.redis.mget(balanceKeys);
 
     // 3️⃣ Build valid updates and collect invalid users
-    const validUpdates: Array<{ username: string; balance: number }> = [];
+    const validUpdates: Array<{ username: string; balance: Decimal }> = [];
     const invalidUsers: string[] = [];
 
     for (let i = 0; i < dirtyUsernames.length; i++) {
@@ -71,15 +71,20 @@ export class BalanceSyncWorker {
         invalidUsers.push(username);
         continue;
       }
+      const normalized = this.normalizeMoney(balanceStr);
 
-      const balance = parseFloat(balanceStr);
-      if (isNaN(balance)) {
+      if (!normalized) {
         this.logger.error(`Invalid balance for ${username}: ${balanceStr}`);
         invalidUsers.push(username);
         continue;
       }
 
-      validUpdates.push({ username, balance });
+      validUpdates.push({
+        username,
+        balance: normalized,
+      });
+
+      validUpdates.push({ username, balance: normalized });
     }
 
     // 4️⃣ Remove invalid users from dirty set immediately
@@ -101,10 +106,7 @@ export class BalanceSyncWorker {
       if (success) {
         totalSynced += batch.length;
         // Remove from dirty set only after successful sync
-        await this.redis.srem(
-          'balance:dirty',
-          ...batch.map((u) => u.username),
-        );
+        await this.redis.srem('balance:dirty', ...batch.map((u) => u.username));
       }
     }
 
@@ -115,7 +117,7 @@ export class BalanceSyncWorker {
    * Sync batch with exponential backoff retry
    */
   private async syncBatchWithRetry(
-    batch: Array<{ username: string; balance: number }>,
+    batch: Array<{ username: string; balance: Decimal }>,
     attempt = 1,
   ): Promise<boolean> {
     try {
@@ -141,24 +143,24 @@ export class BalanceSyncWorker {
     }
   }
 
-/**
- * ULTRA-OPTIMIZED: Single raw SQL query using CASE
- * 
- */
-private async batchUpdatePostgres(
-  updates: Array<{ username: string; balance: number }>,
-): Promise<void> {
-  if (updates.length === 0) return;
-  // Build parameterized query to prevent SQL injection
-  const usernames = updates.map((u) => u.username);
-  const whenClauses = updates
-    .map(
-      (u, idx) =>
-        `WHEN username = $${idx + 1} THEN $${idx + 1 + updates.length}::numeric`,
-    )
-    .join(' ');
+  /**
+   * ULTRA-OPTIMIZED: Single raw SQL query using CASE
+   *
+   */
+  private async batchUpdatePostgres(
+    updates: Array<{ username: string; balance: Decimal }>,
+  ): Promise<void> {
+    if (updates.length === 0) return;
+    // Build parameterized query to prevent SQL injection
+    const usernames = updates.map((u) => u.username);
+    const whenClauses = updates
+      .map(
+        (u, idx) =>
+          `WHEN username = $${idx + 1} THEN $${idx + 1 + updates.length}::numeric(10,2)`,
+      )
+      .join(' ');
 
-  const query = `
+    const query = `
     UPDATE "User"
     SET 
       balance = CASE ${whenClauses} END,
@@ -166,13 +168,10 @@ private async batchUpdatePostgres(
     WHERE username IN (${usernames.map((_, idx) => `$${idx + 1}`).join(',')})
   `;
 
-  const params = [
-    ...usernames,
-    ...updates.map((u) => u.balance),
-  ];
+    const params = [...usernames, ...updates.map((u) => u.balance)];
 
-  await this.prisma.$executeRawUnsafe(query, ...params);
-}
+    await this.prisma.$executeRawUnsafe(query, ...params);
+  }
 
   /**
    * Health check endpoint
@@ -206,5 +205,13 @@ private async batchUpdatePostgres(
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  private normalizeMoney(value: string): Prisma.Decimal | null {
+    try {
+      const decimal = new Prisma.Decimal(value);
+      return decimal.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    } catch {
+      return null;
+    }
   }
 }

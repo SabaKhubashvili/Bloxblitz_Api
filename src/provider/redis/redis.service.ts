@@ -10,7 +10,7 @@ import type { RedisArgument, RedisClientType } from 'redis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private mainClient: RedisClientType;
+   mainClient: RedisClientType;
   
   async onModuleInit() {
     this.mainClient = createClient({

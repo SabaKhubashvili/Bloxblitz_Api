@@ -1,4 +1,5 @@
 import { IsInt, Min, Max, IsIn, IsNumber, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import { TwoDecimalPlacesRegex } from 'src/class-validator/TwoDecimalPlacesRegex.validator';
 
 @ValidatorConstraint({ name: 'twoDecimalPlaces', async: false })
 class TwoDecimalPlaces implements ValidatorConstraintInterface {
@@ -12,16 +13,13 @@ class TwoDecimalPlaces implements ValidatorConstraintInterface {
 }
 
 export class CreateGameDto {
-  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Bet amount must be a number with up to 2 decimal places' })
   @Min(0.01, { message: 'Bet amount must be at least 0.01' })
-  @Max(3000, { message: 'Bet amount must not exceed 3000  ' })
-  @Validate(TwoDecimalPlaces)
+  @Max(3000, { message: 'Bet amount must not exceed 3000' })
+  @Validate(TwoDecimalPlacesRegex)
   betAmount: number;
 
   @IsInt()
-  @IsIn([16, 25], {
-    message: 'Grid must be 16 or 25',
-  })
+  @IsIn([16, 25], { message: 'Grid must be 16 or 25' })
   gridSize: 16 | 25;
 
   @IsInt()

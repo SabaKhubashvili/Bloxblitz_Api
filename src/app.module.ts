@@ -6,13 +6,15 @@ import { ConfigModule } from '@nestjs/config';
 import { BalanceModule } from './user/balance/balance.module';
 import { GamesModule } from './games/games.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { UserModule } from './user/user.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     AdminModule,
-    BalanceModule,
     GamesModule,
+
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -56,4 +56,10 @@ export class MinesController {
   async getActiveGame(@Req() req: AuthenticatedRequest) {
     return this.minesService.getActiveGame(req.user.username);
   }
+
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  async getGameHistory(@Req() req: AuthenticatedRequest) {
+    return this.minesService.getUserMinesHistorySimple(req.user.username);
+  }
 }
