@@ -2,6 +2,7 @@ import { GameOutcome, GameType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/client";
 
 export interface BetHistoryResult {
+    id:string,
     gameType: GameType;
     serverSeedHash: string;
     clientSeed: string;
@@ -9,6 +10,7 @@ export interface BetHistoryResult {
     betAmount: Decimal;
     profit: Decimal;
     startedAt: Date;
+    userUsername:string,
     seedRotationHistory: {
         serverSeed: string;
     } | null;

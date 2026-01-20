@@ -1,5 +1,5 @@
 import { RedisService } from 'src/provider/redis/redis.service';
-import { MinesGame } from './types/mines.types';
+import { MinesGame } from '../types/mines.types';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -12,13 +12,13 @@ export class MinesRepository {
   }
 
   async getUserActiveGame(username: string): Promise<MinesGame | null> {
-    const gameId = await this.redis.get<string>(`user:active:${username}`);
+    const gameId = await this.redis.get<string>(`user:mines:active:${username}`);
     if (!gameId) return null;
     return this.getGame(gameId);
   }
 
   async clearActiveGame(username: string) {
-    await this.redis.del(`user:active:${username}`);
+    await this.redis.del(`user:mines:active:${username}`);
   }
 
   async deleteGame(gameId: string, username: string) {
@@ -26,7 +26,7 @@ export class MinesRepository {
       .getClient()
       .multi()
       .del(`mines:${gameId}`)
-      .del(`user:active:${username}`)
+      .del(`user:mines:active:${username}`)
       .exec();
   }
 

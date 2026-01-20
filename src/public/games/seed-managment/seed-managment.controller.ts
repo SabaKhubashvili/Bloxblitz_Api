@@ -66,7 +66,10 @@ export class SeedManagementController {
       };
     } catch (err) {
       this.logger.error('Error rotating client seed', err);
-      throw new BadRequestException('Failed to rotate client seed');
+      const message = err instanceof BadRequestException ? err.message : 'Unknown error';
+      throw new BadRequestException({
+        message: message,
+      });
     }
   }
 }

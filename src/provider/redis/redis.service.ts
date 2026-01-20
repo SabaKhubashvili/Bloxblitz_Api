@@ -390,7 +390,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     local gameDataStr = ARGV[4]
     
     -- 1. Check for active game (FASTEST CHECK FIRST)
-    local activeGame = redis.call('GET', 'user:active:' .. username)
+    local activeGame = redis.call('GET', 'user:mines:active:' .. username)
     if activeGame then
       return {0, 'ACTIVE_GAME_EXISTS'}
     end
@@ -419,8 +419,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- 7. Mark as active game
 
-    redis.call('SET', 'user:active:' .. username, gameId)
-    redis.call('EXPIRE', 'user:active:' .. username, 3600)
+    redis.call('SET', 'user:mines:active:' .. username, gameId)
+    redis.call('EXPIRE', 'user:mines:active:' .. username, 3600)
     
     -- 8. Mark balance as dirty for DB sync (async)
     redis.call('SADD', 'balance:dirty', username)

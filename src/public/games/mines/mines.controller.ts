@@ -9,16 +9,18 @@ import {
   Get,
 } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
-import { RevealTileDto } from './dto/reveal.dto';
-import { MinesService } from './mines.service';
+import { RevealTileDto } from './dto/reveal-tile.dto';
+
 import {
   type AuthenticatedRequest,
   JwtAuthGuard,
 } from 'src/middleware/jwt.middleware';
+import { MinesGameService } from './mines.service';
+import { MinesHistoryService } from './service/mines-history.service';
 
 @Controller('games/mines')
 export class MinesController {
-  constructor(private readonly minesService: MinesService) {}
+  constructor(private readonly minesService: MinesGameService, private readonly minesHistory: MinesHistoryService) {}
 
   /**
    * Create a new mines game
@@ -60,6 +62,6 @@ export class MinesController {
   @Get('history')
   @UseGuards(JwtAuthGuard)
   async getGameHistory(@Req() req: AuthenticatedRequest) {
-    return this.minesService.getUserMinesHistorySimple(req.user.username);
+    return this.minesHistory.getUserHistory(req.user.username);
   }
 }

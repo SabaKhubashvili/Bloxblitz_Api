@@ -10,6 +10,7 @@ import { GameType } from '@prisma/client';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.service';
+import { MinesPersistenceService } from '../mines/service/mines-persistence.service';
 
 interface UserSeedData {
   id: string;
@@ -34,6 +35,7 @@ export class SeedManagementService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly sharedUserGamesService: SharedUserGamesService,
+    private readonly minesPersistenceService: MinesPersistenceService
   ) {}
 
   async onModuleInit() {
@@ -443,7 +445,7 @@ export class SeedManagementService implements OnModuleInit {
   ) {
     try {
       // Use a transaction for consistency
-      await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         // 1️⃣ Create rotation history
         await tx.seedRotationHistory.create({
           data: rotationData,
@@ -465,7 +467,7 @@ export class SeedManagementService implements OnModuleInit {
         });
 
         // 3️⃣ Link games to rotation history
-        await tx.gameHistory.updateMany({
+      const response = await tx.gameHistory.updateManyAndReturn({
           where: {
             userUsername: username,
             serverSeedHash: oldSeed.activeServerSeedHash,
@@ -474,8 +476,18 @@ export class SeedManagementService implements OnModuleInit {
           data: {
             seedRotationHistoryId: rotationId,
           },
+          select:{
+            id: true
+          }
         });
+        return response;
       });
+      this.minesPersistenceService.updateRedisBulk(result.map((r)=>({
+        gameId:r.id,
+        updates:{
+          serverSeed: newSeed.activeServerSeed,
+        }
+      })))
 
       this.logger.log(`✅ Database backup completed for ${username}`);
     } catch (error) {

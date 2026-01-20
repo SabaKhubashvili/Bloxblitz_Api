@@ -36,7 +36,7 @@ export class SharedUserGamesService {
     const key = RedisKeys.user.games.active(username);
     await this.redis.mainClient.set(key, JSON.stringify(updatedGames));
   }
-  async addActiveGame(username: string, game: any) {
+  async addActiveGame(username: string, game: {gameId:string,gameType:GameType}) {
     const activeGames = await this.getActiveGames(username);
     activeGames.push(game);
     const key = RedisKeys.user.games.active(username);

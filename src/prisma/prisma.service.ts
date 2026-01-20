@@ -14,7 +14,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       connect_timeout: 5000, // optional
     });
 
-    super({ adapter, log: ['query', 'error', 'warn'] });
+    super({ adapter, 
+
+      // log: ['query', 'error', 'warn'] 
+    });
   }
 
   async onModuleInit() {

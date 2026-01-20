@@ -1,12 +1,14 @@
+import { GameOutcome } from '@prisma/client';
 
 export interface MinesGame {
-  id: string;
+  betId: string;
+  gameId: string;
   mines: number;
   gemsLeft: number;
-  mineMask: number; 
+  mineMask: number;
   revealedMask: number;
   active: boolean;
-  gameResult?: 'won' | 'lost' | 'cashed_out';
+  outcome: GameOutcome;
   grid: number;
 
   betAmount: number;

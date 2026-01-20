@@ -6,6 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from '../user.repository';
 import { BalanceController } from './balance.controller';
 import { BalanceSyncWorker } from './balance-sync.worker';
+import { RedisService } from 'src/provider/redis/redis.service';
 @Module({
   controllers: [BalanceController],
   providers: [
@@ -14,6 +15,7 @@ import { BalanceSyncWorker } from './balance-sync.worker';
     RemoteBalanceProvider,
     UserRepository,
     BalanceSyncWorker,
+    RedisService,
 
     {
       provide: BALANCE_PROVIDER,
