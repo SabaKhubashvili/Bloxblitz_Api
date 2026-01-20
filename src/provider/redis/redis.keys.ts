@@ -1,6 +1,6 @@
 /**
  * Redis key registry
- * 
+ *
  * Rules:
  * - All keys are lowercase
  * - Colon-separated namespaces
@@ -11,122 +11,94 @@
 export const RedisKeys = {
   /* ─────────────── USER ─────────────── */
   user: {
-    clientSeed: (username: string) =>
-      `user:clientSeed:${username}`,
-    nonce: (username: string) =>
-      `user:nonce:${username}`,
-    lockSeed: (username: string) =>
-      `user:lockSeed:${username}`,
-    userSeed: (username: string) =>
-      `user:seed:${username}`,
+    clientSeed: (username: string) => `user:clientSeed:${username}`,
+    nonce: (username: string) => `user:nonce:${username}`,
+    lockSeed: (username: string) => `user:lockSeed:${username}`,
+    userSeed: (username: string) => `user:seed:${username}`,
     seedRotationHistory: (username: string, rotationId: string) =>
       `user:seedRotationHistory:${username}:${rotationId}`,
     seedRotationHistoryList: (username: string) =>
       `user:seedRotationHistory:${username}:list`,
-    seedRotationRetry: (username: string,rotationId: string) =>
+    seedRotationRetry: (username: string, rotationId: string) =>
       `user:seedRotationRetry:${username}:${rotationId}`,
-
 
     /* ─────────────── BALANCES ─────────────── */
 
     balance: {
-      user: (userId: string | number) =>
-        `user:balance:${userId}`,
+      user: (username: string) => `user:balance:${username}`,
 
-      dirty: (userId: string | number) =>
-        `user:balance:dirty:${userId}`,
-
-      syncQueue: () =>
-        `user:balance:sync:queue`,
+      dirty: (username: string) => `user:balance:dirty:${username}`,
+      syncQueue: () => `user:balance:sync:queue`,
     },
 
+    // ────────────── GAMES ─────────────── //
+    games: {
+      active: (username: string) => `user:games:active:${username}`,
+    },
   },
 
   /* ─────────────── LOCKS ─────────────── */
 
   lock: {
-    crash: () =>
-      `lock:crash`,
+    crash: () => `lock:crash`,
 
-    mines: (gameId: string | number) =>
-      `lock:mines:${gameId}`,
+    mines: (gameId: string | number) => `lock:mines:${gameId}`,
 
-    user: (userId: string | number) =>
-      `lock:user:${userId}`,
+    user: (userId: string | number) => `lock:user:${userId}`,
   },
   /* ─────────────── COINFLIP GAME ─────────────── */
   coinflip: {
-    housePercentage: () =>
-      `coinflip:housePercentage`,
-    getStatus: () =>
-      `coinflip:status`,
-    getDisabledMessage: () =>
-      `coinflip:disabledMessage`,
-    bannedUsers: () =>
-      `coinflip:bannedUsers`,
+    housePercentage: () => `coinflip:housePercentage`,
+    getStatus: () => `coinflip:status`,
+    getDisabledMessage: () => `coinflip:disabledMessage`,
+    bannedUsers: () => `coinflip:bannedUsers`,
   },
   /* ─────────────── CRASH GAME ─────────────── */
 
   crash: {
-    state: () =>
-      `crash:state`,
+    state: () => `crash:state`,
 
-    round: (roundId: string | number) =>
-      `crash:round:${roundId}`,
+    round: (roundId: string | number) => `crash:round:${roundId}`,
 
-    players: (roundId: string | number) =>
-      `crash:players:${roundId}`,
+    players: (roundId: string | number) => `crash:players:${roundId}`,
 
-    history: () =>
-      `crash:history`,
-    provablyFair: () =>
-      `crash:provablyFair`,
+    history: () => `crash:history`,
+    provablyFair: () => `crash:provablyFair`,
   },
 
   /* ─────────────── MINES GAME ─────────────── */
 
   mines: {
-    game: (gameId: string | number) =>
-      `mines:game:${gameId}`,
+    game: (gameId: string | number) => `mines:game:${gameId}`,
 
-    cells: (gameId: string | number) =>
-      `mines:cells:${gameId}`,
+    cells: (gameId: string | number) => `mines:cells:${gameId}`,
 
     bet: (gameId: string | number, userId: string | number) =>
       `mines:bet:${gameId}:${userId}`,
   },
   /* ─────────────── JACKPOT GAME ─────────────── */
-  
+
   jackpot: {
-    status: () =>
-      `jackpot:status`,
-    disabledMessage: () =>
-      `jackpot:message`,
+    status: () => `jackpot:status`,
+    disabledMessage: () => `jackpot:message`,
   },
   /* ─────────────── CACHE ─────────────── */
 
   cache: {
-    userProfile: (userId: string | number) =>
-      `cache:user:profile:${userId}`,
+    userProfile: (userId: string | number) => `cache:user:profile:${userId}`,
 
-    inventory: (userId: string | number) =>
-      `cache:user:inventory:${userId}`,
+    inventory: (userId: string | number) => `cache:user:inventory:${userId}`,
 
-    prices: () =>
-      `cache:prices`,
+    prices: () => `cache:prices`,
   },
   chat: {
-    bans: () =>
-      `chat:bans`,
-    timeouts: () =>
-      `chat:timeouts`,
+    bans: () => `chat:bans`,
+    timeouts: () => `chat:timeouts`,
   },
 
   /* ─────────────── RAIN ─────────────── */
-  rain:{
-    getState: () =>
-      `rain:state`,
-    setState: () =>
-      `rain:state`,
-  }
+  rain: {
+    getState: () => `rain:state`,
+    setState: () => `rain:state`,
+  },
 } as const;

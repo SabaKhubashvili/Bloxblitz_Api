@@ -1,21 +1,20 @@
-import {
-  IsInt,
-  Min,
-  Max,
-  IsIn,
-  Validate,
-  ValidationArguments,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-} from 'class-validator';
+import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
 
-@ValidatorConstraint({ name: 'twoDecimalPlacesRegex', async: false })
-export class TwoDecimalPlacesRegex implements ValidatorConstraintInterface {
-  validate(value: number, args: ValidationArguments) {
-    return typeof value === 'number' && /^[0-9]+(\.[0-9]{1,2})?$/.test(value.toString());
-  }
-
-  defaultMessage(args: ValidationArguments) {
-    return 'Bet amount must have at most 2 decimal places';
-  }
+export function TwoDecimalPlacesRegex(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'twoDecimalPlacesRegex',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any) {
+          return typeof value === 'number' && /^-?\d+(\.\d{1,2})?$/.test(value.toString());
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must have at most two decimal places`;
+        },
+      },
+    });
+  };
 }

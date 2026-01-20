@@ -706,7 +706,7 @@ model GameHistory {
   id           String          @id @default(uuid())
   userUsername String
   gameId       String          @unique
-  gameType     OfflineGameType
+  gameType     GameType
 
   // Provably fair data - CRITICAL for verification
   seedRotationHistoryId String? // Link to seed rotation (null if seed not rotated yet)
@@ -758,7 +758,7 @@ model GameHistory {
 model UserGameStatistics {
   id           String          @id @default(uuid())
   userUsername String
-  gameType     OfflineGameType
+  gameType     GameType
 
   // Volume stats
   totalGames   Int     @default(0)
@@ -798,15 +798,9 @@ model UserGameStatistics {
 // ENUMS
 // ============================================
 
-enum OfflineGameType {
+enum GameType {
   MINES
-  DICE
-  PLINKO
-  WHEEL
-  LIMBO
-  KENO
-  HILO
-  TOWER
+  CRASH
 }
 
 enum GameOutcome {
@@ -814,6 +808,7 @@ enum GameOutcome {
   LOST
   CASHED_OUT
   CANCELLED
+  PLAYING
 }
 
 enum SeedRotationType {
@@ -824,9 +819,7 @@ enum SeedRotationType {
   ADMIN // Admin forced rotation
 }
 
-enum GameType {
-  CRASH
-}
+
 
 enum KinguinCodeStatus {
   UNUSED
