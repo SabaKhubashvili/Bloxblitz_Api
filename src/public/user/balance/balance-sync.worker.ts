@@ -63,6 +63,7 @@ export class BalanceSyncWorker {
     const invalidUsers: string[] = [];
 
     for (let i = 0; i < dirtyUsernames.length; i++) {
+      this.logger.log(`Found dirty user : ${dirtyUsernames[i]}`);
       const username = dirtyUsernames[i];
       const balanceStr = balances[i];
 
@@ -79,12 +80,14 @@ export class BalanceSyncWorker {
         continue;
       }
 
+      this.logger.log(`
+        Preparing sync for ${username}: ${balanceStr} -> ${normalized}
+        `);
+
       validUpdates.push({
         username,
         balance: normalized,
       });
-
-      validUpdates.push({ username, balance: normalized });
     }
 
     // 4️⃣ Remove invalid users from dirty set immediately
@@ -121,6 +124,7 @@ export class BalanceSyncWorker {
     attempt = 1,
   ): Promise<boolean> {
     try {
+      this.logger.log(`Syncing batch of ${batch.length}, attempt ${attempt}, data: ${JSON.stringify(batch)}`);
       await this.batchUpdatePostgres(batch);
       return true;
     } catch (error) {

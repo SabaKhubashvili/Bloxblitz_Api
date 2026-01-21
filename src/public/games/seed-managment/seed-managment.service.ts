@@ -35,7 +35,7 @@ export class SeedManagementService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly sharedUserGamesService: SharedUserGamesService,
-    private readonly minesPersistenceService: MinesPersistenceService
+    private readonly minesPersistenceService: MinesPersistenceService,
   ) {}
 
   async onModuleInit() {
@@ -121,8 +121,8 @@ export class SeedManagementService implements OnModuleInit {
     const seed = await this.getUserSeed(username);
     const activeGames =
       await this.sharedUserGamesService.getActiveGames(username);
-      console.log(activeGames);
-      
+    console.log(activeGames);
+
     return {
       serverSeedHash: seed.activeServerSeedHash,
       clientSeed: seed.activeClientSeed,
@@ -309,7 +309,8 @@ export class SeedManagementService implements OnModuleInit {
         throw new BadRequestException('Seed rotation already in progress');
       }
 
-      const activeGames = await this.sharedUserGamesService.getActiveGames(username);
+      const activeGames =
+        await this.sharedUserGamesService.getActiveGames(username);
       if (activeGames.length > 0) {
         throw new BadRequestException(
           'Cannot rotate seed with active games in progress',
@@ -403,6 +404,9 @@ export class SeedManagementService implements OnModuleInit {
       ).catch((err) => {
         this.logger.error(`Database backup failed for ${username}:`, err);
       });
+      this.invalidateUserCaches(username).catch((err) => {
+        this.logger.error(`Cache invalidation failed for ${username}:`, err);
+      });
 
       const totalTime = performance.now() - startTime;
 
@@ -467,7 +471,7 @@ export class SeedManagementService implements OnModuleInit {
         });
 
         // 3️⃣ Link games to rotation history
-      const response = await tx.gameHistory.updateManyAndReturn({
+        const response = await tx.gameHistory.updateManyAndReturn({
           where: {
             userUsername: username,
             serverSeedHash: oldSeed.activeServerSeedHash,
@@ -476,18 +480,12 @@ export class SeedManagementService implements OnModuleInit {
           data: {
             seedRotationHistoryId: rotationId,
           },
-          select:{
-            id: true
-          }
+          select: {
+            id: true,
+          },
         });
         return response;
       });
-      this.minesPersistenceService.updateRedisBulk(result.map((r)=>({
-        gameId:r.id,
-        updates:{
-          serverSeed: newSeed.activeServerSeed,
-        }
-      })))
 
       this.logger.log(`✅ Database backup completed for ${username}`);
     } catch (error) {

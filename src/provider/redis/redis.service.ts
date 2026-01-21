@@ -540,11 +540,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async incrementBalance(username: string, amount: number): Promise<void> {
     try {
-      await this.mainClient
+     await this.mainClient
         .multi()
-        .incrByFloat(`user:${username}:balance`, amount)
-        .sAdd('balances:dirty', username)
+        .incrByFloat(`user:balance:${username}`, amount)
+        .sAdd('balance:dirty', username)
         .exec();
+
     } catch (err) {
       this.logger.error('Increment balance failed', err);
     }

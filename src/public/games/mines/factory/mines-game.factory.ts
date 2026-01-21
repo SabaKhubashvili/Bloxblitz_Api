@@ -45,17 +45,14 @@ export class MinesGameFactory {
       });
 
       const userSeed = await this.seedManagement.getUserSeed(username);
-      const nonce = await this.seedManagement.getAndIncrementNonce(
-        username,
-        'MINES',
-      );
+      const nonce = await this.seedManagement.getAndIncrementNonce(username,'MINES');
 
       const result = await this.redisService.atomicCreateMinesGame(
         username,
         betAmount,
         gameId,
         JSON.stringify({
-          id: gameId,
+          gameId,
           mines,
           mineMask: 0,
           revealedTiles: [],
@@ -63,13 +60,13 @@ export class MinesGameFactory {
           grid: size,
           betAmount,
           revealedMask: 0,
+          multiplier: 1,
           active: true,
           creatorUsername: username,
           serverSeed: userSeed.activeServerSeed,
           serverSeedHash: userSeed.activeServerSeedHash,
           clientSeed: userSeed.activeClientSeed,
           nonce,
-          multiplier: 1,
         }),
       );
 
@@ -88,7 +85,7 @@ export class MinesGameFactory {
       await this.repo.updateGame(gameId, { mineMask, nonce });
       this.seedManagement.updateSeedUsage(username);
 
-      let gameData: Omit<MinesGame, 'betId'> = {
+      let gameData: MinesGame = {
         gameId: gameId,
         mines,
         mineMask,

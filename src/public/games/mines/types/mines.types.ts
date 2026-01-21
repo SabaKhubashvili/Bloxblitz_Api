@@ -1,7 +1,7 @@
 import { GameOutcome } from '@prisma/client';
 
 export interface MinesGame {
-  betId: string;
+  betId?: string;
   gameId: string;
   mines: number;
   gemsLeft: number;
