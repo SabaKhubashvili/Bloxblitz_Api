@@ -1,12 +1,18 @@
-import { Get } from '@nestjs/common';
+import { Body, Get } from '@nestjs/common';
 import { InternalController } from '../decorator/InternalController.decorator';
+import { PrivateUserService } from './privateUser.service';
+import { getUserRoleDto } from './dto/get-user-role.dto';
 
 @InternalController('user')
 export class PrivateUserController {
-  constructor() {}
+  constructor(private readonly privateUserService: PrivateUserService) {}
 
-  @Get('')
-  getUserInfo() {
-    return { message: 'Private User Info' };
+  @Get('role/get')
+  getUserInfo(@Body() dto: getUserRoleDto) {
+    return this.privateUserService.getUserRole(dto.username);
+  }
+  @Get('info')
+  getUserInfoByUsername(@Body() dto: { username: string }) {
+    return this.privateUserService.getUserInfoByUsername(dto.username);
   }
 }

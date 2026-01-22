@@ -11,6 +11,7 @@ import { PrivateModule } from './private/private.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { GiveawayModule } from './public/giveaway/giveaway.module';
 import { RedisModule } from './provider/redis/redis.module';
+import { BotModule } from './public/bot/bot.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -22,6 +23,7 @@ import { RedisModule } from './provider/redis/redis.module';
     GiveawayModule,
 
     UserModule,
+    BotModule,
 
     PrivateModule,
 

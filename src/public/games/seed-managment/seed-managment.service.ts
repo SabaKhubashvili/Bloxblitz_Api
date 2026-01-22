@@ -35,7 +35,6 @@ export class SeedManagementService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly sharedUserGamesService: SharedUserGamesService,
-    private readonly minesPersistenceService: MinesPersistenceService,
   ) {}
 
   async onModuleInit() {
