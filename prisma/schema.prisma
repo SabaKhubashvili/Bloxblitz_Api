@@ -7,58 +7,47 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  username        String    @unique
-  rblx_id         String    @unique
-  profile_picture String
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  role            UserRoles @default(MEMBER)
-
-  balance Decimal @default(0.00) @db.Decimal(10, 2)
-
-
-  client_seed   String
-  last_login_ip String?
-  referedBy     String?
-  referedByMm2  String?
-
-  referralLastUpdate DateTime?
-  userStatisticsId   Int?      @unique
-
+  id                                                               String                   @id @default(uuid())
+  username                                                         String                   @unique
+  rblx_id                                                          String                   @unique
+  profile_picture                                                  String
+  created_at                                                       DateTime                 @default(now())
+  updated_at                                                       DateTime                 @updatedAt
+  role                                                             UserRoles                @default(MEMBER)
+  client_seed                                                      String
+  last_login_ip                                                    String?
+  referedBy                                                        String?
+  referralLastUpdate                                               DateTime?
+  userStatisticsId                                                 Int?                     @unique
+  referedByMm2                                                     String?
+  balance                                                          Decimal                  @default(0) @db.Decimal(10, 2)
+  ampGiveawayWins                                                  AmpGiveaway[]            @relation("AmpGiveawayWinner")
+  ampGiveawayEntries                                               AmpGiveawayEntry[]
   CoinflipGameHistory_CoinflipGameHistory_player1UsernameToUser    CoinflipGameHistory[]    @relation("CoinflipGameHistory_player1UsernameToUser")
   CoinflipGameHistory_CoinflipGameHistory_player2UsernameToUser    CoinflipGameHistory[]    @relation("CoinflipGameHistory_player2UsernameToUser")
+  crashBets                                                        CrashBet[]               @relation("CrashBets")
+  GameHistory                                                      GameHistory[]            @relation("GameHistory")
+  kinguinCodesRedeemed                                             KinguinPromoCode[]       @relation("KinguinCodeRedemptions")
+  kinguinRedemptionLogs                                            KinguinRedemptionLog[]   @relation("KinguinRedemptions")
   CoinflipGameHistoryMm2_CoinflipGameHistory_player1UsernameToUser Mm2CoinflipGameHistory[] @relation("CoinflipGameHistory_player1UsernameToUser")
   CoinflipGameHistoryMm2_CoinflipGameHistory_player2UsernameToUser Mm2CoinflipGameHistory[] @relation("CoinflipGameHistory_player2UsernameToUser")
-
-  userReferral            Referral?          @relation("user_referral")
-  userReferralMm2         ReferralMm2?       @relation("user_referralmm2")
-  referralUsageLogs       ReferralLog[]
-  referralUsageLogsMm2    ReferralLogMm2[]
-  referedByUser           Referral?          @relation("user_refered_by", fields: [referedBy], references: [referralCode])
-  referedByUserMm2        ReferralMm2?       @relation("user_refered_bymm2", fields: [referedByMm2], references: [referralCode])
-  inventory               UserInventoryAmp[]
-  inventoryMm2            UserInventoryMm2[]
-  statistics              UserStatistics?    @relation("UserStatisticsUser")
-  verifications           UserVerification[]
-  receivedTipTransactions TipTransaction[]   @relation("TipTransactionRecipient")
-  sentTipTransactions     TipTransaction[]   @relation("TipTransactionSender")
-
-  ampGiveawayWins    AmpGiveaway[]      @relation("AmpGiveawayWinner")
-  ampGiveawayEntries AmpGiveawayEntry[]
-
-  mm2GiveawayWins    Mm2Giveaway[]      @relation("Mm2GiveawayWinner")
-  mm2GiveawayEntries Mm2GiveawayEntry[]
-
-  kinguinCodesRedeemed  KinguinPromoCode[]     @relation("KinguinCodeRedemptions")
-  kinguinRedemptionLogs KinguinRedemptionLog[] @relation("KinguinRedemptions")
-
-  crashBets CrashBet[] @relation("CrashBets")
-
-  userSeed            UserSeed?             @relation("UserSeed")
-  seedRotationHistory SeedRotationHistory[] @relation("SeedRotationHistory")
-  GameHistory         GameHistory[]         @relation("GameHistory")
-  userGameStats       UserGameStatistics[]  @relation("UserGameStats")
+  mm2GiveawayWins                                                  Mm2Giveaway[]            @relation("Mm2GiveawayWinner")
+  mm2GiveawayEntries                                               Mm2GiveawayEntry[]
+  userReferral                                                     Referral?                @relation("user_referral")
+  referralUsageLogs                                                ReferralLog[]
+  referralUsageLogsMm2                                             ReferralLogMm2[]
+  userReferralMm2                                                  ReferralMm2?             @relation("user_referralmm2")
+  seedRotationHistory                                              SeedRotationHistory[]    @relation("SeedRotationHistory")
+  referedByUserMm2                                                 ReferralMm2?             @relation("user_refered_bymm2", fields: [referedByMm2], references: [referralCode])
+  referedByUser                                                    Referral?                @relation("user_refered_by", fields: [referedBy], references: [referralCode])
+  userGameStats                                                    UserGameStatistics[]     @relation("UserGameStats")
+  inventory                                                        UserInventoryAmp[]
+  inventoryMm2                                                     UserInventoryMm2[]
+  userSeed                                                         UserSeed?                @relation("UserSeed")
+  statistics                                                       UserStatistics?          @relation("UserStatisticsUser")
+  verifications                                                    UserVerification[]
+  receivedTipTransactions                                          TipTransaction[]         @relation("TipTransactionRecipient")
+  sentTipTransactions                                              TipTransaction[]         @relation("TipTransactionSender")
 
   @@index([username, rblx_id])
 }
@@ -122,8 +111,8 @@ model UserInventoryAmp {
   @@index([petId])
   @@index([state])
   @@index([owner_bot_id])
-  @@index([userUsername, id]) // For updateMany WHERE clauses
-  @@index([id, userUsername]) // For transfer operations
+  @@index([userUsername, id])
+  @@index([id, userUsername])
   @@map("UserInventory")
 }
 
@@ -180,8 +169,8 @@ model pets {
   created_at        DateTime           @default(now())
   updated_at        DateTime
   inGameName        String?
-  inventory         UserInventoryAmp[]
   giveaways         AmpGiveaway[]
+  inventory         UserInventoryAmp[]
 
   @@index([name])
   @@index([rarity])
@@ -337,9 +326,9 @@ model ReferralLog {
   amount           Decimal  @default(0) @db.Decimal(10, 2)
   referrerCode     String
   createdAt        DateTime @default(now())
+  referralMm2Id    String?
   referredUser     User     @relation(fields: [referredUsername], references: [username], onDelete: Cascade)
   referrer         Referral @relation(fields: [referrerCode], references: [referralCode], onDelete: Cascade)
-  referralMm2Id    String?
 
   @@index([referrerCode])
 }
@@ -367,8 +356,8 @@ model ReferralMm2 {
   conversionCount        Int              @default(0)
   conversionRate         Decimal          @default(0) @db.Decimal(5, 4)
   lastReferralCodeChange DateTime?
-  ownerUser              User             @relation("user_referralmm2", fields: [userUsername], references: [username], onDelete: Cascade)
   referralLogs           ReferralLogMm2[]
+  ownerUser              User             @relation("user_referralmm2", fields: [userUsername], references: [username], onDelete: Cascade)
   referredUsers          User[]           @relation("user_refered_bymm2")
 
   @@index([userUsername])
@@ -414,8 +403,8 @@ model Mm2Item {
   created_at   DateTime           @default(now())
   updated_at   DateTime
   itemId       String             @unique
-  inventory    UserInventoryMm2[]
   mm2Giveaways Mm2Giveaway[]
+  inventory    UserInventoryMm2[]
 
   @@index([inGameName])
   @@index([name])
@@ -423,20 +412,18 @@ model Mm2Item {
 }
 
 model AmpGiveaway {
-  id             Int       @id @default(autoincrement())
-  minWager       Int       @default(0)
-  endDate        DateTime
-  petId          Int
-  value          Int
-  Variant        Variant[]
-  winnerUsername String?
-
-  winner     User?    @relation("AmpGiveawayWinner", fields: [winnerUsername], references: [username])
-  isActive   Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
-
+  id                 Int                @id @default(autoincrement())
+  minWager           Int                @default(0)
+  endDate            DateTime
+  petId              Int
+  value              Int
+  Variant            Variant[]
+  winnerUsername     String?
+  isActive           Boolean            @default(true)
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @default(now()) @updatedAt
   pet                pets               @relation(fields: [petId], references: [id])
+  winner             User?              @relation("AmpGiveawayWinner", fields: [winnerUsername], references: [username])
   ampGiveawayEntries AmpGiveawayEntry[]
 
   @@index([id])
@@ -445,32 +432,29 @@ model AmpGiveaway {
 }
 
 model AmpGiveawayEntry {
-  id           Int      @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   giveawayId   Int
   userUsername String
-  created_at   DateTime @default(now())
-
-  giveaway AmpGiveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
-  user     User        @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  created_at   DateTime    @default(now())
+  giveaway     AmpGiveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([giveawayId])
   @@index([userUsername])
 }
 
 model Mm2Giveaway {
-  id             Int      @id @default(autoincrement())
-  minWager       Int      @default(0)
-  endDate        DateTime
-  itemId         Int
-  value          Int
-  winnerUsername String?
-
-  winner     User?    @relation("Mm2GiveawayWinner", fields: [winnerUsername], references: [username])
-  isActive   Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
-
+  id                 Int                @id @default(autoincrement())
+  minWager           Int                @default(0)
+  endDate            DateTime
+  itemId             Int
+  value              Int
+  winnerUsername     String?
+  isActive           Boolean            @default(true)
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @default(now()) @updatedAt
   item               Mm2Item            @relation(fields: [itemId], references: [id])
+  winner             User?              @relation("Mm2GiveawayWinner", fields: [winnerUsername], references: [username])
   mm2GiveawayEntries Mm2GiveawayEntry[]
 
   @@index([id])
@@ -479,33 +463,29 @@ model Mm2Giveaway {
 }
 
 model Mm2GiveawayEntry {
-  id           Int      @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   giveawayId   Int
   userUsername String
-  created_at   DateTime @default(now())
-
-  giveaway Mm2Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
-  user     User        @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  created_at   DateTime    @default(now())
+  giveaway     Mm2Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([giveawayId])
   @@index([userUsername])
 }
 
 model KinguinPromoCode {
-  id         String    @id @default(uuid())
-  code       String    @unique // The actual promo code
-  value      Decimal   @db.Decimal(10, 2) // Credit value in your currency
-  isRedeemed Boolean   @default(false)
-  redeemedBy String? // Username who redeemed it
-  redeemedAt DateTime?
-  expiresAt  DateTime? // Optional expiration date
-  batchId    String? // Group codes by batch/purchase
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  status KinguinCodeStatus @default(UNUSED)
-
-  // Relations
+  id             String                @id @default(uuid())
+  code           String                @unique
+  value          Decimal               @db.Decimal(10, 2)
+  isRedeemed     Boolean               @default(false)
+  redeemedBy     String?
+  redeemedAt     DateTime?
+  expiresAt      DateTime?
+  batchId        String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  status         KinguinCodeStatus     @default(UNUSED)
   redeemedByUser User?                 @relation("KinguinCodeRedemptions", fields: [redeemedBy], references: [username])
   redemptionLog  KinguinRedemptionLog?
 
@@ -516,18 +496,17 @@ model KinguinPromoCode {
 }
 
 model KinguinRedemptionLog {
-  id            String   @id @default(uuid())
-  codeId        String   @unique
+  id            String           @id @default(uuid())
+  codeId        String           @unique
   userUsername  String
   ipAddress     String?
   userAgent     String?
-  creditsBefore Decimal  @db.Decimal(10, 2)
-  creditsAfter  Decimal  @db.Decimal(10, 2)
-  creditAmount  Decimal  @db.Decimal(10, 2)
-  redeemedAt    DateTime @default(now())
-
-  code KinguinPromoCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
-  user User             @relation("KinguinRedemptions", fields: [userUsername], references: [username], onDelete: Cascade)
+  creditsBefore Decimal          @db.Decimal(10, 2)
+  creditsAfter  Decimal          @db.Decimal(10, 2)
+  creditAmount  Decimal          @db.Decimal(10, 2)
+  redeemedAt    DateTime         @default(now())
+  code          KinguinPromoCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  user          User             @relation("KinguinRedemptions", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
   @@index([redeemedAt])
@@ -537,10 +516,10 @@ model KinguinCodeBatch {
   id            String   @id @default(uuid())
   batchName     String
   purchaseDate  DateTime
-  totalCodes    Int // How many codes in this batch
-  totalValue    Decimal  @db.Decimal(10, 2) // Total value of all codes
+  totalCodes    Int
+  totalValue    Decimal  @db.Decimal(10, 2)
   codesRedeemed Int      @default(0)
-  notes         String?  @db.Text
+  notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -548,244 +527,158 @@ model KinguinCodeBatch {
   @@index([purchaseDate])
 }
 
-// ============================================
-// SHARED PROVABLY FAIR HASH CHAIN (Base)
-// ============================================
-
 model HashChain {
-  id              String    @id @default(uuid())
-  gameType        GameType // CRASH, DICE, ROULETTE, etc.
-  chainId         String    @unique
-  serverSeed      String    @db.VarChar(128) // Encrypted
-  finalHash       String    @db.VarChar(64) // Public proof
-  totalRounds     Int       @default(1000000)
-  currentRound    Int       @default(0)
-  clientSeed      String?   @db.VarChar(64)
+  id              String       @id @default(uuid())
+  finalHash       String       @db.VarChar(64)
+  clientSeed      String?      @db.VarChar(64)
   clientSeedSetAt DateTime?
-  isActive        Boolean   @default(true)
-  isComplete      Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  isActive        Boolean      @default(true)
+  chainId         String       @unique
   completedAt     DateTime?
-
-  // Relations to game-specific rounds
-  crashRounds CrashRound[]
-  // rouletteRounds RouletteRound[] // Add as needed
+  createdAt       DateTime     @default(now())
+  currentRound    Int          @default(0)
+  gameType        GameType
+  isComplete      Boolean      @default(false)
+  serverSeed      String       @db.VarChar(128)
+  totalRounds     Int          @default(1000000)
+  crashRounds     CrashRound[]
 
   @@unique([gameType, chainId])
   @@index([gameType, isActive])
   @@index([gameType, currentRound])
 }
 
-// ============================================
-// GAME-SPECIFIC ROUND TABLES
-// ============================================
-
 model CrashRound {
-  id          String @id @default(uuid())
-  chainId     String
-  roundNumber Int
-  gameHash    String @unique @db.VarChar(64)
-
-  // CRASH-SPECIFIC FIELDS
-  crashPoint Decimal @db.Decimal(10, 4)
-
-  // Common fields
-  clientSeed   String   @db.VarChar(64)
-  totalBets    Int      @default(0)
-  totalWagered Decimal  @default(0) @db.Decimal(12, 2)
-  totalPayout  Decimal  @default(0) @db.Decimal(12, 2)
-  createdAt    DateTime @default(now())
-
-  chain HashChain  @relation(fields: [chainId], references: [chainId], onDelete: Cascade)
-  bets  CrashBet[]
+  id           String     @id @default(uuid())
+  chainId      String
+  roundNumber  Int
+  gameHash     String     @unique @db.VarChar(64)
+  crashPoint   Decimal    @db.Decimal(10, 4)
+  clientSeed   String     @db.VarChar(64)
+  totalBets    Int        @default(0)
+  totalWagered Decimal    @default(0) @db.Decimal(12, 2)
+  totalPayout  Decimal    @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime   @default(now())
+  bets         CrashBet[]
+  chain        HashChain  @relation(fields: [chainId], references: [chainId], onDelete: Cascade)
 
   @@unique([chainId, roundNumber])
   @@index([chainId, roundNumber(sort: Desc)])
   @@index([gameHash])
 }
 
-// ============================================
-// BET TABLES
-// ============================================
-
 model CrashBet {
-  id           String  @id @default(uuid())
+  id           String     @id @default(uuid())
   roundId      String
   userUsername String
-  betAmount    Decimal @db.Decimal(10, 2)
-
-  // Crash-specific
-  cashoutAt   Decimal? @db.Decimal(10, 4)
-  autoCashout Decimal? @db.Decimal(10, 4)
-  didCashout  Boolean  @default(false)
-
-  payout    Decimal  @default(0) @db.Decimal(12, 2)
-  profit    Decimal  @default(0) @db.Decimal(12, 2)
-  createdAt DateTime @default(now())
-
-  round CrashRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  user  User       @relation("CrashBets", fields: [userUsername], references: [username], onDelete: Cascade)
+  betAmount    Decimal    @db.Decimal(10, 2)
+  cashoutAt    Decimal?   @db.Decimal(10, 4)
+  autoCashout  Decimal?   @db.Decimal(10, 4)
+  didCashout   Boolean    @default(false)
+  payout       Decimal    @default(0) @db.Decimal(12, 2)
+  profit       Decimal    @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime   @default(now())
+  round        CrashRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user         User       @relation("CrashBets", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([roundId])
   @@index([userUsername, createdAt(sort: Desc)])
 }
 
-// ============================================
-// PROVABLY FAIR SEED MANAGEMENT
-// ============================================
-
 model UserSeed {
-  id           String @id @default(uuid())
-  userUsername String @unique // One seed pair per user
-
-  // Current active seed pair (SHARED across all offline games)
-  activeServerSeed     String @db.VarChar(128) // Current server seed (HIDDEN until rotation)
-  activeServerSeedHash String @db.VarChar(64) // Hash shown to user (ALWAYS VISIBLE)
-  activeClientSeed     String @db.VarChar(64) // User's client seed
-
-  // Next server seed (pre-generated for transparency)
-  nextServerSeed     String @db.VarChar(128) // Next server seed (hidden)
-  nextServerSeedHash String @db.VarChar(64) // Next hash shown to user (VISIBLE)
-
-  // Seed rotation tracking
-  seedCreatedAt    DateTime  @default(now())
-  seedRotatedAt    DateTime?
-  lastUsedAt       DateTime  @default(now())
-  totalGamesPlayed Int       @default(0) // Total across ALL games
-
-  // Limits for automatic rotation
-  maxGamesPerSeed Int @default(10000)
-
-  user        User                  @relation("UserSeed", fields: [userUsername], references: [username], onDelete: Cascade)
-  seedHistory SeedRotationHistory[]
+  id                   String                @id @default(uuid())
+  userUsername         String                @unique
+  activeServerSeed     String                @db.VarChar(128)
+  activeServerSeedHash String                @db.VarChar(64)
+  activeClientSeed     String                @db.VarChar(64)
+  nextServerSeed       String                @db.VarChar(128)
+  nextServerSeedHash   String                @db.VarChar(64)
+  seedCreatedAt        DateTime              @default(now())
+  seedRotatedAt        DateTime?
+  lastUsedAt           DateTime              @default(now())
+  maxGamesPerSeed      Int                   @default(10000)
+  totalGamesPlayed     Int                   @default(0)
+  seedHistory          SeedRotationHistory[]
+  user                 User                  @relation("UserSeed", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
 }
 
-// Historical record of all seed rotations
 model SeedRotationHistory {
-  id           String @id @default(uuid())
-  userUsername String
-
-  // Old seed that was used (REVEALED after rotation for verification)
-  serverSeed     String @db.VarChar(128) // REVEALED after rotation
-  serverSeedHash String @db.VarChar(64) // Hash for verification
-  clientSeed     String @db.VarChar(64) // Client seed used
-
-  // Seed usage stats (aggregated across ALL game types)
+  id               String           @id @default(uuid())
+  userUsername     String
+  serverSeed       String           @db.VarChar(128)
+  serverSeedHash   String           @db.VarChar(64)
+  clientSeed       String           @db.VarChar(64)
   totalGamesPlayed Int
-  firstNonce       Int // First nonce used with this seed
-  lastNonce        Int // Last nonce used with this seed
-
-  // Timestamps
-  seedActivatedAt DateTime
-  seedRotatedAt   DateTime @default(now())
-
-  // Why was it rotated?
-  rotationType   SeedRotationType
-  rotationReason String?          @db.Text
-
-  // Relations
-  user       User      @relation("SeedRotationHistory", fields: [userUsername], references: [username], onDelete: Cascade)
-  userSeed   UserSeed? @relation(fields: [userSeedId], references: [id], onDelete: SetNull)
-  userSeedId String?
-
-  // Games played with this seed pair
-  gameHistory GameHistory[]
+  seedActivatedAt  DateTime
+  seedRotatedAt    DateTime         @default(now())
+  rotationType     SeedRotationType
+  rotationReason   String?
+  userSeedId       String?
+  firstNonce       Int
+  lastNonce        Int
+  gameHistory      GameHistory[]
+  userSeed         UserSeed?        @relation(fields: [userSeedId], references: [id])
+  user             User             @relation("SeedRotationHistory", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
   @@index([userUsername, seedRotatedAt(sort: Desc)])
-  @@index([serverSeedHash]) // For quick lookup
+  @@index([serverSeedHash])
 }
 
-// ============================================
-// GLOBAL GAME HISTORY TABLE
-// ============================================
-
 model GameHistory {
-  id           String          @id @default(uuid())
-  userUsername String
-  gameId       String          @unique
-  gameType     GameType
-
-  // Provably fair data - CRITICAL for verification
-  seedRotationHistoryId String? // Link to seed rotation (null if seed not rotated yet)
-  serverSeedHash        String  @db.VarChar(64) // Hash used (ALWAYS visible)
-  clientSeed            String  @db.VarChar(64) // Client seed used
-  nonce                 Int // Game number in seed pair
-
-  // Game-specific data stored as JSON
-  gameConfig Json // Game configuration (mines count, grid size, etc.)
-  gameData   Json // Game play data (revealed tiles, positions, etc.)
-
-  // Financial data
-  betAmount       Decimal @db.Decimal(10, 2)
-  finalMultiplier Decimal @db.Decimal(10, 4)
-  payout          Decimal @db.Decimal(10, 2)
-  profit          Decimal @db.Decimal(10, 2)
-
-  outcome GameOutcome
-
-  // Timestamps
-  startedAt   DateTime  @default(now())
-  completedAt DateTime?
-  duration    Int? // Duration in seconds
-
-  // Relations
-  user                User                 @relation("GameHistory", fields: [userUsername], references: [username], onDelete: Cascade)
-  seedRotationHistory SeedRotationHistory? @relation(fields: [seedRotationHistoryId], references: [id], onDelete: SetNull)
+  id                    String               @id @default(uuid())
+  userUsername          String
+  gameId                String               @unique
+  seedRotationHistoryId String?
+  serverSeedHash        String               @db.VarChar(64)
+  clientSeed            String               @db.VarChar(64)
+  nonce                 Int
+  gameConfig            Json
+  gameData              Json
+  betAmount             Decimal              @db.Decimal(10, 2)
+  finalMultiplier       Decimal              @db.Decimal(10, 4)
+  payout                Decimal              @db.Decimal(10, 2)
+  profit                Decimal              @db.Decimal(10, 2)
+  outcome               GameOutcome
+  startedAt             DateTime             @default(now())
+  completedAt           DateTime?
+  duration              Int?
+  gameType              GameType
+  seedRotationHistory   SeedRotationHistory? @relation(fields: [seedRotationHistoryId], references: [id])
+  user                  User                 @relation("GameHistory", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
   @@index([userUsername, startedAt(sort: Desc)])
   @@index([gameType])
   @@index([outcome])
   @@index([nonce])
-  @@index([serverSeedHash]) // For finding games by seed hash
-  @@index([seedRotationHistoryId]) // For finding games by seed rotation
+  @@index([serverSeedHash])
+  @@index([seedRotationHistoryId])
 }
 
-// ============================================
-// USER RELATIONS UPDATE
-// ============================================
-
-// Add to User model:
-// gameHistory GameHistory[] @relation("GameHistory")
-
-// ============================================
-// AGGREGATE STATISTICS
-// ============================================
-
 model UserGameStatistics {
-  id           String          @id @default(uuid())
-  userUsername String
-  gameType     GameType
-
-  // Volume stats
-  totalGames   Int     @default(0)
-  totalWagered Decimal @default(0) @db.Decimal(12, 2)
-  totalPayout  Decimal @default(0) @db.Decimal(12, 2)
-  totalProfit  Decimal @default(0) @db.Decimal(12, 2) // Can be negative
-
-  // Win/Loss tracking
-  gamesWon       Int @default(0)
-  gamesLost      Int @default(0)
-  gamesCashedOut Int @default(0)
-
-  // Records
-  biggestWin        Decimal @default(0) @db.Decimal(10, 2)
-  biggestLoss       Decimal @default(0) @db.Decimal(10, 2)
-  highestMultiplier Decimal @default(0) @db.Decimal(10, 4)
-  longestWinStreak  Int     @default(0)
-  longestLossStreak Int     @default(0)
-  currentStreak     Int     @default(0) // Positive = win, negative = loss
-
-  // Timestamps
-  firstGameAt DateTime?
-  lastGameAt  DateTime?
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  user User @relation("UserGameStats", fields: [userUsername], references: [username], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  userUsername      String
+  totalGames        Int       @default(0)
+  totalWagered      Decimal   @default(0) @db.Decimal(12, 2)
+  totalPayout       Decimal   @default(0) @db.Decimal(12, 2)
+  totalProfit       Decimal   @default(0) @db.Decimal(12, 2)
+  gamesWon          Int       @default(0)
+  gamesLost         Int       @default(0)
+  gamesCashedOut    Int       @default(0)
+  biggestWin        Decimal   @default(0) @db.Decimal(10, 2)
+  biggestLoss       Decimal   @default(0) @db.Decimal(10, 2)
+  highestMultiplier Decimal   @default(0) @db.Decimal(10, 4)
+  longestWinStreak  Int       @default(0)
+  longestLossStreak Int       @default(0)
+  currentStreak     Int       @default(0)
+  firstGameAt       DateTime?
+  lastGameAt        DateTime?
+  updatedAt         DateTime  @updatedAt
+  gameType          GameType
+  user              User      @relation("UserGameStats", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@unique([userUsername, gameType])
   @@index([userUsername])
@@ -794,13 +687,9 @@ model UserGameStatistics {
   @@index([totalWagered(sort: Desc)])
 }
 
-// ============================================
-// ENUMS
-// ============================================
-
 enum GameType {
-  MINES
   CRASH
+  MINES
 }
 
 enum GameOutcome {
@@ -812,14 +701,12 @@ enum GameOutcome {
 }
 
 enum SeedRotationType {
-  MANUAL // User requested rotation
-  AUTOMATIC // Auto-rotated after max games
-  CLIENT_SEED_CHANGE // User changed client seed
-  SYSTEM // System maintenance
-  ADMIN // Admin forced rotation
+  MANUAL
+  AUTOMATIC
+  CLIENT_SEED_CHANGE
+  SYSTEM
+  ADMIN
 }
-
-
 
 enum KinguinCodeStatus {
   UNUSED

@@ -1,4 +1,4 @@
-import { Body, Controller, Get } from "@nestjs/common";
+import { Body, Get, Query } from "@nestjs/common";
 import { InternalController } from "src/private/decorator/InternalController.decorator";
 import { SharedBalanceService } from "src/shared/user/balance/shared-balance.service";
 import { GetUserClientSeedDto } from "./dto/get-user-balance.dto";
@@ -9,7 +9,7 @@ export class PrivateBalanceController {
     constructor(private readonly sharedBalanceService: SharedBalanceService) {}
 
     @Get('get')
-    getUserBalance(@Body() data: GetUserClientSeedDto): Promise<number> {
+    getUserBalance(@Query() data: GetUserClientSeedDto): Promise<number> {
         return this.sharedBalanceService.getUserBalance(data.username);
     }
 }

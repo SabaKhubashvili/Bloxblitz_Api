@@ -5,6 +5,7 @@ import { PrivateUserInventoryModule } from './user/inventory/privateUserInventor
 import { BetHistoryModule } from './user/bet-history/private-bet-history.module';
 import { PrivateBalanceModule } from './user/balance/private-balance.module';
 import { PrivateUserStatisticsModule } from './user/statistics/PrivateUserStatistics.module';
+import { PrivateGamesModule } from './games/PrivateGames.module';
 
 @Module({
   imports: [
@@ -13,7 +14,9 @@ import { PrivateUserStatisticsModule } from './user/statistics/PrivateUserStatis
     PrivateUserInventoryModule,
     BetHistoryModule,
     PrivateBalanceModule,
-    PrivateUserStatisticsModule
+    PrivateUserStatisticsModule,
+
+    PrivateGamesModule
   ],
 })
 export class PrivateModule {}

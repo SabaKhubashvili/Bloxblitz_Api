@@ -3,7 +3,7 @@ import { InternalController } from 'src/private/decorator/InternalController.dec
 import { PrivateUserInventoryService } from './privateUserInventory.service';
 import { GetInventoryDto } from './dto/get-inventory.dto';
 import { SeedManagementService } from 'src/public/games/seed-managment/seed-managment.service';
-import { UpdateItemStateDto } from './dto/update-item-state';
+import { UpdateItemStateDto } from './dto/update-item-state.dto';
 import { GiveItemsDto } from './dto/give-items.dto';
 import { ResolveCoinflipItemsDto } from './dto/resolve-coinflip-items.dto';
 
@@ -12,13 +12,12 @@ export class PrivateUserInventoryController {
   constructor(
     private readonly privateUserInventoryService: PrivateUserInventoryService,
     private readonly seedService: SeedManagementService,
-  ) { }
+  ) {}
 
   @Post('/get')
   async getInventory(@Body() dto: GetInventoryDto) {
     const inventory = await this.privateUserInventoryService.getUserInventory(
-      dto.username,
-      dto.itemIds,
+      dto
     );
     return {
       inventory: inventory,
@@ -39,8 +38,7 @@ export class PrivateUserInventoryController {
     try {
       const seed = await this.seedService.getUserSeed(dto.username);
       const inventory = await this.privateUserInventoryService.getUserInventory(
-        dto.username,
-        dto.itemIds,
+        { username: dto.username, itemIds: dto.itemIds },
       );
       return {
         client_seed: seed.activeClientSeed,
@@ -53,9 +51,9 @@ export class PrivateUserInventoryController {
   @Post('/update-item-state')
   async updateItemState(@Body() dto: UpdateItemStateDto) {
     return this.privateUserInventoryService.updateItemState(
-      dto.username,
-      dto.itemId,
+      dto.itemIds,
       dto.newState,
+      dto.username,
     );
   }
   @Post('/give-items')

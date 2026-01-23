@@ -6,19 +6,20 @@ import {
   MaxLength,
   Min,
   IsIn,
+  IsOptional,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateItemStateDto {
   @IsString()
-  @IsNotEmpty()
   @MaxLength(32)
   @Transform(({ value }) => value.trim())
-  username: string;
+  @IsOptional()
+  username?: string;
 
-  @IsInt()
-  @Min(1)
-  itemId: number;
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  itemIds: number[];
 
   @IsString()
   @IsIn(['IDLE', 'BATTLING'])

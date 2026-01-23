@@ -46,8 +46,8 @@ export class BalanceSyncWorker {
 
   private async executeSyncBatch(): Promise<number> {
     // 1️⃣ Get all dirty usernames (single Redis call)
-    const dirtyUsernames = await this.redis.smembers('balance:dirty');
-
+    const dirtyUsernames = await this.redis.smembers('user:balance:dirty');
+    this.logger.log(`Found ${dirtyUsernames.length} dirty balances to sync`);
     if (dirtyUsernames.length === 0) {
       return 0;
     }
@@ -92,7 +92,7 @@ export class BalanceSyncWorker {
 
     // 4️⃣ Remove invalid users from dirty set immediately
     if (invalidUsers.length > 0) {
-      await this.redis.srem('balance:dirty', ...invalidUsers);
+      await this.redis.srem('user:balance:dirty', ...invalidUsers);
     }
 
     if (validUpdates.length === 0) {
@@ -109,7 +109,7 @@ export class BalanceSyncWorker {
       if (success) {
         totalSynced += batch.length;
         // Remove from dirty set only after successful sync
-        await this.redis.srem('balance:dirty', ...batch.map((u) => u.username));
+        await this.redis.srem('user:balance:dirty', ...batch.map((u) => u.username));
       }
     }
 
@@ -184,7 +184,7 @@ export class BalanceSyncWorker {
     pendingSyncs: number;
     isSyncing: boolean;
   }> {
-    const pendingSyncs = await this.redis.scard('balance:dirty');
+    const pendingSyncs = await this.redis.scard('user:balance:dirty');
     return {
       pendingSyncs,
       isSyncing: this.isSyncing,

@@ -11,12 +11,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,
-      connect_timeout: 5000, // optional
+      connect_timeout: 5000,
     });
 
-    super({ adapter, 
+    super({
+      adapter,
 
-      // log: ['query', 'error', 'warn'] 
+      log: ['query', 'error', 'warn']
     });
   }
 

@@ -1,18 +1,25 @@
 import { PrismaService } from 'src/prisma/prisma.service';
+import { GetInventoryDto } from './dto/get-inventory.dto';
+import { Injectable } from '@nestjs/common';
 
+
+@Injectable()
 export class PrivateUserInventoryService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
 
-  getUserInventory(username: string, itemIds: number[]) {
+  getUserInventory(data:GetInventoryDto) {
     return this.prismaService.userInventoryAmp.findMany({
       where: {
-        userUsername: username,
-        id: { in: itemIds },
-        state: 'IDLE',
+        userUsername: data.username,
+        id: { in: data.itemIds },
+        state: data.state || 'IDLE',
         Bot: {
           active: true,
           banned: false,
         },
+        value:{
+          gte: data.valueGte || 0,
+        }
       },
       select: {
         id: true,
@@ -53,16 +60,18 @@ export class PrivateUserInventoryService {
     });
   } 
   async updateItemState(
-    username: string,
-    itemId: number,
+    itemId: number[],
     newState: 'IDLE' | 'BATTLING',
+    username?: string,
   ) {
     await this.prismaService.userInventoryAmp.updateMany({
       where: {
         userUsername: username,
-        id: itemId,
+        id: {
+          in: itemId,
+        },
       },
-      data: { state: newState },
+      data: { state: newState, updatedAt: new Date(), },
     });
   }
   async giveItemsToUser(username: string, itemIds: number[]) {
@@ -75,6 +84,7 @@ export class PrivateUserInventoryService {
       data: {
         userUsername: username,
         state: 'IDLE',
+        updatedAt: new Date(),
       },
     });
   }
@@ -137,5 +147,6 @@ export class PrivateUserInventoryService {
         OR (id = ANY(${houseItems}::int[]) AND "userUsername" = ${loser.username});
     `;
   }
+
 
 }

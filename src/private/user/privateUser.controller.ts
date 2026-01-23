@@ -12,7 +12,12 @@ export class PrivateUserController {
     return this.privateUserService.getUserRole(dto.username);
   }
   @Get('info')
-  getUserInfoByUsername(@Body() dto: { username: string }) {
+  getUserInfoByUsername(@Body() dto: getUserRoleDto) {
     return this.privateUserService.getUserInfoByUsername(dto.username);
   }
+  @Get('last-login-ip')
+  getUserLastLoginIp(@Body() dto: getUserRoleDto) {
+    return this.privateUserService.getUserLastLoginIp(dto.username);
+  }
+  
 }

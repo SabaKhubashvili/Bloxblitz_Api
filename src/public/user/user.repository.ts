@@ -71,7 +71,7 @@ export class UserRepository {
     );
 
     // Mark as dirty for sync worker
-    await this.redis.sadd('balance:dirty', username);
+    await this.redis.sadd('user:balance:dirty', username);
 
     // Safety check - shouldn't happen if validation is correct
     if (parseFloat(newBalance) < 0) {
@@ -87,7 +87,7 @@ export class UserRepository {
     await this.redis.incrByFloat(`user:balance:${username}`, amount);
     
     // Mark as dirty for sync worker
-    await this.redis.sadd('balance:dirty', username);
+    await this.redis.sadd('user:balance:dirty', username);
   }
 
   /* ========== REAL MONEY OPERATIONS (DB-FIRST) ========== */
@@ -110,7 +110,7 @@ export class UserRepository {
     );
 
     // 3. Remove from dirty set (DB already has correct value)
-    await this.redis.srem('balance:dirty', username);
+    await this.redis.srem('user:balance:dirty', username);
 
     return updatedUser.balance.toNumber();
   }
@@ -141,7 +141,7 @@ export class UserRepository {
     await this.redis.set(`user:balance:${username}`, -(Math.round(newBalance * 100) / 100));
     
     // Remove from dirty set (DB already updated)
-    await this.redis.srem('balance:dirty', username);
+    await this.redis.srem('user:balance:dirty', username);
 
     return newBalance;
   }

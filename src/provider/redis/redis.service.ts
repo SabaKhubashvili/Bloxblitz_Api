@@ -423,7 +423,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     redis.call('EXPIRE', 'user:mines:active:' .. username, 3600)
     
     -- 8. Mark balance as dirty for DB sync (async)
-    redis.call('SADD', 'balance:dirty', username)
+    redis.call('SADD', 'user:balance:dirty', username)
     
     return {1, nonce, newBalance}
   `;
@@ -543,7 +543,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
      await this.mainClient
         .multi()
         .incrByFloat(`user:balance:${username}`, amount)
-        .sAdd('balance:dirty', username)
+        .sAdd('user:balance:dirty', username)
         .exec();
 
     } catch (err) {

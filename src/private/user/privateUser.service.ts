@@ -160,4 +160,16 @@ export class PrivateUserService {
 
     return alts;
   }
+  async getUserLastLoginIp(username: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { username },
+      select: { last_login_ip: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return { username, lastLoginIp: user.last_login_ip };
+  }
 }

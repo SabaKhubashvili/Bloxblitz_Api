@@ -27,7 +27,7 @@ export const RedisKeys = {
     balance: {
       user: (username: string) => `user:balance:${username}`,
 
-      dirty: (username: string) => `user:balance:dirty:${username}`,
+      dirty: (username: string) => `user:balance:dirty`,
       syncQueue: () => `user:balance:sync:queue`,
     },
 
