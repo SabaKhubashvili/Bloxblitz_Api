@@ -33,7 +33,7 @@ export const RedisKeys = {
 
     // ────────────── GAMES ─────────────── //
     games: {
-      active: (username: string) => `user:games:active:${username}`,
+      active: (username: string) => `user:games:active:${username}:list`,
     },
   },
 
@@ -100,5 +100,13 @@ export const RedisKeys = {
   rain: {
     getState: () => `rain:state`,
     setState: () => `rain:state`,
+  },
+
+  /* ─────────────── GIVEAWAY ─────────────── */
+  giveaway: {
+    getState: () => `giveaway:state`,
+    setState: () => `giveaway:state`,
+    userJoined: (username: string) =>
+      `user:${username}:joined_giveaways`,
   },
 } as const;

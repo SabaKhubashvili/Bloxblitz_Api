@@ -10,16 +10,51 @@ import type { RedisArgument, RedisClientType } from 'redis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-   mainClient: RedisClientType;
-  
-  async onModuleInit() {
+  mainClient: RedisClientType;
+  private connecting = false;
+
+  onModuleInit() {
+    
     this.mainClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: process.env.REDIS_URL,
+      socket: {
+        reconnectStrategy: (retries) => {
+          this.logger.warn(`🔁 Redis reconnect attempt #${retries}`);
+          return Math.min(retries * 100, 3000);
+        },
+      },
     });
 
-    this.mainClient.on('error', (err) => this.logger.error('Redis error', err));
-    await this.mainClient.connect();
-    this.logger.log('✅ Redis connected');
+    this.mainClient.on('error', (err) =>
+      this.logger.error('❌ Redis error', err),
+    );
+
+    this.mainClient.on('ready', () => {
+      this.logger.log('✅ Redis ready');
+    });
+
+    this.mainClient.on('end', () => {
+      this.logger.warn('⚠️ Redis disconnected');
+    });
+
+    this.connectInBackground();
+  }
+
+  private async connectInBackground() {
+    if (this.connecting) return;
+    this.connecting = true;
+
+    while (true) {
+      try {
+        if (!this.mainClient.isOpen) {
+          await this.mainClient.connect();
+        }
+        return;
+      } catch (err) {
+        this.logger.error('⚠️ Redis connection failed, retrying...', err);
+        await new Promise((res) => setTimeout(res, 2000));
+      }
+    }
   }
 
   async onModuleDestroy() {
@@ -540,12 +575,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async incrementBalance(username: string, amount: number): Promise<void> {
     try {
-     await this.mainClient
+      await this.mainClient
         .multi()
         .incrByFloat(`user:balance:${username}`, amount)
         .sAdd('user:balance:dirty', username)
         .exec();
-
     } catch (err) {
       this.logger.error('Increment balance failed', err);
     }
@@ -576,16 +610,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Remove active game marker
-   */
-  async removeActiveGame(username: string): Promise<void> {
-    try {
-      await this.mainClient.del(`user:${username}:active_game`);
-    } catch (err) {
-      this.logger.error('Remove active game failed', err);
-    }
-  }
+ 
 
   /**
    * Pop from queue (blocking)

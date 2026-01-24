@@ -1,6 +1,7 @@
 import { RedisService } from 'src/provider/redis/redis.service';
 import { MinesGame } from '../types/mines.types';
 import { Injectable } from '@nestjs/common';
+import { RedisKeys } from 'src/provider/redis/redis.keys';
 
 @Injectable()
 export class MinesRepository {
@@ -8,11 +9,13 @@ export class MinesRepository {
 
   /* ---------------- FAST PATH ---------------- */
   async getGame(id: string): Promise<MinesGame | null> {
-    return this.redis.get<MinesGame>(`mines:${id}`);
+    return this.redis.get<MinesGame>(RedisKeys.mines.game(id));
   }
 
   async getUserActiveGame(username: string): Promise<MinesGame | null> {
-    const gameId = await this.redis.get<string>(`user:mines:active:${username}`);
+    const gameId = await this.redis.get<string>(
+      `user:mines:active:${username}`,
+    );
     if (!gameId) return null;
     return this.getGame(gameId);
   }
@@ -25,13 +28,13 @@ export class MinesRepository {
     await this.redis
       .getClient()
       .multi()
-      .del(`mines:${gameId}`)
+      .del(RedisKeys.mines.game(gameId))
       .del(`user:mines:active:${username}`)
       .exec();
   }
 
   async lockGameTile(gameId: string, tile: string) {
-    return this.redis.lock(`lock:mines:${gameId}:${tile}`, 10_000);
+    return this.redis.lock(`lock:${RedisKeys.lock.mines(gameId)}:${tile}`, 10_000);
   }
 
   /* ---------------- UPDATE METHODS ---------------- */
@@ -43,12 +46,30 @@ export class MinesRepository {
   async updateGame(
     gameId: string,
     updates: Partial<MinesGame>,
+    gameData?: any,
   ): Promise<boolean> {
-    const game = await this.getGame(gameId);
-    if (!game) return false;
+    const key = RedisKeys.mines.game(gameId);
 
-    const updatedGame = { ...game, ...updates };
-    await this.redis.set(`mines:${gameId}`, updatedGame);
+    // Fast path — single SET, 1 RTT
+    if (gameData) {
+      await this.redis.mainClient.set(
+        key,
+        JSON.stringify({ ...gameData, ...updates }),
+      );
+      return true;
+    }
+
+    // Slow path — must fetch first
+    const raw = await this.redis.mainClient.get(key);
+    if (!raw) return false;
+
+    const game: MinesGame = JSON.parse(raw);
+
+    await this.redis.mainClient.set(
+      key,
+      JSON.stringify({ ...game, ...updates }),
+    );
+
     return true;
   }
 
@@ -61,7 +82,7 @@ export class MinesRepository {
     updates: Record<string, any>,
   ): Promise<boolean> {
     const client = this.redis.getClient();
-    const key = `mines:${gameId}`;
+    const key = RedisKeys.mines.game(gameId);
 
     // Check if game exists
     const exists = await client.exists(key);
@@ -69,7 +90,7 @@ export class MinesRepository {
 
     // Update multiple fields using HSET
     const updatePromises = Object.entries(updates).map(([field, value]) =>
-      client.hSet(key, field, JSON.stringify(value))
+      client.hSet(key, field, JSON.stringify(value)),
     );
 
     await Promise.all(updatePromises);
@@ -82,7 +103,7 @@ export class MinesRepository {
     updates: Partial<MinesGame>,
   ): Promise<boolean> {
     return this.redis.atomicUpdateIfMatch(
-      `mines:${gameId}`,
+      RedisKeys.mines.game(gameId),
       'active',
       true,
       updates as Record<string, any>,
@@ -95,7 +116,7 @@ export class MinesRepository {
     updates: Partial<MinesGame>,
   ): Promise<boolean> {
     return this.redis.atomicUpdateIfMultiMatch(
-      `mines:${gameId}`,
+      RedisKeys.mines.game(gameId),
       { active: true, revealedMask: expectedMask },
       updates as Record<string, any>,
     );
@@ -108,7 +129,7 @@ export class MinesRepository {
     updates: Partial<MinesGame>,
   ): Promise<boolean> {
     return this.redis.atomicRevealTile(
-      `mines:${gameId}`,
+      RedisKeys.mines.game(gameId),
       tileBit,
       tileIndex,
       updates as Record<string, any>,

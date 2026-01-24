@@ -47,7 +47,6 @@ export class BalanceSyncWorker {
   private async executeSyncBatch(): Promise<number> {
     // 1️⃣ Get all dirty usernames (single Redis call)
     const dirtyUsernames = await this.redis.smembers('user:balance:dirty');
-    this.logger.log(`Found ${dirtyUsernames.length} dirty balances to sync`);
     if (dirtyUsernames.length === 0) {
       return 0;
     }
