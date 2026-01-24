@@ -8,7 +8,7 @@ export const allowedOrigins = [
   'https://bloxblitz.com',
   'http://localhost:3000',
   'http://localhost',
-  "https://2185de2e62fd.ngrok-free.app"
+  "https://v2-testing-phase.bloxblitz.com"
 ];
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
