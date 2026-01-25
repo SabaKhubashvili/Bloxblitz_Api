@@ -25,10 +25,9 @@ export class JwtOptionalGuard implements CanActivate {
       .switchToHttp()
       .getRequest<OptionalAuthenticatedRequest>();
     const authHeader = req.headers['authorization'];
-
-    if (!authHeader)
-      throw new UnauthorizedException('Missing Authorization header');
-
+    if (!authHeader) {
+      return true;
+    }
     const [type, token] = authHeader.split(' ');
     if (token) {
       try {

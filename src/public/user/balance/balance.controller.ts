@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { BalanceService } from './balance.service';
 import { RedeemKinguinDto } from './dto/redeem-kinguin.dto';
 import { JwtAuthGuard, type AuthenticatedRequest } from 'src/middleware/jwt.middleware';
@@ -15,5 +15,10 @@ export class BalanceController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.balanceService.redeemKinguinCode(req.user.username, dto.code);
+  }
+  @Get('get')
+  @UseGuards(JwtAuthGuard)
+  async getBalance(@Req() req: AuthenticatedRequest) {
+    return this.balanceService.getBalance(req.user.username);
   }
 }

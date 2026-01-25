@@ -3,16 +3,37 @@ import { MinesGame } from '../types/mines.types';
 
 @Injectable()
 export class MinesValidationService {
-  validateGameParams(betAmount: number, mines: number, size: number): void {
+  validateGameParams(
+    rawBetAmount: string | number,
+    mines: number,
+    size: number,
+  ): void {
+    // Convert to string and trim
+    const betAmountStr = String(rawBetAmount).trim();
+
+    // Match numbers with up to 2 decimals: optional digits, optional decimal + 1-2 digits
+    const validNumberRegex = /^\d+(\.\d{1,2})?$/;
+
+    if (!validNumberRegex.test(betAmountStr)) {
+      throw new BadRequestException(
+        'Bet amount must be a number with at most 2 decimal places',
+      );
+    }
+
+    const betAmount = Number(betAmountStr);
     if (betAmount <= 0) {
       throw new BadRequestException('Bet amount must be positive');
     }
+
     if (mines <= 0 || mines >= size) {
       throw new BadRequestException(`Mines must be between 1 and ${size - 1}`);
     }
   }
 
-  validateGameAccess(game: MinesGame | null, username: string): asserts game is MinesGame {
+  validateGameAccess(
+    game: MinesGame | null,
+    username: string,
+  ): asserts game is MinesGame {
     if (!game) {
       throw new BadRequestException('Game not found');
     }
@@ -26,7 +47,9 @@ export class MinesValidationService {
 
   validateTileReveal(game: MinesGame, tile: number): void {
     if (tile < 0 || tile >= game.grid) {
-      throw new BadRequestException(`Invalid tile index. Must be 0-${game.grid - 1}`);
+      throw new BadRequestException(
+        `Invalid tile index. Must be 0-${game.grid - 1}`,
+      );
     }
 
     const bit = 1 << tile;
@@ -37,7 +60,9 @@ export class MinesValidationService {
 
   validateCashout(game: MinesGame): void {
     if (this.countBits(game.revealedMask) === 0) {
-      throw new BadRequestException('Must reveal at least one tile before cashing out');
+      throw new BadRequestException(
+        'Must reveal at least one tile before cashing out',
+      );
     }
   }
 

@@ -175,7 +175,6 @@ export class MinesGameFactory {
     }
   }
 
-
   private async executeGameCreationLua(
     username: string,
     gameId: string,
@@ -245,17 +244,19 @@ export class MinesGameFactory {
 
     
     -- 6. Deduct balance using INCRBYFLOAT for decimal precision
-    -- This handles both integer and decimal amounts properly
-    local newBalance = redis.call('INCRBYFLOAT', balanceKey, '-' .. betAmount)
-     redis.call('SADD', 'user:balance:dirty', username)
-    
-    -- Verify the deduction worked
-    if tonumber(newBalance) < 0 then
-      -- Rollback: increment nonce back and restore balance
-      redis.call('DECR', nonceKey)
-      redis.call('INCRBYFLOAT', balanceKey, betAmount)
-      return cjson.encode({error = 'BALANCE_DEDUCTION_FAILED'})
-    end
+    local currentBalance = tonumber(redis.call('GET', balanceKey)) or 0
+    local newBalance = currentBalance - tonumber(betAmount)
+    newBalance = tonumber(string.format("%.2f", newBalance))
+    if newBalance < 0 then
+    -- Rollback: increment nonce back
+    redis.call('DECR', nonceKey)
+    return cjson.encode({error = 'BALANCE_DEDUCTION_FAILED'})
+end
+
+    redis.call('SET', balanceKey, newBalance)
+
+-- Mark user balance as dirty
+redis.call('SADD', 'user:balance:dirty', username)
     
     -- 7. Create game placeholder
     redis.call('SET', gameKey, 'CREATING', 'EX', 3600)
@@ -287,7 +288,12 @@ export class MinesGameFactory {
           RedisKeys.user.games.active(username),
           `user:mines:active:${username}`,
         ],
-        arguments: [betAmount.toString(), gameId, this.CACHE_TTL.toString(), username],
+        arguments: [
+          betAmount.toString(),
+          gameId,
+          this.CACHE_TTL.toString(),
+          username,
+        ],
       });
 
       const parsed = JSON.parse(result as string);

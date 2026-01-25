@@ -94,7 +94,7 @@ export class MinesGameService {
         const completedAt = new Date();
         const payout = outcome === 'WON' ? game.betAmount * multiplier : 0;
         const profit = payout - game.betAmount;
-        await this.persistence.updateGame(game.betId, game, {
+        this.persistence.updateGame(game.betId, game, {
           outcome,
           multiplier,
           completedAt,

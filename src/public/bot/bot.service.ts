@@ -14,11 +14,17 @@ import {
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DiscordNotificationService } from 'src/utils/discord_webhook.util';
+import { RedisService } from 'src/provider/redis/redis.service';
+import { RedisKeys } from 'src/provider/redis/redis.keys';
 
 @Injectable()
 export class BotService {
   private logger: Logger = new Logger(BotService.name);
-  constructor(private prisma: PrismaService, private readonly discordWebhookService: DiscordNotificationService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly discordWebhookService: DiscordNotificationService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getWithdrawingItems(username: string, ownerBotId: number) {
     this.logger.debug(
@@ -67,121 +73,127 @@ export class BotService {
 
     return items || [];
   }
-async processDeposit(data: SucesfullDepositDTO) {
-  this.logger.debug(
-    `Processing deposit for user: ${data.username}, botId: ${data.ownerBotId}`,
-  );
-
-  const user = await this.prisma.user.findFirst({
-    where: { username: { equals: data.username, mode: 'insensitive' } },
-    select: { username: true },
-  });
-
-  if (!user) {
-    this.logger.error(
-      JSON.stringify({
-        message: 'Deposit failed - User not found',
-        username: data.username,
-        ownerBotId: data.ownerBotId,
-      }),
+  async processDeposit(data: SucesfullDepositDTO) {
+    this.logger.debug(
+      `Processing deposit for user: ${data.username}, botId: ${data.ownerBotId}`,
     );
-    throw new UnauthorizedException();
-  }
 
-  // ✅ Fetch all pets in ONE query
-  const inGameNames = data.pets.map((p) => p.inGameName);
-  const petsDb = await this.prisma.pets.findMany({
-    where: { inGameName: { in: inGameNames } }
-  });
+    const user = await this.prisma.user.findFirst({
+      where: { username: { equals: data.username, mode: 'insensitive' } },
+      select: { username: true },
+    });
 
-  const petsMap = new Map(petsDb.map((p) => [p.inGameName, p]));
-
-  const processedPets = data.pets.map((petData) => {
-    const pet = petsMap.get(petData.inGameName);
-    if (!pet) {
+    if (!user) {
       this.logger.error(
         JSON.stringify({
-          message: 'Pet not found in database during deposit',
-          petName: petData.name,
-          inGameName: petData.inGameName,
-          owner_bot_id: data.ownerBotId,
-          inGameId: petData.petInGameId,
+          message: 'Deposit failed - User not found',
           username: data.username,
+          ownerBotId: data.ownerBotId,
         }),
       );
-      return null;
+      throw new UnauthorizedException();
     }
 
-    const value = this.calculatePetValue(pet, {
-      isMega: petData.is_mega,
-      isNeon: petData.is_neon,
-      isFlyable: petData.is_flyable,
-      isRideable: petData.is_rideable,
+    // ✅ Fetch all pets in ONE query
+    const inGameNames = data.pets.map((p) => p.inGameName);
+    const petsDb = await this.prisma.pets.findMany({
+      where: { inGameName: { in: inGameNames } },
     });
 
-    const petVariant: Variant[] = [];
-    if (petData.is_mega) petVariant.push(Variant.M);
-    else if (petData.is_neon) petVariant.push(Variant.N);
-    if (petData.is_rideable) petVariant.push(Variant.R);
-    if (petData.is_flyable) petVariant.push(Variant.F);
+    const petsMap = new Map(petsDb.map((p) => [p.inGameName, p]));
 
-    return {
-      petId: pet.id,
-      name: pet.name, // ✅ added
-      inGameName: pet.inGameName, // ✅ for webhook
-      value,
-      userUsername: user.username,
-      state: UserInventoryItemState.IDLE,
-      botTradeStatus: BotTradeStatus.NONE,
-      petInGameId: petData.petInGameId,
-      owner_bot_id: data.ownerBotId,
-      petVariant,
-      updatedAt: new Date(),
-    };
-  });
+    const processedPets = data.pets.map((petData) => {
+      const pet = petsMap.get(petData.inGameName);
+      if (!pet) {
+        this.logger.error(
+          JSON.stringify({
+            message: 'Pet not found in database during deposit',
+            petName: petData.name,
+            inGameName: petData.inGameName,
+            owner_bot_id: data.ownerBotId,
+            inGameId: petData.petInGameId,
+            username: data.username,
+          }),
+        );
+        return null;
+      }
 
-  const validPets = processedPets.filter((p) => p !== null);
+      const value = this.calculatePetValue(pet, {
+        isMega: petData.is_mega,
+        isNeon: petData.is_neon,
+        isFlyable: petData.is_flyable,
+        isRideable: petData.is_rideable,
+      });
 
-  if (validPets.length === 0) {
-    return { message: 'No valid pets found in deposit' };
-  }
-
-  try {
-    const result = await this.prisma.userInventoryAmp.createMany({
-      data: validPets.map(({ name, inGameName, ...rest }) => rest), 
-      skipDuplicates: true,
+      const petVariant: Variant[] = [];
+      if (petData.is_mega) petVariant.push(Variant.M);
+      else if (petData.is_neon) petVariant.push(Variant.N);
+      if (petData.is_rideable) petVariant.push(Variant.R);
+      if (petData.is_flyable) petVariant.push(Variant.F);
+      this.redis.del(RedisKeys.user.balance.value(data.username));
+      return {
+        petId: pet.id,
+        name: pet.name, // ✅ added
+        inGameName: pet.inGameName, // ✅ for webhook
+        value,
+        userUsername: user.username,
+        state: UserInventoryItemState.IDLE,
+        botTradeStatus: BotTradeStatus.NONE,
+        petInGameId: petData.petInGameId,
+        owner_bot_id: data.ownerBotId,
+        petVariant,
+        updatedAt: new Date(),
+      };
     });
-    
-    // ✅ Now validPets has names for Discord
-    this.discordWebhookService.sendUserDepositToWebhook(
-      data.ownerBotId,
-      data.username,
-      validPets,
-    );
 
-    this.logger.log(
-      JSON.stringify({
-        message: 'Deposit successful',
-        username: data.username,
-        petsCreated: result.count,
-        totalProcessed: validPets.length,
-        pets: validPets.map((p) => JSON.stringify({ name: p.name, petInGameId: p.petInGameId, owner_bot_id: p.owner_bot_id })),
-      }),
-    );
+    const validPets = processedPets.filter((p) => p !== null);
 
-    return { success: true, petsCreated: result.count };
-  } catch (error) {
-    this.logger.error(
-      JSON.stringify({
-        message: 'Error saving pets to inventory',
-        username: data.username,
-        error: error.message,
-        stack: error.stack,
-      }),
-    );
-    throw error;
+    if (validPets.length === 0) {
+      return { message: 'No valid pets found in deposit' };
+    }
+
+    try {
+      const result = await this.prisma.userInventoryAmp.createMany({
+        data: validPets.map(({ name, inGameName, ...rest }) => rest),
+        skipDuplicates: true,
+      });
+
+      // ✅ Now validPets has names for Discord
+      this.discordWebhookService.sendUserDepositToWebhook(
+        data.ownerBotId,
+        data.username,
+        validPets,
+      );
+
+      this.logger.log(
+        JSON.stringify({
+          message: 'Deposit successful',
+          username: data.username,
+          petsCreated: result.count,
+          totalProcessed: validPets.length,
+          pets: validPets.map((p) =>
+            JSON.stringify({
+              name: p.name,
+              petInGameId: p.petInGameId,
+              owner_bot_id: p.owner_bot_id,
+            }),
+          ),
+        }),
+      );
+
+      return { success: true, petsCreated: result.count };
+    } catch (error) {
+      this.logger.error(
+        JSON.stringify({
+          message: 'Error saving pets to inventory',
+          username: data.username,
+          error: error.message,
+          stack: error.stack,
+        }),
+      );
+      throw error;
+    }
   }
-}
 
   private calculatePetValue(
     pet: pets,
@@ -259,7 +271,7 @@ async processDeposit(data: SucesfullDepositDTO) {
         },
         select: {
           id: true,
-          petVariant:true,
+          petVariant: true,
           pet: {
             select: {
               name: true,
@@ -276,6 +288,7 @@ async processDeposit(data: SucesfullDepositDTO) {
         },
       });
 
+    this.redis.del(RedisKeys.user.balance.value(data.username));
       this.logger.log(
         JSON.stringify({
           message: 'Withdraw processed successfully',
@@ -299,12 +312,12 @@ async processDeposit(data: SucesfullDepositDTO) {
           }),
         );
       }
-        // ✅ Now validPets has names for Discord
-    this.discordWebhookService.sendUserWithdrawToWebhook(
-      data.ownerBotId,
-      data.username,
-      result.map((r)=>({name:r.pet.name,petVariant:r.petVariant})),
-    );
+      // ✅ Now validPets has names for Discord
+      this.discordWebhookService.sendUserWithdrawToWebhook(
+        data.ownerBotId,
+        data.username,
+        result.map((r) => ({ name: r.pet.name, petVariant: r.petVariant })),
+      );
 
       return result;
     } catch (error) {

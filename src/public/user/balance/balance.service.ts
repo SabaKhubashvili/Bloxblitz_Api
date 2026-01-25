@@ -57,4 +57,9 @@ export class BalanceService {
       );
     }
   }
+  async getBalance(username: string): Promise<{
+    balance: number; petValueBalance: number;
+  }> {
+    return this.provider.getUserBalance(username);
+  }
 }

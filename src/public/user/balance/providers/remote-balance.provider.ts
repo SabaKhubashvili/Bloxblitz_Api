@@ -8,12 +8,18 @@ import { UserRepository } from 'src/public/user/user.repository';
 export class RemoteBalanceProvider implements BalanceProvider {
   private readonly logger = new Logger(RemoteBalanceProvider.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userRepository: UserRepository,
+  ) {}
 
   /**
    * Checks if a Kinguin code is available for redemption
    */
-  async checkKinguinCodeAvailability(username: string, code: string): Promise<boolean> {
+  async checkKinguinCodeAvailability(
+    username: string,
+    code: string,
+  ): Promise<boolean> {
     try {
       this.logger.log(`Checking Kinguin code for user ${username}: ${code}`);
 
@@ -30,31 +36,39 @@ export class RemoteBalanceProvider implements BalanceProvider {
       if (!codeRecord) {
         this.logger.warn(`Invalid or already redeemed code: ${code}`);
         throw new BadRequestException(
-          'This Kinguin code is invalid or has already been redeemed.'
+          'This Kinguin code is invalid or has already been redeemed.',
         );
       }
 
       this.logger.log(`Kinguin code is valid: ${code}`);
       return true;
     } catch (error) {
-      this.logger.error(`Error checking Kinguin code for user ${username}`, error.stack);
+      this.logger.error(
+        `Error checking Kinguin code for user ${username}`,
+        error.stack,
+      );
       if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException('Failed to check Kinguin code. Try again later.');
+      throw new BadRequestException(
+        'Failed to check Kinguin code. Try again later.',
+      );
     }
   }
 
   /**
    * Redeem the code and increment user balance in a single transaction
    */
-async redeemKinguinCode(username: string, code: string): Promise<[number, number]> {
-  try {
-    this.logger.log(`Redeeming Kinguin code for user ${username}: ${code}`);
+  async redeemKinguinCode(
+    username: string,
+    code: string,
+  ): Promise<[number, number]> {
+    try {
+      this.logger.log(`Redeeming Kinguin code for user ${username}: ${code}`);
 
-    const result = await this.prisma.$transaction(async (prisma) => {
-      // Use raw SQL to select and lock the code row for update
-      const codeRecord = await prisma.$queryRaw<
-        { id: number; value: number }[]
-      >`
+      const result = await this.prisma.$transaction(async (prisma) => {
+        // Use raw SQL to select and lock the code row for update
+        const codeRecord = await prisma.$queryRaw<
+          { id: number; value: number }[]
+        >`
         SELECT id, value
         FROM "KinguinPromoCode"
         WHERE code = ${code} 
@@ -64,23 +78,25 @@ async redeemKinguinCode(username: string, code: string): Promise<[number, number
         FOR UPDATE
       `;
 
-      if (codeRecord.length === 0) {
-        this.logger.warn(`Code not valid or already redeemed: ${code}`);
-        throw new BadRequestException('Invalid or already redeemed code!');
-      }
+        if (codeRecord.length === 0) {
+          this.logger.warn(`Code not valid or already redeemed: ${code}`);
+          throw new BadRequestException('Invalid or already redeemed code!');
+        }
 
-      const { id: codeId, value: codeValue } = codeRecord[0];
+        const { id: codeId, value: codeValue } = codeRecord[0];
 
-      // Increment user balance using raw query
-      const updatedUser = await this.userRepository.processDeposit(username, codeValue);
-      
+        // Increment user balance using raw query
+        const updatedUser = await this.userRepository.processDeposit(
+          username,
+          codeValue,
+        );
 
-      if (!updatedUser) {
-        throw new BadRequestException('User not found while redeeming code.');
-      }
+        if (!updatedUser) {
+          throw new BadRequestException('User not found while redeeming code.');
+        }
 
-      // Mark code as redeemed
-      await prisma.$executeRaw`
+        // Mark code as redeemed
+        await prisma.$executeRaw`
         UPDATE "KinguinPromoCode"
         SET "isRedeemed" = true,
             "redeemedBy" = ${username},
@@ -89,29 +105,45 @@ async redeemKinguinCode(username: string, code: string): Promise<[number, number
         WHERE id = ${codeId}
       `;
 
-      await prisma.kinguinRedemptionLog.create({
-        data: {
-          codeId:codeId.toString(),
-          userUsername: username,
-          creditAmount: codeValue,
-          creditsAfter: updatedUser,
-          creditsBefore: updatedUser - codeValue,
-          userAgent: 'N/A',
-          ipAddress: 'N/A',
-          redeemedAt: new Date(),
-        },
+        await prisma.kinguinRedemptionLog.create({
+          data: {
+            codeId: codeId.toString(),
+            userUsername: username,
+            creditAmount: codeValue,
+            creditsAfter: updatedUser,
+            creditsBefore: updatedUser - codeValue,
+            userAgent: 'N/A',
+            ipAddress: 'N/A',
+            redeemedAt: new Date(),
+          },
+        });
+
+        return [updatedUser as number, codeValue] as [number, number];
       });
 
-      return [updatedUser as number, codeValue] as [number, number];
-    });
-
-    this.logger.log(`Code redeemed successfully for user ${username}: ${code}`);
-    return result;
-  } catch (error) {
-    this.logger.error(`Error redeeming Kinguin code for user ${username}`, error.stack);
-    if (error instanceof BadRequestException) throw error;
-    throw new BadRequestException('Failed to redeem Kinguin code. Try again later.');
+      this.logger.log(
+        `Code redeemed successfully for user ${username}: ${code}`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Error redeeming Kinguin code for user ${username}`,
+        error.stack,
+      );
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(
+        'Failed to redeem Kinguin code. Try again later.',
+      );
+    }
   }
-}
-
+  async getUserBalance(username: string): Promise<{
+    balance: number;
+    petValueBalance: number;
+  }> {
+    this.logger.log(`Fetching balance for user ${username}`);
+    const balance = await this.userRepository.getUserBalance(username);
+    const petValueBalance = await this.userRepository.getValueBalance(username);
+    this.logger.log(`Fetched balance for user ${username}: ${balance}`);
+    return { balance, petValueBalance };
+  }
 }

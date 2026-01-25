@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { RedisService } from 'src/provider/redis/redis.service';
 
 @Injectable()
@@ -51,15 +52,39 @@ export class UserRepository {
     const userBalance = await this.prisma.$queryRaw<{ balance: number }[]>`
       SELECT balance FROM "User" WHERE "username" = ${username}
     `;
-    
+
     const balance = userBalance[0]?.balance || 0;
-    
+
     // Populate Redis cache
     await this.redis.set(`user:balance:${username}`, balance.toFixed(2));
-    
+
     return balance;
   }
+  async getValueBalance(username: string): Promise<number> {
+    // Try Redis first
+    const cached = await this.redis.get(RedisKeys.user.balance.value(username));
+    if (cached !== null) {
+      return parseFloat(cached);
+    }
 
+    const petBalance = await this.prisma.$queryRaw<{ sum: string }[]>`
+  SELECT ROUND(CAST(SUM(value) AS numeric), 2) AS sum
+  FROM "UserInventory"
+  LEFT JOIN "Bot" ON "UserInventory".owner_bot_id = "Bot".id
+  WHERE "userUsername" = ${username}
+    AND "Bot".banned = false
+`;
+
+    const totalBalance = petBalance[0]?.sum || '0';
+    const totalBalanceNumber = parseFloat(totalBalance);
+    // Populate Redis cache
+    await this.redis.set(
+      RedisKeys.user.balance.value(username),
+      totalBalanceNumber.toFixed(2),
+    );
+
+    return totalBalanceNumber;
+  }
   /**
    * Decrement balance in Redis (for game bets)
    * Marks user as dirty for background sync to PostgreSQL
@@ -67,7 +92,7 @@ export class UserRepository {
   async decrementUserBalance(username: string, amount: number): Promise<void> {
     const newBalance = await this.redis.incrByFloat(
       `user:balance:${username}`,
-      -(Math.round(amount * 100) / 100)
+      -(Math.round(amount * 100) / 100),
     );
 
     // Mark as dirty for sync worker
@@ -85,7 +110,7 @@ export class UserRepository {
    */
   async incrementUserBalance(username: string, amount: number): Promise<void> {
     await this.redis.incrByFloat(`user:balance:${username}`, amount);
-    
+
     // Mark as dirty for sync worker
     await this.redis.sadd('user:balance:dirty', username);
   }
@@ -138,8 +163,11 @@ export class UserRepository {
     const newBalance = updatedUser[0].balance;
 
     // Update Redis cache
-    await this.redis.set(`user:balance:${username}`, -(Math.round(newBalance * 100) / 100));
-    
+    await this.redis.set(
+      `user:balance:${username}`,
+      -(Math.round(newBalance * 100) / 100),
+    );
+
     // Remove from dirty set (DB already updated)
     await this.redis.srem('user:balance:dirty', username);
 
