@@ -25,6 +25,7 @@ export class KinguinService {
   async generateNewKinguinCodes(
     balanceAmount: number,
     quantity: number,
+    offerId: string,
   ): Promise<{ totalGenerated: number; success: boolean; message: string }> {
     // 1️⃣ Generate all codes in memory
     const generatedCodes: {
@@ -58,7 +59,7 @@ export class KinguinService {
       }
 
       // 2. Sync with Kinguin
-      await this.kinguinApiProvider.createCodes(generatedCodes);
+      await this.kinguinApiProvider.createCodes(offerId,generatedCodes);
     } catch (error) {
       this.logger.error('Error generating or syncing Kinguin codes', error);
 

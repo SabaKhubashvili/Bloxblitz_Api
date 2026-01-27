@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { GameType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { RedisService } from 'src/provider/redis/redis.service';
@@ -192,5 +193,65 @@ export class UserRepository {
 
   async getAndIncrementNonce(username: string): Promise<number> {
     return this.redis.incr(`nonce:user:${username}`);
+  }
+
+  // ---------------- Mines Game
+  async incrementGameStats(
+    username: string,
+    betAmount: number,
+    multiplier: number,
+    gameType: GameType,
+    won: boolean,
+  ): Promise<void> {
+    // Build SQL fragment safely
+    let gameUpdateSql = '';
+
+    switch (gameType) {
+      case 'MINES':
+        gameUpdateSql = `"minesGamesPlayed" = "minesGamesPlayed" + 1`;
+        break;
+      case 'CRASH':
+        gameUpdateSql = `"crashGamesPlayed" = "crashGamesPlayed" + 1`;
+        break;
+      default:
+        throw new Error('Unsupported game type');
+    }
+
+    if (won) {
+      await this.prisma.$executeRawUnsafe(`
+      UPDATE "UserStatistics"
+      SET
+        "totalGamesWon" = "totalGamesWon" + 1,
+        "totalProfit" = "totalProfit" + ${(betAmount * multiplier) - betAmount},
+        "totalGamesPlayed" = "totalGamesPlayed" + 1,
+        "totalWagered" = "totalWagered" + ${betAmount},
+        ${gameUpdateSql},
+        "biggestWin" = GREATEST("biggestWin", ${(betAmount * multiplier) - betAmount}),
+        "biggestWinGame" = CASE
+          WHEN ${(betAmount * multiplier) - betAmount} > "biggestWin" THEN '${gameType}'
+          ELSE "biggestWinGame"
+        END,
+        "biggestWinDate" = CASE
+          WHEN ${(betAmount * multiplier) - betAmount} > "biggestWin" THEN NOW()
+          ELSE "biggestWinDate"
+        END
+      WHERE "userUsername" = '${username}';
+    `);
+    } else {
+      // Lost game — Prisma update is fine here
+      const gameField =
+        gameType === 'MINES' ? 'minesGamesPlayed' : 'crashGamesPlayed';
+
+      await this.prisma.userStatistics.update({
+        where: { userUsername: username },
+        data: {
+          totalGamesLost: { increment: 1 },
+          totalLoss: { increment: betAmount },
+          totalGamesPlayed: { increment: 1 },
+          totalWagered: { increment: betAmount },
+          [gameField]: { increment: 1 } as any,
+        },
+      });
+    }
   }
 }

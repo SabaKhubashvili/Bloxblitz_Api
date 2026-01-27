@@ -91,11 +91,12 @@ export class KinguinApiProvider implements KinguinProvider {
   }
 
   async createCodes(
+    offerId: string,
     codes: { raw: string; hashed: string; balanceAmount: number }[],
   ): Promise<generateNewKinguinCodesResult> {
     try {
       await this.post(
-        'https://gateway.kinguin.net/sales-manager-api/api/v1/offers/682f0596b1bb8f04c9b78bb1/stock/list',
+        `https://gateway.kinguin.net/sales-manager-api/api/v1/offers/${offerId}/stock/list`,
         codes.map((c) => ({
           body: c.raw,
           mimeType: 'text/plain',

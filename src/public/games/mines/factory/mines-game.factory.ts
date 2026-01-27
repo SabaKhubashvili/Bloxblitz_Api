@@ -14,6 +14,7 @@ import { SeedManagementService } from '../../seed-managment/seed-managment.servi
 import { MinesPersistenceService } from '../service/mines-persistence.service';
 import { MinesGame } from '../types/mines.types';
 import { GameOutcome } from '@prisma/client';
+import { UserRepository } from 'src/public/user/user.repository';
 
 @Injectable()
 export class MinesGameFactory {
@@ -27,12 +28,9 @@ export class MinesGameFactory {
     private readonly redisService: RedisService,
     private readonly persistence: MinesPersistenceService,
     private readonly sharedUserGames: SharedUserGamesService,
+    private readonly userRepository: UserRepository,
   ) {}
 
-  /**
-   * OPTIMIZED: Create new Mines game with single Lua script
-   * Reduces execution time from 50-100ms to 10-20ms
-   */
   async createNewGame(
     betAmount: number,
     username: string,
@@ -46,6 +44,10 @@ export class MinesGameFactory {
     const gameId = this.generateGameId();
 
     try {
+      const lockMines = await this.repo.lockMinesGame(gameId);
+      if (!lockMines) {
+        throw new InternalServerErrorException('Could not acquire game lock');
+      }
       // ============================================
       // STEP 1: Single Lua script for all Redis operations
       // ============================================
@@ -62,7 +64,6 @@ export class MinesGameFactory {
       // Handle different Lua script results
       if (luaResult.error) {
         if (luaResult.error === 'SEED_NOT_CACHED') {
-          // Fallback to slower path with database lookup
           return await this.createNewGameSlowPath(
             betAmount,
             username,
@@ -118,12 +119,8 @@ export class MinesGameFactory {
       // STEP 4: Execute all remaining operations in parallel
       // ============================================
       stepStart = performance.now();
-
-      const updateResult = await this.repo.updateGame(
-        gameId,
-        { mineMask, nonce },
-        gameData,
-      );
+      this.logger.log(`Updating game ${gameId} with mineMask and nonce`);
+      await this.repo.updateGame(gameId, { mineMask, nonce }, gameData);
 
       // Sync nonce to database (async, non-blocking)
       (this.syncNonceToDatabase(username, nonce),
@@ -131,7 +128,7 @@ export class MinesGameFactory {
         this.persistence
           .backupGame(gameId, username, gameData)
           .then((betId) => {
-            this.repo.updateGame(gameId, { betId: betId }).catch((err) => {
+            this.repo.updateGame(gameId, { betId: betId },gameData).catch((err) => {
               this.logger.error(
                 `Failed to update betId for game ${gameId}:`,
                 err,
@@ -170,8 +167,10 @@ export class MinesGameFactory {
       };
     } catch (err) {
       // Cleanup on error
-      await this.cleanupFailedGame(username, gameId);
+      await this.cleanupFailedGame(username, gameId, betAmount);
       throw err;
+    }finally{
+      await this.repo.unlockMinesGame(gameId);
     }
   }
 
@@ -248,24 +247,26 @@ export class MinesGameFactory {
     local newBalance = currentBalance - tonumber(betAmount)
     newBalance = tonumber(string.format("%.2f", newBalance))
     if newBalance < 0 then
-    -- Rollback: increment nonce back
-    redis.call('DECR', nonceKey)
-    return cjson.encode({error = 'BALANCE_DEDUCTION_FAILED'})
-end
+      -- Rollback: increment nonce back
+      redis.call('DECR', nonceKey)
+      return cjson.encode({error = 'BALANCE_DEDUCTION_FAILED'})
+    end
 
     redis.call('SET', balanceKey, newBalance)
 
--- Mark user balance as dirty
-redis.call('SADD', 'user:balance:dirty', username)
-    
+    -- Mark user balance as dirty
+    redis.call('SADD', 'user:balance:dirty', username)
+        
     -- 7. Create game placeholder
     redis.call('SET', gameKey, 'CREATING', 'EX', 3600)
+    redis.call('SET',userActiveGameKey, gameId)
 
-    redis.call('SET',userActiveGameKey, gameId, 'EX', 3600)
     local seedTable = cjson.decode(seedData)
     seedTable.totalGamesPlayed = (seedTable.totalGamesPlayed or 0) + 1
+
     local updatedSeedData = cjson.encode(seedTable)
     redis.call('SET', seedKey, updatedSeedData, 'EX', cacheTTL)
+    
     -- 8. Add to active games
     local gameData = cjson.encode({gameId = gameId, gameType = 'MINES'})
     redis.call('LPUSH', activeGamesKey, gameData)
@@ -311,7 +312,6 @@ redis.call('SADD', 'user:balance:dirty', username)
       throw new InternalServerErrorException('Game creation failed');
     }
   }
-
   /**
    * Fallback path when seed is not cached
    * This path is slower but ensures reliability
@@ -325,110 +325,124 @@ redis.call('SADD', 'user:balance:dirty', username)
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
-    this.logger.warn(
-      `Cache miss for ${username}, using slow path for game ${gameId}`,
-    );
+    try {
+      this.logger.warn(
+        `Cache miss for ${username}, using slow path for game ${gameId}`,
+      );
+      const slowPathStart = performance.now();
 
-    const slowPathStart = performance.now();
+      // ============================================
+      // STEP 1: Fetch seed from database and cache it
+      // ============================================
+      const userSeed = await this.seedManagement.getUserSeed(username); // This will cache the seed
 
-    // Fetch seed from database and cache it
-    const [userSeed, nonce] = await Promise.all([
-      this.seedManagement.getUserSeed(username), // This will cache the seed
-      this.seedManagement.getAndIncrementNonce(username, 'MINES'),
-    ]);
-
-    // Atomic balance check and game creation
-    const newGameData = {
-      gameId,
-      mines,
-      mineMask: 0,
-      revealedTiles: [],
-      gemsLeft: size - mines,
-      grid: size,
-      betAmount,
-      revealedMask: 0,
-      multiplier: 1,
-      active: true,
-      creatorUsername: username,
-      serverSeed: userSeed.activeServerSeed,
-      serverSeedHash: userSeed.activeServerSeedHash,
-      clientSeed: userSeed.activeClientSeed,
-      nonce,
-    };
-
-    const result = await this.redisService.atomicCreateMinesGame(
-      username,
-      betAmount,
-      gameId,
-      JSON.stringify(newGameData),
-    );
-
-    if (!result.success) {
-      throw this.handleCreationError(result.error || '');
-    }
-
-    // Generate mine mask
-    const mineMask = this.calculator.generateMineMask(
-      userSeed.activeServerSeed,
-      userSeed.activeClientSeed,
-      nonce,
-      size,
-      mines,
-    );
-
-    const gameData: MinesGame = {
-      gameId,
-      mines,
-      mineMask,
-      revealedMask: 0,
-      revealedTiles: [],
-      gemsLeft: size - mines,
-      grid: size,
-      betAmount,
-      active: true,
-      creatorUsername: username,
-      serverSeed: userSeed.activeServerSeed,
-      serverSeedHash: userSeed.activeServerSeedHash,
-      clientSeed: userSeed.activeClientSeed,
-      nonce,
-      multiplier: 1,
-      outcome: GameOutcome.PLAYING,
-    };
-
-    // Execute remaining operations in parallel
-    await Promise.allSettled([
-      this.repo.updateGame(gameId, { mineMask, nonce }, gameData),
-      this.sharedUserGames.addActiveGame(username, {
-        gameType: 'MINES',
+      // ============================================
+      // STEP 2: Execute Lua script for atomic Redis operations
+      // ============================================
+      const luaResult = await this.executeGameCreationLua(
+        username,
         gameId,
-      }),
-      this.persistence.backupGame(gameId, username, gameData).then((betId) => {
-        if (betId) {
-          return this.repo.updateGame(gameId, { betId });
-        }
-      }),
-    ]);
+        betAmount,
+      );
 
-    const slowPathTime = performance.now() - slowPathStart;
-    this.logger.log(
-      `Slow path completed for ${gameId} in ${slowPathTime.toFixed(2)}ms`,
-    );
+      // Handle Lua script errors
+      if (luaResult.error) {
+        throw this.handleCreationError(luaResult.error);
+      }
 
-    return {
-      gameId,
-      mines,
-      revealedTiles: [],
-      gemsLeft: size - mines,
-      grid: size,
-      betAmount,
-      active: true,
-      creatorUsername: username,
-      serverSeedHash: userSeed.activeServerSeedHash,
-      clientSeed: userSeed.activeClientSeed,
-      nonce,
-      multiplier: 1,
-      outcome: 'PLAYING',
-    };
+      const { seedData, nonce } = luaResult;
+      if (!seedData || !nonce) {
+        throw new InternalServerErrorException('Invalid seed data');
+      }
+
+      // ============================================
+      // STEP 3: CPU-bound mine mask generation (no I/O)
+      // ============================================
+      const mineMask = this.calculator.generateMineMask(
+        seedData.activeServerSeed,
+        seedData.activeClientSeed,
+        nonce,
+        size,
+        mines,
+      );
+
+      // ============================================
+      // STEP 4: Prepare game data
+      // ============================================
+      const gameData: MinesGame = {
+        gameId,
+        mines,
+        mineMask,
+        revealedMask: 0,
+        revealedTiles: [],
+        gemsLeft: size - mines,
+        grid: size,
+        betAmount,
+        active: true,
+        creatorUsername: username,
+        serverSeed: seedData.activeServerSeed,
+        serverSeedHash: seedData.activeServerSeedHash,
+        clientSeed: seedData.activeClientSeed,
+        nonce,
+        multiplier: 1,
+        outcome: GameOutcome.PLAYING,
+      };
+
+      // ============================================
+      // STEP 5: Execute all remaining operations in parallel
+      // ============================================
+      await this.repo
+        .updateGame(gameId, { mineMask, nonce }, gameData)
+        .catch(async (err) => {
+          this.logger.error(`Failed to update game ${gameId} in Redis:`, err);
+          await this.cleanupFailedGame(username, gameId, betAmount);
+          throw new InternalServerErrorException('Game creation failed');
+        });
+
+      // Sync nonce to database and backup game (async, non-blocking)
+      Promise.allSettled([
+        this.syncNonceToDatabase(username, nonce),
+        this.persistence
+          .backupGame(gameId, username, gameData)
+          .then((betId) => {
+            if (betId) {
+              this.repo.updateGame(gameId, { betId },gameData).catch((err) => {
+                this.logger.error(
+                  `Failed to update betId for game ${gameId}:`,
+                  err,
+                );
+              });
+            }
+          }),
+      ]);
+
+      const slowPathTime = performance.now() - slowPathStart;
+      this.logger.log(
+        `Slow path completed for ${gameId} in ${slowPathTime.toFixed(2)}ms`,
+      );
+
+      // Return response (without sensitive data)
+      return {
+        gameId,
+        mines,
+        revealedTiles: [],
+        gemsLeft: size - mines,
+        grid: size,
+        betAmount,
+        active: true,
+        creatorUsername: username,
+        serverSeedHash: seedData.activeServerSeedHash,
+        clientSeed: seedData.activeClientSeed,
+        nonce,
+        multiplier: 1,
+        outcome: 'PLAYING',
+      };
+    } catch (err) {
+      // Cleanup on error
+      this.logger.error(`Slow path failed for game ${gameId}:`, err);
+      await this.cleanupFailedGame(username, gameId, betAmount);
+      throw err;
+    }
   }
 
   /**
@@ -453,10 +467,13 @@ redis.call('SADD', 'user:balance:dirty', username)
   private async cleanupFailedGame(
     username: string,
     gameId: string,
+    betAmount: number,
   ): Promise<void> {
+    await this.userRepository.incrementUserBalance(username, betAmount);
     await Promise.allSettled([
       this.sharedUserGames.removeActiveGame(username, gameId),
       this.redisService.del(RedisKeys.mines.game(gameId)),
+      this.redisService.del(`user:mines:active:${username}`),
     ]);
 
     this.logger.warn(`Cleaned up failed game ${gameId} for ${username}`);

@@ -21,6 +21,7 @@ export const RedisKeys = {
       `user:seedRotationHistory:${username}:list`,
     seedRotationRetry: (username: string, rotationId: string) =>
       `user:seedRotationRetry:${username}:${rotationId}`,
+    online: (username: string ) => `user:online:${username}`,
 
     /* ─────────────── BALANCES ─────────────── */
 
@@ -36,6 +37,9 @@ export const RedisKeys = {
     games: {
       active: (username: string) => `user:games:active:${username}:list`,
     },
+    profile: (username: string) => `user:profile:${username}`,
+    publicProfile: (username: string) => `user:publicProfile:${username}`,
+    
   },
 
   /* ─────────────── LOCKS ─────────────── */

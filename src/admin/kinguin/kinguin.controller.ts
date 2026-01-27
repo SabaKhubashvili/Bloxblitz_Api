@@ -8,7 +8,7 @@ export class KinguinController {
 
   @Post('/code/generate')
   async generateNewKinguinCodes(@Body() data: CreateKinguinCodeDto) {
-    return this.kinguinService.generateNewKinguinCodes(data.balanceAmount,data.quantity);
+    return this.kinguinService.generateNewKinguinCodes(data.balanceAmount,data.quantity,data.offerId);
   }
 
   @Get('/offers')

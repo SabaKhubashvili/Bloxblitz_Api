@@ -16,11 +16,15 @@ model User {
   role                                                             UserRoles                @default(MEMBER)
   client_seed                                                      String
   last_login_ip                                                    String?
+  last_login_at                                                    DateTime?
   referedBy                                                        String?
   referralLastUpdate                                               DateTime?
   userStatisticsId                                                 Int?                     @unique
   referedByMm2                                                     String?
   balance                                                          Decimal                  @default(0) @db.Decimal(10, 2)
+  // XP and Leveling
+  totalXP                                                          Int                      @default(0)
+  currentLevel                                                     Int                      @default(1)
   ampGiveawayWins                                                  AmpGiveaway[]            @relation("AmpGiveawayWinner")
   ampGiveawayEntries                                               AmpGiveawayEntry[]
   CoinflipGameHistory_CoinflipGameHistory_player1UsernameToUser    CoinflipGameHistory[]    @relation("CoinflipGameHistory_player1UsernameToUser")
@@ -45,27 +49,83 @@ model User {
   inventoryMm2                                                     UserInventoryMm2[]
   userSeed                                                         UserSeed?                @relation("UserSeed")
   statistics                                                       UserStatistics?          @relation("UserStatisticsUser")
+  settings                                                         UserSettings?            @relation("UserSettings")
   verifications                                                    UserVerification[]
   receivedTipTransactions                                          TipTransaction[]         @relation("TipTransactionRecipient")
   sentTipTransactions                                              TipTransaction[]         @relation("TipTransactionSender")
+  balanceTipTransactions                                           BalanceTipTransaction[]  @relation("TipTransactionRecipient")
+  sentBalanceTipTransactions                                       BalanceTipTransaction[]  @relation("TipTransactionSender")
 
   @@index([username, rblx_id])
+  @@index([totalXP(sort: Desc)])
+  @@index([currentLevel(sort: Desc)])
+}
+
+model UserSettings {
+  id             String  @id @default(uuid())
+  userUsername   String  @unique
+  // Privacy Settings
+  privateProfile Boolean @default(false)
+  showStatistics Boolean @default(true)
+  // Preference Settings
+  soundEffects   Boolean @default(true)
+  soundVolume    Int     @default(70)
+  animations     Boolean @default(true)
+  language       String  @default("en")
+  timezone       String  @default("UTC")
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserSettings", fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@index([userUsername])
 }
 
 model UserStatistics {
-  id              Int      @id @default(autoincrement())
-  userUsername    String   @unique
-  totalWagered    Float    @default(0.00)
-  totalWageredMm2 Float    @default(0.00)
-  coinflipsWon    Int      @default(0)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  biggestWin      Int      @default(0)
-  user            User     @relation("UserStatisticsUser", fields: [userUsername], references: [username])
+  id                Int       @id @default(autoincrement())
+  userUsername      String    @unique
+  // Overall Statistics
+  totalWagered      Decimal   @default(0) @db.Decimal(12, 2)
+  totalWageredMm2   Decimal   @default(0) @db.Decimal(12, 2)
+  totalDeposits     Decimal   @default(0) @db.Decimal(12, 2)
+  totalWithdrawals  Decimal   @default(0) @db.Decimal(12, 2)
+  totalProfit       Decimal   @default(0) @db.Decimal(12, 2)
+  totalLoss         Decimal   @default(0) @db.Decimal(12, 2)
+  netProfit         Decimal   @default(0) @db.Decimal(12, 2)
+  // Game Statistics
+  totalGamesPlayed  Int       @default(0)
+  totalGamesWon     Int       @default(0)
+  totalGamesLost    Int       @default(0)
+  coinflipsWon      Int       @default(0)
+  coinflipsLost     Int       @default(0)
+  crashGamesPlayed  Int       @default(0)
+  minesGamesPlayed  Int       @default(0)
+  // Win Statistics
+  biggestWin        Decimal   @default(0) @db.Decimal(12, 2)
+  biggestWinGame    String?
+  biggestWinDate    DateTime?
+  biggestMultiplier Decimal   @default(0) @db.Decimal(10, 4)
+  highestCrashPoint Decimal   @default(0) @db.Decimal(10, 4)
+
+  // Engagement Statistics
+  giveawaysEntered      Int     @default(0)
+  giveawaysWon          Int     @default(0)
+  tipsReceived          Int     @default(0)
+  tipsSent              Int     @default(0)
+  totalTipValueReceived Decimal @default(0) @db.Decimal(10, 2)
+  totalTipValueSent     Decimal @default(0) @db.Decimal(10, 2)
+
+  // Metadata
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation("UserStatisticsUser", fields: [userUsername], references: [username])
 
   @@index([userUsername])
   @@index([totalWagered(sort: Desc)])
   @@index([totalWageredMm2(sort: Desc)])
+  @@index([netProfit(sort: Desc)])
+  @@index([biggestWin(sort: Desc)])
 }
 
 model ipBans {
@@ -390,6 +450,18 @@ model TipTransaction {
   sender            User     @relation("TipTransactionSender", fields: [senderUsername], references: [username])
 
   @@map("tip_transactions")
+}
+
+model BalanceTipTransaction {
+  id                String   @id @default(cuid())
+  senderUsername    String
+  recipientUsername String
+  amount            Decimal  @db.Decimal(10, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  recipient User @relation("TipTransactionRecipient", fields: [recipientUsername], references: [username])
+  sender    User @relation("TipTransactionSender", fields: [senderUsername], references: [username])
 }
 
 model Mm2Item {

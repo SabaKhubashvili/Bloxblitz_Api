@@ -1,6 +1,6 @@
 import { RedisService } from 'src/provider/redis/redis.service';
 import { MinesGame } from '../types/mines.types';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 
 @Injectable()
@@ -9,7 +9,15 @@ export class MinesRepository {
 
   /* ---------------- FAST PATH ---------------- */
   async getGame(id: string): Promise<MinesGame | null> {
-    return this.redis.get<MinesGame>(RedisKeys.mines.game(id));
+    const game = await this.redis.get<MinesGame>(RedisKeys.mines.game(id));
+
+    if (!game || !game.mineMask || game.mineMask === 0) {
+      throw new ConflictException('Game is initializing');
+    }
+    return game;
+  }
+  async setGame(id: string, game: MinesGame) {
+    await this.redis.set(RedisKeys.mines.game(id), game);
   }
 
   async getUserActiveGame(username: string): Promise<MinesGame | null> {
@@ -32,9 +40,20 @@ export class MinesRepository {
       .del(`user:mines:active:${username}`)
       .exec();
   }
-
+  async lockMinesGame(gameId: string) {
+    return this.redis.lock(RedisKeys.lock.mines(gameId), 20_000);
+  }
+  async unlockMinesGame(gameId: string) {
+    return this.redis.unlock(RedisKeys.lock.mines(gameId));
+  }
   async lockGameTile(gameId: string, tile: string) {
-    return this.redis.lock(`lock:${RedisKeys.lock.mines(gameId)}:${tile}`, 10_000);
+    return this.redis.lock(
+      `lock:${RedisKeys.lock.mines(gameId)}:${tile}`,
+      10_000,
+    );
+  }
+  async unlockGameTile(gameId: string, tile: string) {
+    return this.redis.unlock(`lock:${RedisKeys.lock.mines(gameId)}:${tile}`);
   }
 
   /* ---------------- UPDATE METHODS ---------------- */
@@ -49,6 +68,9 @@ export class MinesRepository {
     gameData?: any,
   ): Promise<boolean> {
     const key = RedisKeys.mines.game(gameId);
+    console.log(
+      `Updating game with key: ${key}, data: ${JSON.stringify(updates)}, gameData: ${JSON.stringify(gameData)}`,
+    );
 
     // Fast path — single SET, 1 RTT
     if (gameData) {
@@ -63,12 +85,12 @@ export class MinesRepository {
     const raw = await this.redis.mainClient.get(key);
     if (!raw) return false;
 
-    const game: MinesGame = JSON.parse(raw);
+    // const game: MinesGame = JSON.parse(raw);
 
-    await this.redis.mainClient.set(
-      key,
-      JSON.stringify({ ...game, ...updates }),
-    );
+    // await this.redis.mainClient.set(
+    //   key,
+    //   JSON.stringify({ ...game, ...updates }),
+    // );
 
     return true;
   }

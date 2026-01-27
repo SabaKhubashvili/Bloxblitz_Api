@@ -62,4 +62,41 @@ export class BalanceService {
   }> {
     return this.provider.getUserBalance(username);
   }
+  async tipUser(
+    senderUsername: string,
+    recipientUsername: string,
+    amount: number,
+  ): Promise<{ success: boolean; newSenderBalance: number; newRecipientBalance: number }> {
+    this.logger.log(`User ${senderUsername} is attempting to tip ${amount} to ${recipientUsername}`);
+
+    if (amount <= 0) {
+      throw new BadRequestException('Tip amount must be greater than zero.');
+    }
+
+    try {
+      const { newSenderBalance, newRecipientBalance } =
+        await this.provider.tipUser(
+          senderUsername,
+          recipientUsername,
+          amount,
+        );
+
+      this.logger.log(`Tip successful. Sender: ${senderUsername}, Recipient: ${recipientUsername}, Amount: ${amount}`);
+
+      return { success:true, newSenderBalance, newRecipientBalance };
+    } catch (err) {
+      if (
+        err instanceof UnauthorizedException ||
+        err instanceof BadRequestException
+      ) throw err;
+
+      this.logger.error(
+        `Unexpected error while processing tip from ${senderUsername} to ${recipientUsername}`,
+        err.stack,
+      );
+      throw new InternalServerErrorException(
+        'Something went wrong while processing the tip. Please try again later.',
+      );
+    }
+  }
 }

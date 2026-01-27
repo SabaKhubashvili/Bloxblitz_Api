@@ -11,6 +11,7 @@ import { RedisService } from 'src/provider/redis/redis.service';
 import { SeedManagementService } from '../seed-managment/seed-managment.service';
 import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.service';
 import { BetHistoryService } from 'src/private/user/bet-history/private-bet-history.service';
+import { UserRepository } from 'src/public/user/user.repository';
 
 @Module({
   controllers: [MinesController],
@@ -25,7 +26,8 @@ import { BetHistoryService } from 'src/private/user/bet-history/private-bet-hist
     RedisService,
     SeedManagementService,
     SharedUserGamesService,
-    BetHistoryService
+    BetHistoryService,
+    UserRepository
   ],
   exports: [MinesGameService],
 })

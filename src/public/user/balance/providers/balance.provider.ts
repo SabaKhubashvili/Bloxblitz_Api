@@ -7,4 +7,9 @@ export interface BalanceProvider {
     balance: number;
     petValueBalance: number;
   }>;
+  tipUser(
+    senderUsername: string,
+    recipientUsername: string,
+    amount: number,
+  ): Promise<{ newSenderBalance: number; newRecipientBalance: number }>;
 }

@@ -146,4 +146,57 @@ export class RemoteBalanceProvider implements BalanceProvider {
     this.logger.log(`Fetched balance for user ${username}: ${balance}`);
     return { balance, petValueBalance };
   }
+  async tipUser(
+    senderUsername: string,
+    recipientUsername: string,
+    amount: number,
+  ): Promise<{ newSenderBalance: number; newRecipientBalance: number }> {
+    this.logger.log(
+      `Processing tip from ${senderUsername} to ${recipientUsername} of amount ${amount}`,
+    );
+
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Deduct amount from sender
+      const senderNewBalance = await this.userRepository.processWithdrawal(
+        senderUsername,
+        amount,
+      );
+
+      if (senderNewBalance === null) {
+        throw new BadRequestException(
+          'Sender not found or insufficient balance.',
+        );
+      }
+
+      // Add amount to recipient
+      const recipientNewBalance = await this.userRepository.processDeposit(
+        recipientUsername,
+        amount,
+      );
+
+      if (recipientNewBalance === null) {
+        throw new BadRequestException('Recipient not found.');
+      }
+
+      // Log the tip transaction
+      await prisma.balanceTipTransaction.create({
+        data: {
+          senderUsername,
+          recipientUsername,
+          amount,
+        },
+      });
+
+      return {
+        newSenderBalance: senderNewBalance,
+        newRecipientBalance: recipientNewBalance,
+      };
+    });
+
+    this.logger.log(
+      `Tip processed successfully from ${senderUsername} to ${recipientUsername}`,
+    );
+
+    return result;
+  }
 }

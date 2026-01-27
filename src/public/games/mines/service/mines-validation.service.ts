@@ -60,6 +60,9 @@ export class MinesValidationService {
 
   validateCashout(game: MinesGame): void {
     if (this.countBits(game.revealedMask) === 0) {
+      console.log('Failed to cashout - no tiles revealed:');
+
+      console.log(game)
       throw new BadRequestException(
         'Must reveal at least one tile before cashing out',
       );
