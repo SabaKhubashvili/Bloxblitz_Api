@@ -6,7 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { KinguinApiProvider } from './providers/kinguin-api.provider';
 import { generateKinguinCode } from './domain/kinguin-code.generator';
-import { createBatches } from 'src/domain/batch.generator';
+import { createBatches } from 'src/common/domain/batch.generator';
 import { AxiosError } from 'axios';
 import { getKinguinOffersResult } from './contracts/get-kinguin-offers-result';
 

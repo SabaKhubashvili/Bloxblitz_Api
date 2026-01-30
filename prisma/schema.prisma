@@ -55,6 +55,7 @@ model User {
   sentTipTransactions                                              TipTransaction[]         @relation("TipTransactionSender")
   balanceTipTransactions                                           BalanceTipTransaction[]  @relation("TipTransactionRecipient")
   sentBalanceTipTransactions                                       BalanceTipTransaction[]  @relation("TipTransactionSender")
+  userDepositAddresses                                             UserDepositAddress[]
 
   @@index([username, rblx_id])
   @@index([totalXP(sort: Desc)])
@@ -757,6 +758,82 @@ model UserGameStatistics {
   @@index([gameType])
   @@index([totalProfit(sort: Desc)])
   @@index([totalWagered(sort: Desc)])
+}
+
+model UserDepositAddress {
+  id           String           @id @default(uuid())
+  userUsername String
+  coin         AvailableCryptos
+  address      String           @unique
+  createdAt    DateTime         @default(now())
+  lastUsedAt   DateTime         @default(now())
+  isActive     Boolean          @default(true)
+  invoiceId    String?
+  usedAmount   Decimal?         @db.Decimal(12, 2)
+  notes        String?
+
+  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@unique([userUsername, coin])
+  @@index([address])
+  @@index([userUsername])
+  @@index([coin])
+}
+
+model CryptoTransaction {
+  id String @id @default(uuid())
+
+  provider           TransactionProvider
+  providerTransactionId String              @unique
+  invoiceId          String?             @unique
+
+  txid String
+
+  username String?
+
+  // Currency
+  currency       AvailableCryptos
+  network        String
+  amountExpected Decimal          @db.Decimal(36, 18)
+  amountPaid     Decimal          @default(0) @db.Decimal(36, 18)
+
+  // Confirmation tracking
+  minConfirmations Int     @default(2)
+  confirmations    Int     @default(0)
+  isFullyConfirmed Boolean @default(false)
+
+  // Status
+  status TransactionStatus @default(PENDING)
+
+  // Metadata
+  passthrough Json?
+  riskLevel   String?
+  rawCallback Json?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  confirmedAt DateTime?
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum TransactionProvider {
+  UNIWIRE
+}
+
+enum AvailableCryptos {
+  BTC
+  ETH
+  LTC
+  USDT
+  DOGE
 }
 
 enum GameType {

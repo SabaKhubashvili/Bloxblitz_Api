@@ -1,0 +1,74 @@
+import { Body, Post } from '@nestjs/common';
+import { PrivateUserInventoryService } from './privateUserInventory.service';
+import { GetInventoryDto } from './dto/get-inventory.dto';
+import { SeedManagementService } from 'src/public/modules/games/seed-managment/seed-managment.service';
+import { UpdateItemStateDto } from './dto/update-item-state.dto';
+import { GiveItemsDto } from './dto/give-items.dto';
+import { ResolveCoinflipItemsDto } from './dto/resolve-coinflip-items.dto';
+import { InternalController } from '../../games/decorator/InternalController.decorator';
+
+@InternalController('user/inventory')
+export class PrivateUserInventoryController {
+  constructor(
+    private readonly privateUserInventoryService: PrivateUserInventoryService,
+    private readonly seedService: SeedManagementService,
+  ) {}
+
+  @Post('/get')
+  async getInventory(@Body() dto: GetInventoryDto) {
+    const inventory = await this.privateUserInventoryService.getUserInventory(
+      dto
+    );
+    return {
+      inventory: inventory,
+    };
+  }
+  @Post('/get-all')
+  async getAllItems(@Body() dto: { username: string }) {
+    const items = await this.privateUserInventoryService.getUserAllItems(
+      dto.username,
+    );
+    return {
+      items: items,
+    };
+  }
+
+  @Post('/seed-and-items')
+  async getSeedAndItems(@Body() dto: GetInventoryDto) {
+    try {
+      const seed = await this.seedService.getUserSeed(dto.username);
+      const inventory = await this.privateUserInventoryService.getUserInventory(
+        { username: dto.username, itemIds: dto.itemIds },
+      );
+      return {
+        client_seed: seed.activeClientSeed,
+        inventory: inventory,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+  @Post('/update-item-state')
+  async updateItemState(@Body() dto: UpdateItemStateDto) {
+    return this.privateUserInventoryService.updateItemState(
+      dto.itemIds,
+      dto.newState,
+      dto.username,
+    );
+  }
+  @Post('/give-items')
+  async giveItems(@Body() dto: GiveItemsDto) {
+    return this.privateUserInventoryService.giveItemsToUser(
+      dto.username,
+      dto.itemIds,
+    );
+  }
+  @Post('/cancel-withdraw')
+  async cancelWithdraw(@Body() dto: { username: string }) {
+    return this.privateUserInventoryService.cancelWithdraw(dto.username);
+  }
+  @Post('/resolve-coinflip-items')
+  async resolveCoinflipItems(@Body() dto: ResolveCoinflipItemsDto) {
+    return this.privateUserInventoryService.resolveCoinflipItems(dto);
+  }
+}

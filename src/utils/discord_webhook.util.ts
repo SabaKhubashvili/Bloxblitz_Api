@@ -3,7 +3,7 @@ import { Webhook, MessageBuilder } from 'discord-webhook-node';
 import { ConfigService } from '@nestjs/config';
 import { Variant } from '@prisma/client';
 import { CoinflipItem, PlayerInterface } from 'src/coinflip/types/jackpot.interface';
-import { JackpotPlayer } from 'src/jackpot/types/jackpot.interface';
+import { JackpotPlayer } from 'src/common/types/jackpot/jackpot.interface';
 
 @Injectable()
 export class DiscordNotificationService {
