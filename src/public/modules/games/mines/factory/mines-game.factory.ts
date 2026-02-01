@@ -215,16 +215,18 @@ export class MinesGameFactory {
     end
     
     local seedData = nil
+    local seedTable = nil
+    
     -- 1. Check if seed exists in cache
     if seedDataArg ~= '' then
-      seedData = cjson.decode(seedDataArg)
-    end
-
-    if not seedData then
-      local seedData = redis.call('GET', seedKey)
+      seedData = seedDataArg
+      seedTable = cjson.decode(seedDataArg)
+    else
+      seedData = redis.call('GET', seedKey)
       if not seedData then
         return cjson.encode({error = 'SEED_NOT_CACHED'})
       end
+      seedTable = cjson.decode(seedData)
     end
     
     -- 2. Check if game already exists
@@ -275,7 +277,6 @@ export class MinesGameFactory {
     redis.call('SET', gameKey, '{"status":"INITIALIZING"}')
     redis.call('SET',userActiveGameKey, gameId)
 
-    local seedTable = cjson.decode(seedData)
     seedTable.totalGamesPlayed = (seedTable.totalGamesPlayed or 0) + 1
 
     local updatedSeedData = cjson.encode(seedTable)
