@@ -30,7 +30,7 @@ export class UniwireController {
     return rates;
   }
   @Post('/callback')
-  // @UseGuards(UniwireCallbackGuard)
+  @UseGuards(UniwireCallbackGuard)
   async handleCallback(@Body() req: CryptoCallbackDto) {
     await this.uniwireService.processCallback(req);
     return { status: 'Callback received successfully' };

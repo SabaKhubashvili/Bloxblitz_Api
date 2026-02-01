@@ -182,6 +182,7 @@ export class MinesGameFactory {
     username: string,
     gameId: string,
     betAmount: number,
+    seedData?: any,
   ): Promise<
     | { seedData: any; nonce: number; error?: never }
     | { error: string; seedData?: never; nonce?: never }
@@ -198,6 +199,9 @@ export class MinesGameFactory {
     local gameId = ARGV[2]
     local cacheTTL = tonumber(ARGV[3])
     local username = ARGV[4]
+    local seedDataArg = ARGV[5]
+
+    -- Check if user already has an active game
     
     local hasGame = redis.call('EXISTS', userActiveGameKey)
     if hasGame == 1 then
@@ -210,11 +214,17 @@ export class MinesGameFactory {
       return cjson.encode({error = 'INVALID_BET_AMOUNT'})
     end
     
-    
+    local seedData = nil
     -- 1. Check if seed exists in cache
-    local seedData = redis.call('GET', seedKey)
+    if seedDataArg ~= '' then
+      seedData = cjson.decode(seedDataArg)
+    end
+
     if not seedData then
-      return cjson.encode({error = 'SEED_NOT_CACHED'})
+      local seedData = redis.call('GET', seedKey)
+      if not seedData then
+        return cjson.encode({error = 'SEED_NOT_CACHED'})
+      end
     end
     
     -- 2. Check if game already exists
@@ -298,6 +308,7 @@ export class MinesGameFactory {
           gameId,
           this.CACHE_TTL.toString(),
           username,
+          seedData ? JSON.stringify(seedData) : '',
         ],
       });
 
@@ -329,11 +340,15 @@ export class MinesGameFactory {
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
+    let balanceDeducted = false;
     try {
       this.logger.warn(
         `Cache miss for ${username}, using slow path for game ${gameId}`,
       );
-      const slowPathStart = performance.now();
+      const seedData = await this.seedManagement.getUserSeed(username);
+      if (!seedData) {
+        throw new InternalServerErrorException('Could not retrieve seed data');
+      }
 
       // ============================================
       // STEP 2: Execute Lua script for atomic Redis operations
@@ -342,15 +357,17 @@ export class MinesGameFactory {
         username,
         gameId,
         betAmount,
+        seedData
       );
 
       // Handle Lua script errors
       if (luaResult.error) {
         throw this.handleCreationError(luaResult.error);
       }
+      balanceDeducted = true;
 
-      const { seedData, nonce } = luaResult;
-      if (!seedData || !nonce) {
+      const { nonce } = luaResult;
+      if (!nonce) {
         throw new InternalServerErrorException('Invalid seed data');
       }
 
@@ -434,7 +451,7 @@ export class MinesGameFactory {
     } catch (err) {
       // Cleanup on error
       this.logger.error(`Slow path failed for game ${gameId}:`, err);
-      await this.cleanupFailedGame(username, gameId, betAmount);
+      await this.cleanupFailedGame(username, gameId, betAmount,balanceDeducted);
       throw err;
     }
   }
@@ -462,8 +479,11 @@ export class MinesGameFactory {
     username: string,
     gameId: string,
     betAmount: number,
+    balanceDeducted?:boolean,
   ): Promise<void> {
-    await this.userRepository.incrementUserBalance(username, betAmount);
+    if (balanceDeducted) {
+      await this.userRepository.incrementUserBalance(username, betAmount);
+    }
     await Promise.allSettled([
       this.sharedUserGames.removeActiveGame(username, gameId),
       this.redisService.del(RedisKeys.mines.game(gameId)),
