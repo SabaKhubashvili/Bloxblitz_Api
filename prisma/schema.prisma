@@ -56,6 +56,7 @@ model User {
   balanceTipTransactions                                           BalanceTipTransaction[]  @relation("TipTransactionRecipient")
   sentBalanceTipTransactions                                       BalanceTipTransaction[]  @relation("TipTransactionSender")
   userDepositAddresses                                             UserDepositAddress[]
+  transactionHistory                                               TransactionHistory[]
 
   @@index([username, rblx_id])
   @@index([totalXP(sort: Desc)])
@@ -783,20 +784,20 @@ model UserDepositAddress {
 model CryptoTransaction {
   id String @id @default(uuid())
 
-  provider           TransactionProvider
+  provider              TransactionProvider
   providerTransactionId String              @unique
-  invoiceId          String?             @unique
+  invoiceId             String?             @unique
 
   txid String
 
   username String?
 
   // Currency
-  currency       AvailableCryptos
-  network        String
+  currency             AvailableCryptos
+  network              String
   cryptoAmountExpected Decimal          @db.Decimal(36, 18)
   usdAmountExpected    Decimal          @db.Decimal(12, 2)
-  amountPaid     Decimal          @default(0) @db.Decimal(36, 18)
+  amountPaid           Decimal          @default(0) @db.Decimal(36, 18)
 
   // Confirmation tracking
   minConfirmations Int     @default(2)
@@ -815,6 +816,89 @@ model CryptoTransaction {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   confirmedAt DateTime?
+}
+
+model TransactionHistory {
+  id String @id @default(uuid())
+
+  // User
+  userUsername String
+  user         User   @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+
+  // What happened
+  category  TransactionCategory
+  action    TransactionAction
+  direction TransactionDirection
+
+  // Value
+  amount       Decimal @db.Decimal(12, 2) // always positive
+  balanceAfter Decimal @db.Decimal(12, 2)
+
+  // Asset being transacted
+  assetType   AssetType
+  assetSymbol String? 
+
+  // Provider / source
+  provider            TransactionProvider?
+  providerReferenceId String? 
+
+  // Internal reference
+  referenceType ReferenceType
+  referenceId   String
+
+  // Flexible metadata
+  metadata Json?
+
+  // Status snapshot (optional but useful)
+  status TransactionStatus @default(COMPLETED)
+
+  createdAt DateTime @default(now())
+
+  @@index([userUsername])
+  @@index([category])
+  @@index([action])
+  @@index([assetType])
+  @@index([provider])
+  @@index([referenceId])
+}
+
+enum TransactionCategory {
+  DEPOSIT
+  WITHDRAWAL
+  TRADE
+  REWARD
+  ADJUSTMENT
+}
+
+enum TransactionAction {
+  CRYPTO_DEPOSIT
+  CRYPTO_WITHDRAWAL
+
+  KINGUIN_REDEEM
+
+  PET_DEPOSIT
+  PET_WITHDRAW
+
+  REFUND
+}
+
+enum AssetType {
+  CRYPTO // ETH, BTC
+  GIFT_CARD // Kinguin
+  ITEM // pets, skins
+}
+
+enum ReferenceType {
+  DEPOSIT
+  WITHDRAWAL
+  BET
+  PET
+}
+
+
+enum TransactionDirection {
+  IN
+  OUT
 }
 
 enum TransactionStatus {

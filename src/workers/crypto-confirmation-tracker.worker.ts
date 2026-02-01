@@ -83,7 +83,8 @@ export class CryptoConfirmationTrackerWorker {
 
   private async processTransaction(tx: any) {
     const txid = tx.providerTransactionId;
-
+    console.log(`processing ${txid} transaction`);
+    
     // Skip non-pending transactions and remove from tracking
     if (tx.status !== 'PENDING') {
       await this.redis.srem(RedisKeys.crypto.confirmations.active, txid);

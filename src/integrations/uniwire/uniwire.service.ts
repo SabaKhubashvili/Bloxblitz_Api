@@ -1,5 +1,11 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { AvailableCryptos, TransactionProvider } from '@prisma/client';
+import {
+  AssetType,
+  AvailableCryptos,
+  TransactionAction,
+  TransactionCategory,
+  TransactionProvider,
+} from '@prisma/client';
 import axios, { Method } from 'axios';
 import * as crypto from 'crypto';
 import { coinKindMap } from 'src/common/constants/crypto/coin-kind-map';
@@ -96,7 +102,7 @@ export class UniwireService {
         coin,
       );
       console.log(`existing addr ${existingAddr}`);
-      
+
       const recentTransactions = await this.getRecentDepositTransactions(
         username,
         coin,
@@ -380,6 +386,7 @@ export class UniwireService {
         transactionId,
         txid,
         confirmations,
+        invoiceId:invoice.id,
         confirmedAt: confirmed_at
           ? new Date(confirmed_at).toISOString()
           : new Date().toISOString(),
@@ -454,68 +461,64 @@ export class UniwireService {
     }
   }
 
-
   // ============================================================================
   // Payout Processing
   // ============================================================================
   async createPayoutTransaction(params: {
-  coin: AvailableCryptos;
-  amount: string; // 👈 IMPORTANT
-  address: string;
-  username: string;
-}): Promise<{ payoutId: string; status: string }> {
-  const { coin, amount, address, username } = params;
+    coin: AvailableCryptos;
+    amount: string;
+    address: string;
+    username: string;
+  }): Promise<{ payoutId: string; status: string }> {
+    const { coin, amount, address, username } = params;
 
-  try {
-    const formattedAmount = this.formatCryptoAmount(amount, 8);
+    try {
+      const formattedAmount = this.formatCryptoAmount(amount, 8);
 
-    const payload = {
-      profile_id: this.PROFILE_ID,
-      kind: coinKindMap[coin], // must be BTC / ETH / TRX / etc
-      reference_id: `payout_${username}_${Date.now()}_${crypto.randomUUID()}`,
-      passthrough: JSON.stringify({
-        username,
-        amount: formattedAmount,
-        address,
-      }),
-      recipients: [
-        {
-          amount: formattedAmount, // 👈 string
-          currency: coin,
+      const payload = {
+        profile_id: this.PROFILE_ID,
+        kind: coinKindMap[coin],
+        passthrough: JSON.stringify({
+          username,
+          amount: formattedAmount,
           address,
-        },
-      ],
-    };
-
-    this.logger.log(
-      `Creating payout: ${JSON.stringify(payload, null, 2)}`,
-    );
-
-    const response = await this.request<{
-      result: {
-        id: string;
-        status: string;
+        }),
+        recipients: [
+          {
+            amount: formattedAmount, // 👈 string
+            currency: coin,
+            address,
+          },
+        ],
       };
-    }>('/v1/payouts/', payload, 'POST');
 
-    return {
-      payoutId: response.result.id,
-      status: response.result.status,
-    };
-  } catch (error) {
-    this.logger.error(
-      `Error creating payout transaction for user ${username}`,
-      error.stack,
-    );
-    throw error;
+      this.logger.log(`Creating payout: ${JSON.stringify(payload, null, 2)}`);
+
+      const response = await this.request<{
+        result: {
+          id: string;
+          status: string;
+        };
+      }>('/v1/payouts/', payload, 'POST');
+
+      return {
+        payoutId: response.result.id,
+        status: response.result.status,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error creating payout transaction for user ${username}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
-}
- formatCryptoAmount(amount: string, decimals: number): string {
-  if (!amount.includes('.')) return amount;
+  formatCryptoAmount(amount: string, decimals: number): string {
+    if (!amount.includes('.')) return amount;
 
-  const [int, frac] = amount.split('.');
-  return `${int}.${frac.slice(0, decimals)}`;
-}
+    const [int, frac] = amount.split('.');
+    return `${int}.${frac.slice(0, decimals)}`;
+  }
 
   // ============================================================================
   // Database Operations
@@ -533,7 +536,7 @@ export class UniwireService {
     txid: string;
     currency: AvailableCryptos;
     usdAmount: number;
-    cryptoAmount:number,
+    cryptoAmount: number;
     network: string;
     username: string;
   }): Promise<void> {
@@ -565,6 +568,23 @@ export class UniwireService {
           minConfirmations: minConfirmationMap[currency],
         },
       });
+      await this.prismaService.transactionHistory.create({
+        data: {
+          userUsername: username,
+          category: TransactionCategory.DEPOSIT,
+          action: TransactionAction.CRYPTO_DEPOSIT,
+          amount: cryptoAmount,
+          balanceAfter: await this.userRepository.getUserBalance(username),
+          assetType: AssetType.CRYPTO,
+          assetSymbol: currency,
+          provider: TransactionProvider.UNIWIRE,
+          referenceId: invoiceId,
+          providerReferenceId: transactionId,
+          referenceType: 'DEPOSIT',
+          status: 'PENDING',
+          direction: 'IN',
+        },
+      });
 
       this.logger.log(
         `Crypto transaction created successfully for invoice ${invoiceId}`,
@@ -584,13 +604,14 @@ export class UniwireService {
 
   private async confirmTransactionAndCreditUser(params: {
     transactionId: string;
+    invoiceId: string;
     txid: string;
     confirmations: number;
     confirmedAt: string;
     username: string;
     usdAmount: number;
   }): Promise<void> {
-    const { transactionId, confirmations, confirmedAt, username, usdAmount } =
+    const { transactionId, invoiceId, confirmations, confirmedAt, username, usdAmount } =
       params;
 
     await this.prismaService.$transaction(async (prisma) => {
@@ -602,6 +623,15 @@ export class UniwireService {
           confirmations,
           confirmedAt: confirmedAt ? new Date(confirmedAt) : new Date(),
           isFullyConfirmed: true,
+        },
+      });
+      await this.prismaService.transactionHistory.updateMany({
+        where:{
+          providerReferenceId: transactionId,
+          referenceId: invoiceId,
+        },
+        data: {
+          status: "COMPLETED",
         },
       });
 
