@@ -38,7 +38,7 @@ export class MinesController {
   @ApiResponse({ status: 201, description: 'Game created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid game parameters' })
   async create(@Req() req: AuthenticatedRequest, @Body() dto: CreateGameDto) {
-    return this.minesService.createGame(
+    return await this.minesService.createGame(
       dto.betAmount,
       req.user.username,
       dto.mineCount,

@@ -9,6 +9,7 @@ export interface MinesGame {
   revealedMask: number;
   active: boolean;
   outcome: GameOutcome;
+  status?: 'INITIALIZING' | "ENDING" | 'PLAYING' | 'CASHED_OUT' | 'BOMBED';
   grid: number;
 
   betAmount: number;

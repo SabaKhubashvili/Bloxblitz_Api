@@ -17,6 +17,7 @@ import {
 } from 'src/middleware/jwt.middleware';
 import { UniwireCallbackGuard } from 'src/middleware/uniwireCallback.middleware';
 import { CryptoCallbackDto } from './dto/uniwire-callback.dto';
+import { CreatePayoutTransactionDto } from './dto/create-payout-transaction.dto';
 
 @Controller('crypto')
 export class UniwireController {
@@ -29,10 +30,30 @@ export class UniwireController {
     return rates;
   }
   @Post('/callback')
-  @UseGuards(UniwireCallbackGuard)
+  // @UseGuards(UniwireCallbackGuard)
   async handleCallback(@Body() req: CryptoCallbackDto) {
     await this.uniwireService.processCallback(req);
     return { status: 'Callback received successfully' };
+  }
+  @Post('payout/:coin')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async payout(
+    @Param() params: GetCryptoAddressByNameDto,
+    @Body() body: CreatePayoutTransactionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const { coin } = params;
+    const result = await this.uniwireService.createPayoutTransaction({
+      coin: coin,
+      username: req.user.username,
+      amount: body.amount,
+      address: body.address,
+    });
+    return {
+      payoutId: result.payoutId,
+      status: result.status,
+    };
   }
   // Parameterized routes LAST
   @Get(':coin')
@@ -42,7 +63,9 @@ export class UniwireController {
     @Param() params: GetCryptoAddressByNameDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    
     const { coin } = params;
+    console.log(coin);
     const result = await this.uniwireService.getUserDepositAddr({
       coin: coin,
       username: req.user.username,

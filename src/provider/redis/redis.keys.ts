@@ -114,4 +114,10 @@ export const RedisKeys = {
     userJoined: (username: string) =>
       `user:${username}:joined_giveaways`,
   },
+  /* ─────────────── CRYPTO CONFIRMATIONS ─────────────── */
+  crypto: {
+    confirmations: {
+      active: `tx:confirmations:active`,
+    },
+  },
 } as const;

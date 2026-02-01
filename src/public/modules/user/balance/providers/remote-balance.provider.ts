@@ -120,14 +120,6 @@ export class RemoteBalanceProvider implements BalanceProvider {
             redeemedAt: new Date(),
           },
         });
-        await prisma.userStatistics.update({
-          where: { userUsername:username },
-          data:{
-            totalDeposits:{
-              increment: codeValue,
-            }
-          }
-        })
         this.redisService.del(RedisKeys.user.profile(username));
         this.redisService.del(RedisKeys.user.publicProfile(username));
 

@@ -85,12 +85,12 @@ export class MinesRepository {
     const raw = await this.redis.mainClient.get(key);
     if (!raw) return false;
 
-    // const game: MinesGame = JSON.parse(raw);
+    const game: MinesGame = JSON.parse(raw);
 
-    // await this.redis.mainClient.set(
-    //   key,
-    //   JSON.stringify({ ...game, ...updates }),
-    // );
+    await this.redis.mainClient.set(
+      key,
+      JSON.stringify({ ...game, ...updates }),
+    );
 
     return true;
   }
@@ -120,17 +120,20 @@ export class MinesRepository {
   }
 
   /* ---------------- GAMEPLAY ATOMICS ---------------- */
-  async atomicUpdateIfActive(
-    gameId: string,
-    updates: Partial<MinesGame>,
-  ): Promise<boolean> {
-    return this.redis.atomicUpdateIfMatch(
-      RedisKeys.mines.game(gameId),
-      'active',
-      true,
-      updates as Record<string, any>,
-    );
-  }
+ async atomicUpdateIfActiveAndStatus(
+  gameId: string,
+  expectedStatus: string,
+  updates: Partial<MinesGame>,
+): Promise<boolean> {
+  return this.redis.atomicUpdateIfMultiMatch(
+    RedisKeys.mines.game(gameId),
+    { 
+      active: true, 
+      status: expectedStatus 
+    },
+    updates as Record<string, any>,
+  );
+}
 
   async atomicUpdateIfActiveAndMaskUnchanged(
     gameId: string,

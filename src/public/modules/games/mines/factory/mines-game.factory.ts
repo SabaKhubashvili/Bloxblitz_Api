@@ -113,6 +113,7 @@ export class MinesGameFactory {
         nonce,
         multiplier: 1,
         outcome: GameOutcome.PLAYING,
+        status: 'PLAYING',
       };
 
       // ============================================
@@ -121,19 +122,22 @@ export class MinesGameFactory {
       stepStart = performance.now();
       this.logger.log(`Updating game ${gameId} with mineMask and nonce`);
       await this.repo.updateGame(gameId, { mineMask, nonce }, gameData);
+      console.log(await this.redisService.get(RedisKeys.mines.game(gameId)));
 
       // Sync nonce to database (async, non-blocking)
       (this.syncNonceToDatabase(username, nonce),
         // Backup game to persistent storage
-        this.persistence
+        await this.persistence
           .backupGame(gameId, username, gameData)
           .then((betId) => {
-            this.repo.updateGame(gameId, { betId: betId },gameData).catch((err) => {
-              this.logger.error(
-                `Failed to update betId for game ${gameId}:`,
-                err,
-              );
-            });
+            this.repo
+              .updateGame(gameId, { betId: betId }, gameData)
+              .catch((err) => {
+                this.logger.error(
+                  `Failed to update betId for game ${gameId}:`,
+                  err,
+                );
+              });
           }),
         (perfMetrics.parallelOperations = performance.now() - stepStart));
 
@@ -169,7 +173,7 @@ export class MinesGameFactory {
       // Cleanup on error
       await this.cleanupFailedGame(username, gameId, betAmount);
       throw err;
-    }finally{
+    } finally {
       await this.repo.unlockMinesGame(gameId);
     }
   }
@@ -258,7 +262,7 @@ export class MinesGameFactory {
     redis.call('SADD', 'user:balance:dirty', username)
         
     -- 7. Create game placeholder
-    redis.call('SET', gameKey, 'CREATING', 'EX', 3600)
+    redis.call('SET', gameKey, '{"status":"INITIALIZING"}')
     redis.call('SET',userActiveGameKey, gameId)
 
     local seedTable = cjson.decode(seedData)
@@ -332,11 +336,6 @@ export class MinesGameFactory {
       const slowPathStart = performance.now();
 
       // ============================================
-      // STEP 1: Fetch seed from database and cache it
-      // ============================================
-      const userSeed = await this.seedManagement.getUserSeed(username); // This will cache the seed
-
-      // ============================================
       // STEP 2: Execute Lua script for atomic Redis operations
       // ============================================
       const luaResult = await this.executeGameCreationLua(
@@ -386,6 +385,7 @@ export class MinesGameFactory {
         nonce,
         multiplier: 1,
         outcome: GameOutcome.PLAYING,
+        status: 'PLAYING',
       };
 
       // ============================================
@@ -400,26 +400,20 @@ export class MinesGameFactory {
         });
 
       // Sync nonce to database and backup game (async, non-blocking)
-      Promise.allSettled([
-        this.syncNonceToDatabase(username, nonce),
-        this.persistence
+
+      (this.syncNonceToDatabase(username, nonce),
+        await this.persistence
           .backupGame(gameId, username, gameData)
-          .then((betId) => {
+          .then(async (betId) => {
             if (betId) {
-              this.repo.updateGame(gameId, { betId },gameData).catch((err) => {
+              await this.repo.updateGame(gameId, { betId }, gameData).catch((err) => {
                 this.logger.error(
                   `Failed to update betId for game ${gameId}:`,
                   err,
                 );
               });
             }
-          }),
-      ]);
-
-      const slowPathTime = performance.now() - slowPathStart;
-      this.logger.log(
-        `Slow path completed for ${gameId} in ${slowPathTime.toFixed(2)}ms`,
-      );
+          }));
 
       // Return response (without sensitive data)
       return {

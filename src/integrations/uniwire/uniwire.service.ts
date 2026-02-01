@@ -8,6 +8,8 @@ import { CryptoCallbackDto } from './dto/uniwire-callback.dto';
 import { CallbackStatus } from './types/callbackStatus.enum';
 import { UserRepository } from 'src/public/modules/user/user.repository';
 import { minConfirmationMap } from 'src/common/constants/crypto/min-coinfirmation-map';
+import { RedisService } from 'src/provider/redis/redis.service';
+import { RedisKeys } from 'src/provider/redis/redis.keys';
 
 @Injectable()
 export class UniwireService {
@@ -22,6 +24,7 @@ export class UniwireService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly userRepository: UserRepository,
+    private readonly redisService: RedisService,
   ) {}
 
   // ============================================================================
@@ -85,16 +88,21 @@ export class UniwireService {
   }: {
     coin: AvailableCryptos;
     username: string;
-  }): Promise<{address:string, recentTransactions:any[]}> {
+  }): Promise<{ address: string; recentTransactions: any[] }> {
     try {
       // Check for existing active address
       const existingAddr = await this.findExistingDepositAddress(
         username,
         coin,
       );
-      const recentTransactions = await this.getRecentDepositTransactions(username, coin);
+      console.log(`existing addr ${existingAddr}`);
+      
+      const recentTransactions = await this.getRecentDepositTransactions(
+        username,
+        coin,
+      );
       if (existingAddr) {
-        return {address:existingAddr, recentTransactions};
+        return { address: existingAddr, recentTransactions };
       }
 
       // Create new invoice and deposit address
@@ -131,22 +139,24 @@ export class UniwireService {
   private async getRecentDepositTransactions(
     username: string,
     coin: AvailableCryptos,
-  )  {
-    const recentTransaction = await this.prismaService.cryptoTransaction.findMany({
-      where: {
-        username,
-        currency: coin,
-      },
-      select:{
-        amountExpected:true,
-        confirmations:true,
-        minConfirmations:true,
-        isFullyConfirmed:true,
-        txid:true
-      },
-      orderBy: { createdAt: 'desc' },
-      take:5
-    });
+  ) {
+    const recentTransaction =
+      await this.prismaService.cryptoTransaction.findMany({
+        where: {
+          username,
+          currency: coin,
+        },
+        select: {
+          usdAmountExpected: true,
+          cryptoAmountExpected: true,
+          confirmations: true,
+          minConfirmations: true,
+          isFullyConfirmed: true,
+          txid: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      });
 
     return recentTransaction;
   }
@@ -154,7 +164,7 @@ export class UniwireService {
   private async createNewDepositAddress(
     username: string,
     coin: AvailableCryptos,
-  ): Promise<{address:string, recentTransactions:any[]}> {
+  ): Promise<{ address: string; recentTransactions: any[] }> {
     const kind = coinKindMap[coin];
 
     const response = await this.request<{
@@ -189,7 +199,7 @@ export class UniwireService {
       `Created new deposit address for user ${username}, coin ${coin}`,
     );
 
-    return {address, recentTransactions: []};
+    return { address, recentTransactions: [] };
   }
 
   // ============================================================================
@@ -318,9 +328,14 @@ export class UniwireService {
       txid,
       currency: amount.paid.currency as AvailableCryptos,
       usdAmount,
+      cryptoAmount: amount.paid.amount,
       network,
       username,
     });
+    await this.redisService.mainClient.sAdd(
+      RedisKeys.crypto.confirmations.active,
+      transactionId,
+    );
   }
 
   async handleTransactionConfirmed(
@@ -354,8 +369,10 @@ export class UniwireService {
 
       const usdAmount = this.extractUsdAmount(amount, callbackData.callback_id);
       const username = existingTransaction.username;
-      if(!username){
-        throw new Error(`Transaction ${transactionId} has no associated username`);
+      if (!username) {
+        throw new Error(
+          `Transaction ${transactionId} has no associated username`,
+        );
       }
 
       // Update transaction and credit user in a single database transaction
@@ -363,7 +380,9 @@ export class UniwireService {
         transactionId,
         txid,
         confirmations,
-        confirmedAt: confirmed_at ? new Date(confirmed_at).toISOString() : new Date().toISOString(),
+        confirmedAt: confirmed_at
+          ? new Date(confirmed_at).toISOString()
+          : new Date().toISOString(),
         username,
         usdAmount,
       });
@@ -389,7 +408,6 @@ export class UniwireService {
       id: transactionId,
       txid,
       invoice,
-      amount,
       confirmations,
       confirmed_at,
     } = callbackData.transaction!;
@@ -415,8 +433,14 @@ export class UniwireService {
         transactionId,
         txid,
         confirmations,
-        confirmedAt: confirmed_at ? new Date(confirmed_at).toISOString() : new Date().toISOString(),
+        confirmedAt: confirmed_at
+          ? new Date(confirmed_at).toISOString()
+          : new Date().toISOString(),
       });
+      await this.redisService.mainClient.sRem(
+        RedisKeys.crypto.confirmations.active,
+        transactionId,
+      );
 
       this.logger.log(
         `Transaction completed: TXID ${txid}, Confirmations: ${confirmations}`,
@@ -429,6 +453,69 @@ export class UniwireService {
       throw error;
     }
   }
+
+
+  // ============================================================================
+  // Payout Processing
+  // ============================================================================
+  async createPayoutTransaction(params: {
+  coin: AvailableCryptos;
+  amount: string; // 👈 IMPORTANT
+  address: string;
+  username: string;
+}): Promise<{ payoutId: string; status: string }> {
+  const { coin, amount, address, username } = params;
+
+  try {
+    const formattedAmount = this.formatCryptoAmount(amount, 8);
+
+    const payload = {
+      profile_id: this.PROFILE_ID,
+      kind: coinKindMap[coin], // must be BTC / ETH / TRX / etc
+      reference_id: `payout_${username}_${Date.now()}_${crypto.randomUUID()}`,
+      passthrough: JSON.stringify({
+        username,
+        amount: formattedAmount,
+        address,
+      }),
+      recipients: [
+        {
+          amount: formattedAmount, // 👈 string
+          currency: coin,
+          address,
+        },
+      ],
+    };
+
+    this.logger.log(
+      `Creating payout: ${JSON.stringify(payload, null, 2)}`,
+    );
+
+    const response = await this.request<{
+      result: {
+        id: string;
+        status: string;
+      };
+    }>('/v1/payouts/', payload, 'POST');
+
+    return {
+      payoutId: response.result.id,
+      status: response.result.status,
+    };
+  } catch (error) {
+    this.logger.error(
+      `Error creating payout transaction for user ${username}`,
+      error.stack,
+    );
+    throw error;
+  }
+}
+ formatCryptoAmount(amount: string, decimals: number): string {
+  if (!amount.includes('.')) return amount;
+
+  const [int, frac] = amount.split('.');
+  return `${int}.${frac.slice(0, decimals)}`;
+}
 
   // ============================================================================
   // Database Operations
@@ -446,6 +533,7 @@ export class UniwireService {
     txid: string;
     currency: AvailableCryptos;
     usdAmount: number;
+    cryptoAmount:number,
     network: string;
     username: string;
   }): Promise<void> {
@@ -455,6 +543,7 @@ export class UniwireService {
       txid,
       currency,
       usdAmount,
+      cryptoAmount,
       network,
       username,
     } = params;
@@ -467,7 +556,8 @@ export class UniwireService {
           providerTransactionId: transactionId,
           txid,
           currency,
-          amountExpected: usdAmount,
+          usdAmountExpected: usdAmount,
+          cryptoAmountExpected: cryptoAmount,
           amountPaid: usdAmount,
           network,
           status: 'PENDING',
@@ -480,6 +570,10 @@ export class UniwireService {
         `Crypto transaction created successfully for invoice ${invoiceId}`,
       );
     } catch (error) {
+      await this.redisService.mainClient.sRem(
+        RedisKeys.crypto.confirmations.active,
+        transactionId,
+      );
       this.logger.error(
         `Failed to create crypto transaction for invoice ${invoiceId}`,
         error.stack,
@@ -507,6 +601,7 @@ export class UniwireService {
           status: 'CONFIRMING',
           confirmations,
           confirmedAt: confirmedAt ? new Date(confirmedAt) : new Date(),
+          isFullyConfirmed: true,
         },
       });
 
@@ -540,7 +635,6 @@ export class UniwireService {
         status: 'COMPLETED',
         confirmations,
         confirmedAt: confirmedAt ? new Date(confirmedAt) : new Date(),
-        isFullyConfirmed:true
       },
     });
   }

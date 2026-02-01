@@ -124,18 +124,29 @@ export class UserRepository {
    */
   async processDeposit(username: string, amount: number): Promise<number> {
     // 1. Update database first (source of truth for real money)
-    const updatedUser = await this.prisma.user.update({
-      where: { username },
-      data: { balance: { increment: amount } },
+    const result = await this.prisma.$transaction(async (prisma) => {
+      const updatedUser = await prisma.user.update({
+        where: { username },
+        data: { balance: { increment: amount } },
+      });
+
+      // 2. Update Redis cache immediately
+      await this.redis.set(
+        `user:balance:${username}`,
+        updatedUser.balance.toString(),
+      );
+      await this.prisma.userStatistics.update({
+        where: { userUsername: username },
+        data: {
+          totalDeposits: {
+            increment: amount,
+          },
+        },
+      });
+      return updatedUser;
     });
 
-    // 2. Update Redis cache immediately
-    await this.redis.set(
-      `user:balance:${username}`,
-      updatedUser.balance.toString(),
-    );
-
-    return updatedUser.balance.toNumber();
+    return result.balance.toNumber();
   }
 
   /**
@@ -219,17 +230,17 @@ export class UserRepository {
       UPDATE "UserStatistics"
       SET
         "totalGamesWon" = "totalGamesWon" + 1,
-        "totalProfit" = "totalProfit" + ${(betAmount * multiplier) - betAmount},
+        "totalProfit" = "totalProfit" + ${betAmount * multiplier - betAmount},
         "totalGamesPlayed" = "totalGamesPlayed" + 1,
         "totalWagered" = "totalWagered" + ${betAmount},
         ${gameUpdateSql},
-        "biggestWin" = GREATEST("biggestWin", ${(betAmount * multiplier) - betAmount}),
+        "biggestWin" = GREATEST("biggestWin", ${betAmount * multiplier - betAmount}),
         "biggestWinGame" = CASE
-          WHEN ${(betAmount * multiplier) - betAmount} > "biggestWin" THEN '${gameType}'
+          WHEN ${betAmount * multiplier - betAmount} > "biggestWin" THEN '${gameType}'
           ELSE "biggestWinGame"
         END,
         "biggestWinDate" = CASE
-          WHEN ${(betAmount * multiplier) - betAmount} > "biggestWin" THEN NOW()
+          WHEN ${betAmount * multiplier - betAmount} > "biggestWin" THEN NOW()
           ELSE "biggestWinDate"
         END
       WHERE "userUsername" = '${username}';

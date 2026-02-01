@@ -10,7 +10,7 @@ import { BalanceService } from 'src/public/modules/user/balance/balance.service'
 export class KinguinController {
   constructor(private readonly balanceService: BalanceService) {}
   
-  @Post('kinguin/redeem')
+  @Post('redeem')
   @UseGuards(JwtAuthGuard)
   async redeemKinguin(
     @Body() dto: RedeemKinguinDto,

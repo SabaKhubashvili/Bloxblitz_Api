@@ -63,10 +63,14 @@ export class MinesGameService {
         );
       }
       const game = await this.repo.getGame(gameId);
+     
+
+      if (!game || game.status === 'INITIALIZING') {
+         throw new ConflictException('Game is initializing');
+       }
       this.logger.log(game);
       this.validator.validateGameAccess(game, username);
       this.validator.validateTileReveal(game, tile);
-
       const bit = 1 << tile;
       const newMask = game.revealedMask | bit;
       const hitMine = (game.mineMask & bit) !== 0;
@@ -93,12 +97,14 @@ export class MinesGameService {
           outcome = 'WON';
         }
       }
+      const statusUpdate = !active ? 'ENDING' : 'PLAYING';
 
       const updated = await this.repo.atomicRevealTile(gameId, bit, tile, {
         active,
         multiplier,
         gemsLeft,
         outcome,
+        status: statusUpdate,
       });
 
       if (!updated) {
@@ -243,14 +249,26 @@ export class MinesGameService {
         );
       }
       const game = await this.repo.getGame(gameId);
+        if (!game  || game.status === 'INITIALIZING' || game.status === 'ENDING') {
+      throw new ConflictException('Game is being processed');
+    } 
+      if (game.status !== 'PLAYING') {
+      throw new BadRequestException('Cannot cashout inactive game');
+    }
 
       this.validator.validateGameAccess(game, username);
       this.validator.validateCashout(game);
 
-      const updated = await this.repo.atomicUpdateIfActive(gameId, {
+      const updated = await this.repo.atomicUpdateIfActiveAndStatus(
+      gameId,
+      'PLAYING', // Only proceed if still PLAYING
+      {
         active: false,
         outcome: 'CASHED_OUT',
-      });
+        status: 'ENDING',
+      }
+    );
+
 
       if (!updated) {
         throw new BadRequestException('Cashout failed - game already ended');

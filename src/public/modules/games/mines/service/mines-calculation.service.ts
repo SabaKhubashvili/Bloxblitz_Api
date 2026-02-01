@@ -7,6 +7,9 @@ export class MinesCalculationService {
     if (tilesRevealed === 0) return 1;
 
     const safeTiles = gridSize - mines;
+    console.log(safeTiles);
+    console.log(tilesRevealed);
+    
     if (safeTiles <= 0 || tilesRevealed > safeTiles) {
       throw new Error('Invalid game state for multiplier calculation');
     }
