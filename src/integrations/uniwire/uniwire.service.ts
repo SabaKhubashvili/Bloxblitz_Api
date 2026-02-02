@@ -2,9 +2,9 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import {
   AssetType,
   AvailableCryptos,
-  TransactionAction,
+  PaymentProviders,
   TransactionCategory,
-  TransactionProvider,
+  TransactionStatus,
 } from '@prisma/client';
 import axios, { Method } from 'axios';
 import * as crypto from 'crypto';
@@ -16,21 +16,25 @@ import { UserRepository } from 'src/public/modules/user/user.repository';
 import { minConfirmationMap } from 'src/common/constants/crypto/min-coinfirmation-map';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
+import { TransactionHistoryService } from 'src/public/modules/user/transaction-history/transaction-history.service';
+import { DiscordNotificationService } from 'src/utils/discord_webhook.util';
 
 @Injectable()
 export class UniwireService {
   private readonly logger = new Logger(UniwireService.name);
 
   private readonly API_URL = process.env.UNIWIRE_API_URL!;
-  private readonly API_KEY = process.env.UNIWIRE_API_KEY!;
-  private readonly API_SECRET = process.env.UNIWIRE_API_SECRET!;
-  private readonly PROFILE_ID = process.env.UNIWIRE_PROFILE_ID!;
+  private readonly API_KEY = process.env.UNIWIRE_API_KEY_TESTNET!;
+  private readonly API_SECRET = process.env.UNIWIRE_API_SECRET_TESTNET!;
+  private readonly PROFILE_ID = process.env.UNIWIRE_PROFILE_ID_TESTNET!;
   private readonly COIN_TO_USD = process.env.COIN_TO_USD!;
 
   constructor(
     private readonly prismaService: PrismaService,
     private readonly userRepository: UserRepository,
     private readonly redisService: RedisService,
+    private readonly transactionHistoryService: TransactionHistoryService,
+    private readonly discordWebhookService: DiscordNotificationService,
   ) {}
 
   // ============================================================================
@@ -142,6 +146,7 @@ export class UniwireService {
 
     return existingAddr?.address || null;
   }
+
   private async getRecentDepositTransactions(
     username: string,
     coin: AvailableCryptos,
@@ -153,8 +158,8 @@ export class UniwireService {
           currency: coin,
         },
         select: {
-          usdAmountExpected: true,
-          cryptoAmountExpected: true,
+          coinAmountPaid: true,
+          cryptoAmountPaid: true,
           confirmations: true,
           minConfirmations: true,
           isFullyConfirmed: true,
@@ -313,6 +318,9 @@ export class UniwireService {
     const { id: invoiceId, network, passthrough } = invoice;
 
     const usdAmount = this.extractUsdAmount(amount, callbackData.callback_id);
+    this.logger.log(
+      `Extracted USD amount: $${usdAmount} from transaction ${transactionId}`,
+    );
     const username = this.extractUsername(
       passthrough,
       callbackData.callback_id,
@@ -326,6 +334,17 @@ export class UniwireService {
       usdAmount,
       username,
       confirmations,
+    });
+
+    this.discordWebhookService.sendTransactionLog({
+      transactionId,
+      username,
+      amountCoin: usdAmount * parseFloat(this.COIN_TO_USD),
+      amountCrypto: amount.paid.amount,
+      amountUsd: usdAmount,
+      direction: 'IN',
+      status: 'PENDING',
+      provider: PaymentProviders.UNIWIRE,
     });
 
     await this.createPendingTransaction({
@@ -386,12 +405,22 @@ export class UniwireService {
         transactionId,
         txid,
         confirmations,
-        invoiceId:invoice.id,
+        invoiceId: invoice.id,
         confirmedAt: confirmed_at
           ? new Date(confirmed_at).toISOString()
           : new Date().toISOString(),
         username,
         usdAmount,
+      });
+      this.discordWebhookService.sendTransactionLog({
+        transactionId,
+        username,
+        amountCoin: usdAmount * parseFloat(this.COIN_TO_USD),
+        amountCrypto: amount.paid.amount,
+        amountUsd: usdAmount,
+        direction: 'IN',
+        status: 'COMPLETED',
+        provider: PaymentProviders.UNIWIRE,
       });
 
       this.logger.log(
@@ -485,7 +514,7 @@ export class UniwireService {
         }),
         recipients: [
           {
-            amount: formattedAmount, // 👈 string
+            amount: formattedAmount,
             currency: coin,
             address,
           },
@@ -500,7 +529,17 @@ export class UniwireService {
           status: string;
         };
       }>('/v1/payouts/', payload, 'POST');
-
+      
+      this.discordWebhookService.sendTransactionLog({
+        transactionId: response.result.id,
+        username,
+        amountCrypto: parseFloat(formattedAmount),
+        amountCoin: 'N/a',
+        amountUsd: 'N/A',
+        direction: 'OUT',
+        status: response.result.status,
+        provider: PaymentProviders.UNIWIRE,
+      });
       return {
         payoutId: response.result.id,
         status: response.result.status,
@@ -554,40 +593,36 @@ export class UniwireService {
     try {
       await this.prismaService.cryptoTransaction.create({
         data: {
-          provider: TransactionProvider.UNIWIRE,
           invoiceId,
           providerTransactionId: transactionId,
           txid,
           currency,
-          usdAmountExpected: usdAmount,
-          cryptoAmountExpected: cryptoAmount,
-          amountPaid: usdAmount,
+          coinAmountPaid: usdAmount * parseFloat(this.COIN_TO_USD),
+          cryptoAmountPaid: cryptoAmount,
+          usdAmountPaid: usdAmount,
           network,
           status: 'PENDING',
           username,
           minConfirmations: minConfirmationMap[currency],
         },
       });
-      await this.prismaService.transactionHistory.create({
-        data: {
-          userUsername: username,
-          category: TransactionCategory.DEPOSIT,
-          action: TransactionAction.CRYPTO_DEPOSIT,
-          amount: cryptoAmount,
-          balanceAfter: await this.userRepository.getUserBalance(username),
-          assetType: AssetType.CRYPTO,
-          assetSymbol: currency,
-          provider: TransactionProvider.UNIWIRE,
-          referenceId: invoiceId,
-          providerReferenceId: transactionId,
-          referenceType: 'DEPOSIT',
-          status: 'PENDING',
-          direction: 'IN',
-        },
+      await this.transactionHistoryService.addTransaction({
+        username,
+        direction: 'IN',
+        category: TransactionCategory.CRYPTO,
+        provider: PaymentProviders.UNIWIRE,
+        coinAmountPaid: usdAmount * parseFloat(this.COIN_TO_USD),
+        cryptoAmountPaid: cryptoAmount,
+        usdAmountPaid: usdAmount,
+        assetSymbol: currency,
+        assetType: AssetType.CRYPTO,
+        referenceId: transactionId,
+        status: TransactionStatus.PENDING,
+        balanceAfter: 0,
+        referenceType: 'CRYPTO_TRANSACTION',
       });
-
       this.logger.log(
-        `Crypto transaction created successfully for invoice ${invoiceId}`,
+        `Crypto transaction created successfully for transaction ${transactionId}`,
       );
     } catch (error) {
       await this.redisService.mainClient.sRem(
@@ -611,27 +646,32 @@ export class UniwireService {
     username: string;
     usdAmount: number;
   }): Promise<void> {
-    const { transactionId, invoiceId, confirmations, confirmedAt, username, usdAmount } =
-      params;
+    const {
+      transactionId,
+      invoiceId,
+      confirmations,
+      confirmedAt,
+      username,
+      usdAmount,
+    } = params;
 
     await this.prismaService.$transaction(async (prisma) => {
       // Update transaction status to CONFIRMING
       await prisma.cryptoTransaction.update({
         where: { providerTransactionId: transactionId },
         data: {
-          status: 'CONFIRMING',
+          status: 'PENDING',
           confirmations,
           confirmedAt: confirmedAt ? new Date(confirmedAt) : new Date(),
           isFullyConfirmed: true,
         },
       });
       await this.prismaService.transactionHistory.updateMany({
-        where:{
-          providerReferenceId: transactionId,
-          referenceId: invoiceId,
+        where: {
+          referenceId: transactionId,
         },
         data: {
-          status: "COMPLETED",
+          status: 'COMPLETED',
         },
       });
 

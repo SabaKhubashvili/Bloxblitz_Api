@@ -10,6 +10,9 @@ import type { BalanceProvider } from './providers/balance.provider';
 import { BALANCE_PROVIDER } from './providers/balance.tokens';
 import { hashCode } from 'src/admin/kinguin/domain/kinguin-code.generator';
 import { RedeemResult } from './contracts/redeem-result.contract';
+import { TransactionHistoryService } from '../transaction-history/transaction-history.service';
+import { AssetType, ReferenceType } from '@prisma/client';
+import { DiscordNotificationService } from 'src/utils/discord_webhook.util';
 
 @Injectable()
 export class BalanceService {
@@ -17,8 +20,10 @@ export class BalanceService {
 
   constructor(
     @Inject(BALANCE_PROVIDER)
-    private readonly provider: BalanceProvider
-  ) {}
+    private readonly provider: BalanceProvider,
+    private readonly transactionHistoryService: TransactionHistoryService,
+    private readonly discordNotificationService: DiscordNotificationService,
+  ) { }
 
   async redeemKinguinCode(
     username: string,
@@ -34,8 +39,38 @@ export class BalanceService {
         username,
         hashedCode,
       );
+      await this.transactionHistoryService.addTransaction({
+        username,
+        direction: 'IN',
+        category: 'KINGUIN_REDEEM',
+        coinAmountPaid: codeAmount,
+        usdAmountPaid: 0,
+        cryptoAmountPaid: 0,
+        assetSymbol: 'Coin',
+        assetType: AssetType.GIFT_CARD,
+        status: 'COMPLETED',
+        balanceAfter: newBalance,
+        referenceType: ReferenceType.KINGUIN_CODE,
+        referenceId: hashedCode,
+        provider: 'KINGUIN',
+      });
 
-      this.logger.log(`Kinguin code redeemed successfully. Username: ${username}, Amount: ${codeAmount}, NewBalance: ${newBalance}`);
+      await this.discordNotificationService.sendTransactionLog({
+        username,
+        direction: 'IN',
+        amountCoin: codeAmount,
+        amountCrypto: 0,
+        amountUsd: 0,
+        balanceAfter: newBalance,
+        status: 'COMPLETED',
+        provider: 'KINGUIN',
+        transactionId: 'N/A',
+        additionalData: `Redeemed Kinguin code: ${code}`,
+      });
+
+      this.logger.log(
+        `Kinguin code redeemed successfully. Username: ${username}, Amount: ${codeAmount}, NewBalance: ${newBalance}`,
+      );
 
       return {
         success: true,
@@ -46,7 +81,8 @@ export class BalanceService {
       if (
         err instanceof UnauthorizedException ||
         err instanceof BadRequestException
-      ) throw err;
+      )
+        throw err;
 
       this.logger.error(
         `Unexpected error while redeeming Kinguin code for user ${username}`,
@@ -58,7 +94,8 @@ export class BalanceService {
     }
   }
   async getBalance(username: string): Promise<{
-    balance: number; petValueBalance: number;
+    balance: number;
+    petValueBalance: number;
   }> {
     return this.provider.getUserBalance(username);
   }
@@ -66,8 +103,14 @@ export class BalanceService {
     senderUsername: string,
     recipientUsername: string,
     amount: number,
-  ): Promise<{ success: boolean; newSenderBalance: number; newRecipientBalance: number }> {
-    this.logger.log(`User ${senderUsername} is attempting to tip ${amount} to ${recipientUsername}`);
+  ): Promise<{
+    success: boolean;
+    newSenderBalance: number;
+    newRecipientBalance: number;
+  }> {
+    this.logger.log(
+      `User ${senderUsername} is attempting to tip ${amount} to ${recipientUsername}`,
+    );
 
     if (amount <= 0) {
       throw new BadRequestException('Tip amount must be greater than zero.');
@@ -75,20 +118,19 @@ export class BalanceService {
 
     try {
       const { newSenderBalance, newRecipientBalance } =
-        await this.provider.tipUser(
-          senderUsername,
-          recipientUsername,
-          amount,
-        );
+        await this.provider.tipUser(senderUsername, recipientUsername, amount);
 
-      this.logger.log(`Tip successful. Sender: ${senderUsername}, Recipient: ${recipientUsername}, Amount: ${amount}`);
+      this.logger.log(
+        `Tip successful. Sender: ${senderUsername}, Recipient: ${recipientUsername}, Amount: ${amount}`,
+      );
 
-      return { success:true, newSenderBalance, newRecipientBalance };
+      return { success: true, newSenderBalance, newRecipientBalance };
     } catch (err) {
       if (
         err instanceof UnauthorizedException ||
         err instanceof BadRequestException
-      ) throw err;
+      )
+        throw err;
 
       this.logger.error(
         `Unexpected error while processing tip from ${senderUsername} to ${recipientUsername}`,

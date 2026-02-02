@@ -36,8 +36,8 @@ export class BetHistoryService {
     pageSize: number,
   ): Promise<BetHistoryResponse> {
     const skip = (page - 1) * pageSize;
-   const [userGameData, totalResult] = await this.prismaService.$transaction([
-  this.prismaService.$queryRaw`
+    const [userGameData, totalResult] = await this.prismaService.$transaction([
+      this.prismaService.$queryRaw`
     SELECT 
       gh.id,
       gh."gameType",
@@ -69,12 +69,12 @@ export class BetHistoryService {
     LIMIT ${pageSize}
     OFFSET ${skip}
   `,
-  this.prismaService.$queryRaw`
+      this.prismaService.$queryRaw`
     SELECT COUNT(*)::int as count
     FROM "GameHistory"
     WHERE "userUsername" = ${username}
   `,
-]);
+    ]);
     const total = (totalResult as any)[0]?.count || 0;
 
     return {

@@ -13,6 +13,7 @@ import { BotModule } from './public/modules/bot/bot.module';
 import { UserModule } from './public/modules/user/user.module';
 import { WorkersModule } from './workers/workers.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { DiscordNotificationService } from './utils/discord_webhook.util';
 @Module({
   imports: [
     ConfigModule.forRoot(),
