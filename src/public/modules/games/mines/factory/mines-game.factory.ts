@@ -192,10 +192,10 @@ export class MinesGameFactory {
     local nonceKey = KEYS[2]
     local balanceKey = KEYS[3]
     local gameKey = KEYS[4]
-    local activeGamesKey = KEYS[5]
-    local userActiveGameKey = KEYS[6]
+    local userActiveGamesKey = KEYS[5]
+    local userActiveMinesGame = KEYS[6]
     
-    local betAmount = ARGV[1]  -- Keep as string initially
+    local betAmount = ARGV[1]
     local gameId = ARGV[2]
     local cacheTTL = tonumber(ARGV[3])
     local username = ARGV[4]
@@ -203,7 +203,7 @@ export class MinesGameFactory {
 
     -- Check if user already has an active game
     
-    local hasGame = redis.call('EXISTS', userActiveGameKey)
+    local hasGame = redis.call('EXISTS', userActiveMinesGame)
     if hasGame == 1 then
       return cjson.encode({error = 'GAME_EXISTS'})
     end
@@ -275,16 +275,16 @@ export class MinesGameFactory {
         
     -- 7. Create game placeholder
     redis.call('SET', gameKey, '{"status":"INITIALIZING"}')
-    redis.call('SET',userActiveGameKey, gameId)
+    redis.call('SET',userActiveMinesGame, gameId)
+    -- Update seed usage stats
 
     seedTable.totalGamesPlayed = (seedTable.totalGamesPlayed or 0) + 1
-
     local updatedSeedData = cjson.encode(seedTable)
     redis.call('SET', seedKey, updatedSeedData, 'EX', cacheTTL)
     
     -- 8. Add to active games
     local gameData = cjson.encode({gameId = gameId, gameType = 'MINES'})
-    redis.call('LPUSH', activeGamesKey, gameData)
+    redis.call('LPUSH', userActiveGamesKey, gameData)
 
     
     -- Return success with seed data and nonce
@@ -365,6 +365,7 @@ export class MinesGameFactory {
       if (luaResult.error) {
         throw this.handleCreationError(luaResult.error);
       }
+
       balanceDeducted = true;
 
       const { nonce } = luaResult;
