@@ -24,9 +24,9 @@ export class UniwireService {
   private readonly logger = new Logger(UniwireService.name);
 
   private readonly API_URL = process.env.UNIWIRE_API_URL!;
-  private readonly API_KEY = process.env.UNIWIRE_API_KEY_TESTNET!;
-  private readonly API_SECRET = process.env.UNIWIRE_API_SECRET_TESTNET!;
-  private readonly PROFILE_ID = process.env.UNIWIRE_PROFILE_ID_TESTNET!;
+  private readonly API_KEY = process.env.UNIWIRE_API_KEY!;
+  private readonly API_SECRET = process.env.UNIWIRE_API_SECRET!;
+  private readonly PROFILE_ID = process.env.UNIWIRE_PROFILE_ID!;
   private readonly COIN_TO_USD = process.env.COIN_TO_USD!;
 
   constructor(
