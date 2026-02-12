@@ -7,6 +7,7 @@ import * as readline from 'readline';
 import * as fs from 'fs';
 
 config();
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -109,7 +110,7 @@ async function generate10kSeedsWithStats() {
       1,
       (Math.pow(2, 32) / (int + 1)) * (1 - HOUSE_EDGE),
     );
-    const rounded = Math.min(1000,Math.floor(crashPoint * 100) / 100);
+    const rounded = Math.floor(crashPoint * 100) / 100;
 
     crashPoints.push(rounded);
 

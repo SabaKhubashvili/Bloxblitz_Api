@@ -16,6 +16,7 @@ export interface MinesGame {
   revealedTiles: number[];
 
   creatorUsername: string;
+  creatorProfilePicture: string;
 
   serverSeed?: string;
   serverSeedHash: string;

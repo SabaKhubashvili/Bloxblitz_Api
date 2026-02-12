@@ -31,18 +31,20 @@ export class MinesGameService {
     private readonly sharedUserGames: SharedUserGamesService,
     private readonly redisService: RedisService,
     private readonly userRepository: UserRepository,
+    private readonly redis: RedisService,
   ) {}
 
   async createGame(
     betAmount: number,
     username: string,
+    profilePicture: string,
     mines: number,
     size: 25 | 16,
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
     this.validator.validateGameParams(betAmount, mines, size);
-    return await this.factory.createNewGame(betAmount, username, mines, size);
+    return await this.factory.createNewGame(betAmount, username,profilePicture, mines, size);
   }
 
   async revealTile(username: string, gameId: string, tile: number) {
@@ -113,6 +115,19 @@ export class MinesGameService {
         );
       }
       if (!active) {
+        
+        await this.redis.pubClient.publish(
+          'bet.placed',
+          JSON.stringify({
+            username,
+            game: GameType.MINES,
+            profilePicture: game.creatorProfilePicture,
+            amount: game.betAmount,
+            profit: hitMine ? -game.betAmount : game.betAmount * multiplier,
+            multiplier,
+            createdAt: Date.now(),
+          }),
+        );
         await this.repo.deleteGame(game.gameId, username);
         console.log(`
           Game ended for user ${username}, gameId ${game.gameId}, outcome: ${outcome}
@@ -290,6 +305,19 @@ export class MinesGameService {
       const revealedTiles = this.calculator.maskToTileArray(game.revealedMask);
       const lastTile = revealedTiles[revealedTiles.length - 1] || null;
       if (game.betId) {
+        await this.redis.pubClient.publish(
+          'bet.placed',
+          JSON.stringify({
+            username,
+            game: GameType.MINES,
+            amount: game.betAmount,
+            profilePicture: game.creatorProfilePicture,
+            profit: winnings,
+            multiplier: game.multiplier,
+            createdAt: Date.now(),
+          }),
+        );
+
         const profit = winnings - game.betAmount;
 
         this.persistence.updateGame(game.betId, game, {

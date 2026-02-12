@@ -11,11 +11,21 @@ import type { RedisArgument, RedisClientType } from 'redis';
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   mainClient: RedisClientType;
+  pubClient: RedisClientType;
   private connecting = false;
 
   onModuleInit() {
     
     this.mainClient = createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        reconnectStrategy: (retries) => {
+          this.logger.warn(`🔁 Redis reconnect attempt #${retries}`);
+          return Math.min(retries * 100, 3000);
+        },
+      },
+    });
+    this.pubClient = createClient({
       url: process.env.REDIS_URL,
       socket: {
         reconnectStrategy: (retries) => {
@@ -48,6 +58,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       try {
         if (!this.mainClient.isOpen) {
           await this.mainClient.connect();
+        }
+        if (!this.pubClient.isOpen) {
+          await this.pubClient.connect();
         }
         return;
       } catch (err) {

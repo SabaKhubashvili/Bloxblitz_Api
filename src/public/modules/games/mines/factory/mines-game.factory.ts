@@ -34,6 +34,7 @@ export class MinesGameFactory {
   async createNewGame(
     betAmount: number,
     username: string,
+    profilePicture: string,
     mines: number,
     size: 25 | 16,
   ): Promise<
@@ -67,6 +68,7 @@ export class MinesGameFactory {
           return await this.createNewGameSlowPath(
             betAmount,
             username,
+            profilePicture,
             mines,
             size,
             gameId,
@@ -107,6 +109,7 @@ export class MinesGameFactory {
         betAmount,
         active: true,
         creatorUsername: username,
+        creatorProfilePicture: profilePicture,
         serverSeed: seedData.activeServerSeed,
         serverSeedHash: seedData.activeServerSeedHash,
         clientSeed: seedData.activeClientSeed,
@@ -168,6 +171,7 @@ export class MinesGameFactory {
         nonce,
         multiplier: 1,
         outcome: 'PLAYING',
+        creatorProfilePicture: profilePicture,
       };
     } catch (err) {
       // Cleanup on error
@@ -335,6 +339,7 @@ export class MinesGameFactory {
   private async createNewGameSlowPath(
     betAmount: number,
     username: string,
+    profilePicture: string,
     mines: number,
     size: 25 | 16,
     gameId: string,
@@ -398,6 +403,7 @@ export class MinesGameFactory {
         betAmount,
         active: true,
         creatorUsername: username,
+        creatorProfilePicture: profilePicture,
         serverSeed: seedData.activeServerSeed,
         serverSeedHash: seedData.activeServerSeedHash,
         clientSeed: seedData.activeClientSeed,
@@ -443,6 +449,7 @@ export class MinesGameFactory {
         grid: size,
         betAmount,
         active: true,
+        creatorProfilePicture: profilePicture,
         creatorUsername: username,
         serverSeedHash: seedData.activeServerSeedHash,
         clientSeed: seedData.activeClientSeed,

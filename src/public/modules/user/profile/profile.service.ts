@@ -21,63 +21,103 @@ export class ProfileService {
   private readonly USER_RANK_CACHE_TTL = 60; // 1 minute (ranks change more frequently)
 
   async getProfile(username: string) {
-    try {
-      const cachedProfile = await this.redisService.get(
-        RedisKeys.user.profile(username),
-      );
-      if (cachedProfile) {
-        return cachedProfile;
-      }
+  try {
+    const cachedProfile = await this.redisService.get(
+      RedisKeys.user.profile(username),
+    );
+    if (cachedProfile) {
+      return cachedProfile;
+    }
 
-      const user = await this.prisma.user.findUnique({
-        where: { username },
-        select: {
-          id: true,
-          username: true,
-          currentLevel: true,
-          totalXP: true,
-          profile_picture: true,
+    // Calculate date boundaries for 7 and 30 days ago
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-          created_at: true,
-          statistics: {
-            select: {
-              totalWagered: true,
-              totalWithdrawals: true,
-              totalDeposits: true,
-              totalProfit: true,
-              totalLoss: true,
-            },
-          },
-          settings: {
-            select: {
-              privateProfile: true,
-            },
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        currentLevel: true,
+        totalXP: true,
+        profile_picture: true,
+        created_at: true,
+        statistics: {
+          select: {
+            totalWagered: true,
+            totalWithdrawals: true,
+            totalDeposits: true,
+            totalProfit: true,
+            totalLoss: true,
           },
         },
-      });
+        settings: {
+          select: {
+            privateProfile: true,
+          },
+        },
+      },
+    });
 
-      if (!user) {
-        throw new BadRequestException('User not found.');
-      }
-
-      await this.redisService.mainClient.setEx(
-        RedisKeys.user.profile(username),
-        3600,
-        JSON.stringify(user),
-      );
-
-      return user;
-    } catch (err) {
-      this.logger.error(
-        `Error fetching profile for ${username}: ${err.message}`,
-      );
-      if (err instanceof BadRequestException) {
-        throw err;
-      }
-      const message = 'An error occurred while fetching profile data.';
-      throw new InternalServerErrorException(message);
+    if (!user) {
+      throw new BadRequestException('User not found.');
     }
+
+    // Calculate wagers for past 7 and 30 days
+    const [wagerLast7Days, wagerLast30Days] = await Promise.all([
+      this.prisma.gameHistory.aggregate({
+        where: {
+          userUsername: username,
+          completedAt: {
+            gte: sevenDaysAgo,
+          },
+        },
+        _sum: {
+          betAmount: true,
+        },
+      }),
+      this.prisma.gameHistory.aggregate({
+        where: {
+          userUsername: username,
+          completedAt: {
+            gte: thirtyDaysAgo,
+          },
+        },
+        _sum: {
+          betAmount: true,
+        },
+      }),
+    ]);
+
+    const profileData = {
+      ...user,
+      statistics: {
+        ...user.statistics,
+        wagerLast7Days: wagerLast7Days._sum.betAmount?.toNumber() || 0,
+        wagerLast30Days: wagerLast30Days._sum.betAmount?.toNumber() || 0,
+      },
+    };
+
+    await this.redisService.mainClient.setEx(
+      RedisKeys.user.profile(username),
+      3600,
+      JSON.stringify(profileData),
+    );
+
+    return profileData;
+  } catch (err) {
+    this.logger.error(
+      `Error fetching profile for ${username}: ${err.message}`,
+    );
+    if (err instanceof BadRequestException) {
+      throw err;
+    }
+    const message = 'An error occurred while fetching profile data.';
+    throw new InternalServerErrorException(message);
   }
+}
+
   async setPrivateProfile(username: string, newVal: boolean) {
     try {
       const newPrivateProfileSetting = newVal;
