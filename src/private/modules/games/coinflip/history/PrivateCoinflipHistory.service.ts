@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Side } from '@prisma/client';
-import { PlayerInterface } from 'src/coinflip/types/jackpot.interface';
+import { PlayerInterface } from 'src/types/jackpot.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SaveCoinflipGameDto } from './dto/save-coinflip-game.dto';
 

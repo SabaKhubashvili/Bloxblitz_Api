@@ -5,7 +5,7 @@ import { Variant } from '@prisma/client';
 import {
   CoinflipItem,
   PlayerInterface,
-} from 'src/coinflip/types/jackpot.interface';
+} from 'src/types/jackpot.interface';
 import { JackpotPlayer } from 'src/common/types/jackpot/jackpot.interface';
 
 @Injectable()

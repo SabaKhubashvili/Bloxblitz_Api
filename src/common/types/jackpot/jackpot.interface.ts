@@ -1,4 +1,4 @@
-import { CoinflipItem } from "src/coinflip/types/jackpot.interface";
+import { CoinflipItem } from "src/types/jackpot.interface";
 
 export interface JackpotBetItems {
   id: string;

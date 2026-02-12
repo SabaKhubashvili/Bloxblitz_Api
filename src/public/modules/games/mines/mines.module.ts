@@ -12,6 +12,7 @@ import { SeedManagementService } from '../seed-managment/seed-managment.service'
 import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.service';
 import { BetHistoryService } from 'src/private/modules/user/bet-history/private-bet-history.service';
 import { UserRepository } from '../../user/user.repository';
+import { LevelingService } from '../../leveling/leveling.service';
 
 
 @Module({
@@ -28,7 +29,8 @@ import { UserRepository } from '../../user/user.repository';
     SeedManagementService,
     SharedUserGamesService,
     BetHistoryService,
-    UserRepository
+    UserRepository,
+    LevelingService
   ],
   exports: [MinesGameService],
 })

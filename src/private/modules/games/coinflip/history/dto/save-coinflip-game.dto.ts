@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { type PlayerInterface } from "src/coinflip/types/jackpot.interface";
+import { type PlayerInterface } from "src/types/jackpot.interface";
 
 /* ---------- Nested DTOs ---------- */
 

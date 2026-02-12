@@ -17,6 +17,7 @@ import { VerifyMinesGameDto } from './dto/verify-game.dto';
 
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { UserRepository } from '../../user/user.repository';
+import { LevelingService } from '../../leveling/leveling.service';
 
 @Injectable()
 export class MinesGameService {
@@ -32,6 +33,7 @@ export class MinesGameService {
     private readonly redisService: RedisService,
     private readonly userRepository: UserRepository,
     private readonly redis: RedisService,
+    private readonly levelingService: LevelingService,
   ) {}
 
   async createGame(
@@ -44,7 +46,13 @@ export class MinesGameService {
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
     this.validator.validateGameParams(betAmount, mines, size);
-    return await this.factory.createNewGame(betAmount, username,profilePicture, mines, size);
+    return await this.factory.createNewGame(
+      betAmount,
+      username,
+      profilePicture,
+      mines,
+      size,
+    );
   }
 
   async revealTile(username: string, gameId: string, tile: number) {
@@ -65,11 +73,10 @@ export class MinesGameService {
         );
       }
       const game = await this.repo.getGame(gameId);
-     
 
       if (!game || game.status === 'INITIALIZING') {
-         throw new ConflictException('Game is initializing');
-       }
+        throw new ConflictException('Game is initializing');
+      }
       this.logger.log(game);
       this.validator.validateGameAccess(game, username);
       this.validator.validateTileReveal(game, tile);
@@ -115,7 +122,6 @@ export class MinesGameService {
         );
       }
       if (!active) {
-        
         await this.redis.pubClient.publish(
           'bet.placed',
           JSON.stringify({
@@ -129,10 +135,6 @@ export class MinesGameService {
           }),
         );
         await this.repo.deleteGame(game.gameId, username);
-        console.log(`
-          Game ended for user ${username}, gameId ${game.gameId}, outcome: ${outcome}
-          ${JSON.stringify(game)}  
-          `);
 
         if (game.betId) {
           this.logger.log(
@@ -206,6 +208,11 @@ export class MinesGameService {
             err,
           );
         });
+        this.levelingService.awardXpFromWager(
+          username,
+          game.betAmount,
+          GameType.MINES,
+        );
         this.redisService
           .del(RedisKeys.user.publicProfile(username))
           .catch((err) => {
@@ -264,26 +271,25 @@ export class MinesGameService {
         );
       }
       const game = await this.repo.getGame(gameId);
-        if (!game  || game.status === 'INITIALIZING' || game.status === 'ENDING') {
-      throw new ConflictException('Game is being processed');
-    } 
+      if (!game || game.status === 'INITIALIZING' || game.status === 'ENDING') {
+        throw new ConflictException('Game is being processed');
+      }
       if (game.status !== 'PLAYING') {
-      throw new BadRequestException('Cannot cashout inactive game');
-    }
+        throw new BadRequestException('Cannot cashout inactive game');
+      }
 
       this.validator.validateGameAccess(game, username);
       this.validator.validateCashout(game);
 
       const updated = await this.repo.atomicUpdateIfActiveAndStatus(
-      gameId,
-      'PLAYING', // Only proceed if still PLAYING
-      {
-        active: false,
-        outcome: 'CASHED_OUT',
-        status: 'ENDING',
-      }
-    );
-
+        gameId,
+        'PLAYING', // Only proceed if still PLAYING
+        {
+          active: false,
+          outcome: 'CASHED_OUT',
+          status: 'ENDING',
+        },
+      );
 
       if (!updated) {
         throw new BadRequestException('Cashout failed - game already ended');
@@ -329,6 +335,11 @@ export class MinesGameService {
           revealedTiles: this.calculator.maskToTileArray(game.revealedMask),
           cashoutTile: lastTile,
         });
+        this.levelingService.awardXpFromWager(
+          username,
+          game.betAmount,
+          GameType.MINES,
+        );
       }
       this.userRepository
         .incrementGameStats(

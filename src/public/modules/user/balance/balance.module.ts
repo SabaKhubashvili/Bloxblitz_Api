@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from '../user.repository';
 import { BalanceController } from './balance.controller';
 import { RedisService } from 'src/provider/redis/redis.service';
-import { KinguinModule } from 'src/admin/kinguin/kinguin.module';
+import { KinguinModule } from 'src/public/modules/admin/kinguin/kinguin.module';
 import { TransactionHistoryService } from '../transaction-history/transaction-history.service';
 import { DiscordNotificationService } from 'src/utils/discord_webhook.util';
 import { ConfigService } from '@nestjs/config';

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { BalanceProvider } from './providers/balance.provider';
 import { BALANCE_PROVIDER } from './providers/balance.tokens';
-import { hashCode } from 'src/admin/kinguin/domain/kinguin-code.generator';
+import { hashCode } from 'src/public/modules/admin/kinguin/domain/kinguin-code.generator';
 import { RedeemResult } from './contracts/redeem-result.contract';
 import { TransactionHistoryService } from '../transaction-history/transaction-history.service';
 import { AssetType, ReferenceType } from '@prisma/client';

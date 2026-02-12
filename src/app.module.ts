@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AdminModule } from './admin/admin.module';
+import { AdminModule } from './public/modules/admin/admin.module';
 import { ConfigModule } from '@nestjs/config';
 import { GamesModule } from './public/modules/games/games.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -14,6 +14,7 @@ import { UserModule } from './public/modules/user/user.module';
 import { WorkersModule } from './workers/workers.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { DiscordNotificationService } from './utils/discord_webhook.util';
+import { LevelingModule } from './public/modules/leveling/leveling.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -26,6 +27,7 @@ import { DiscordNotificationService } from './utils/discord_webhook.util';
 
     UserModule,
     BotModule,
+    LevelingModule,
     IntegrationsModule,
 
     PrivateModule,
