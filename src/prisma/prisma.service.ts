@@ -1,23 +1,38 @@
-import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { makeRetryExtension } from './extensions/retryPrisma.extension';
+import * as fs from 'fs';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
+    console.log(process.cwd());
+
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,
       connect_timeout: 5000,
+      ssl: {
+        rejectUnauthorized: true,
+        ca: fs.readFileSync('certs/db_cert/db_cert.crt').toString(),
+      },
     });
 
     super({
       adapter,
 
-      log: ['query', 'error', 'warn']
+      log: ['query', 'error', 'warn'],
     });
   }
 
@@ -42,7 +57,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         this.logger.log('✅ Connected to database via Prisma adapter');
         return;
       } catch (err: any) {
-        this.logger.error(`❌ DB connection failed (attempt ${attempt}/${maxRetries}): ${err.message}`);
+        this.logger.error(
+          `❌ DB connection failed (attempt ${attempt}/${maxRetries}): ${err.message}`,
+        );
         if (attempt >= maxRetries) throw err;
         const delay = baseDelay * attempt;
         this.logger.warn(`⏳ Retrying in ${delay}ms...`);
