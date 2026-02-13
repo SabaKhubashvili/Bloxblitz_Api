@@ -120,4 +120,12 @@ export const RedisKeys = {
       active: `tx:confirmations:active`,
     },
   },
+
+  /* ─────────────── LEVELING ─────────────── */
+  leveling: {
+    userInfo: (username: string) => `leveling:userInfo:${username}`,
+    userRank: (username: string) => `leveling:userRank:${username}`,
+    leaderboard: (limit: number, offset: number) => `leveling:leaderboard:${limit}:${offset}`,
+    distribution: () => `leveling:distribution`,
+  },
 } as const;

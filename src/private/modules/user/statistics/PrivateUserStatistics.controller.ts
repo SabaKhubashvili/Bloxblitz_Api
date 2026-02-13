@@ -29,6 +29,15 @@ export class PrivateUserStatisticsController {
       totalWagered: response?.totalWagered || 0,
     };
   }
+  @Post('get-level')
+  async getUserLevel(@Body() body: getUserWagerDto) {
+    const response = await this.privateUserStatisticsService.getUserLevel(
+      body.username,
+    );
+    return {
+      level: response.userLevelw || 0,
+    };
+  }
   @Post('increment-wager')
   async incrementUserWager(@Body() body: incrementUserWagerDto) {
     await this.privateUserStatisticsService.incrementTotalWager(

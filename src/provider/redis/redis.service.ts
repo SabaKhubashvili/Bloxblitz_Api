@@ -15,7 +15,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private connecting = false;
 
   onModuleInit() {
-    
     this.mainClient = createClient({
       url: process.env.REDIS_URL,
       socket: {
@@ -233,13 +232,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
-async atomicRevealTile(
-  key: string,
-  tileBit: number,
-  tileIndex: number,
-  updates: Record<string, any>,
-): Promise<boolean> {
-  const luaScript = `
+  async atomicRevealTile(
+    key: string,
+    tileBit: number,
+    tileIndex: number,
+    updates: Record<string, any>,
+  ): Promise<boolean> {
+    const luaScript = `
     local key = KEYS[1]
     local tileBit = tonumber(ARGV[1])
     local tileIndex = tonumber(ARGV[2])
@@ -326,41 +325,41 @@ async atomicRevealTile(
     return 1
   `;
 
-  const args = [String(tileBit), String(tileIndex)];
-  for (const [updateKey, updateValue] of Object.entries(updates)) {
-    if (updateKey !== 'revealedTiles') {
-      args.push(updateKey);
-      args.push(String(updateValue));
-    }
-  }
-
-  try {
-    const result = await this.mainClient.eval(luaScript, {
-      keys: [key],
-      arguments: args,
-    });
-    
-    if (result !== 1) {
-      this.logger.warn(
-        `atomicRevealTile returned ${result} for key ${key}, tile ${tileIndex}, bit ${tileBit}`
-      );
-    }
-    
-    return result === 1;
-  } catch (error) {
-    this.logger.error(
-      `Atomic tile reveal FAILED for key ${key}, tile ${tileIndex}:`,
-      {
-        message: error.message,
-        stack: error.stack,
-        tileBit,
-        tileIndex,
-        updates,
+    const args = [String(tileBit), String(tileIndex)];
+    for (const [updateKey, updateValue] of Object.entries(updates)) {
+      if (updateKey !== 'revealedTiles') {
+        args.push(updateKey);
+        args.push(String(updateValue));
       }
-    );
-    return false;
+    }
+
+    try {
+      const result = await this.mainClient.eval(luaScript, {
+        keys: [key],
+        arguments: args,
+      });
+
+      if (result !== 1) {
+        this.logger.warn(
+          `atomicRevealTile returned ${result} for key ${key}, tile ${tileIndex}, bit ${tileBit}`,
+        );
+      }
+
+      return result === 1;
+    } catch (error) {
+      this.logger.error(
+        `Atomic tile reveal FAILED for key ${key}, tile ${tileIndex}:`,
+        {
+          message: error.message,
+          stack: error.stack,
+          tileBit,
+          tileIndex,
+          updates,
+        },
+      );
+      return false;
+    }
   }
-}
 
   async atomicUpdateIfMultiMatch(
     key: string,
@@ -631,9 +630,11 @@ async atomicRevealTile(
    */
   async incrementBalance(username: string, amount: number): Promise<void> {
     try {
+      const roundedAmount = Math.round(amount * 100) / 100;
+
       await this.mainClient
         .multi()
-        .incrByFloat(`user:balance:${username}`, amount)
+        .incrByFloat(`user:balance:${username}`, roundedAmount)
         .sAdd('user:balance:dirty', username)
         .exec();
     } catch (err) {
@@ -665,8 +666,6 @@ async atomicRevealTile(
       return null;
     }
   }
-
- 
 
   /**
    * Pop from queue (blocking)

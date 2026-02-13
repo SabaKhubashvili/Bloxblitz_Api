@@ -1,12 +1,22 @@
 // src/leveling/leveling.service.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import { LEVELING_CONFIG, XP_PER_DOLLAR } from './constants/leveling.constants';
+import { LEVELING_CONFIG, XP_PER_COIN } from './constants/leveling.constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Decimal } from '@prisma/client/runtime/client';
 import { LevelUpEvent } from './events/level-up.event';
 import { GameType } from '@prisma/client';
+import { RedisService } from 'src/provider/redis/redis.service';
+import { RedisKeys } from 'src/provider/redis/redis.keys';
+
+// Cache TTL constants (in seconds)
+const CACHE_TTL = {
+  USER_INFO: 300, // 5 minutes
+  USER_RANK: 120, // 2 minutes
+  LEADERBOARD: 60, // 1 minute
+  DISTRIBUTION: 300, // 5 minutes
+};
 
 @Injectable()
 export class LevelingService {
@@ -15,6 +25,7 @@ export class LevelingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -32,7 +43,7 @@ export class LevelingService {
    */
   getTotalXpForLevel(level: number): number {
     if (level <= 1) return 0;
-    
+
     let total = 0;
     for (let i = 1; i < level; i++) {
       total += this.getXpForLevel(i + 1);
@@ -89,17 +100,19 @@ export class LevelingService {
     gameType: string = 'COINFLIP',
     userMultiplier: number | Decimal = 1.0,
   ): number {
-    const wager = typeof wagerAmount === 'number' 
-      ? wagerAmount 
-      : parseFloat(wagerAmount.toString());
-    
-    const multiplier = typeof userMultiplier === 'number'
-      ? userMultiplier
-      : parseFloat(userMultiplier.toString());
+    const wager =
+      typeof wagerAmount === 'number'
+        ? wagerAmount
+        : parseFloat(wagerAmount.toString());
+
+    const multiplier =
+      typeof userMultiplier === 'number'
+        ? userMultiplier
+        : parseFloat(userMultiplier.toString());
 
     const gameRate = LEVELING_CONFIG.XP_RATES[gameType] || 1.0;
-    const baseXp = Math.floor(wager * XP_PER_DOLLAR * gameRate);
-    
+    const baseXp = Math.floor(wager * XP_PER_COIN * gameRate);
+
     return Math.floor(baseXp * multiplier);
   }
 
@@ -147,8 +160,16 @@ export class LevelingService {
       },
     });
 
+    // Invalidate user-specific caches
+    await this.invalidateUserCache(username);
+
+    // If leveled up, invalidate global caches as well
+    if (leveledUp) {
+      await this.invalidateGlobalCaches();
+    }
+
     // Handle level-up rewards
-    let rewards:any = null;
+    let rewards: any = null;
     if (leveledUp) {
       this.logger.log(
         `User ${username} leveled up from ${oldLevel} to ${newLevel} (+${levelsGained} levels)`,
@@ -262,9 +283,25 @@ export class LevelingService {
   }
 
   /**
-   * Get user level information
+   * Get user level information (with caching)
    */
   async getUserLevelInfo(username: string) {
+    const cacheKey = RedisKeys.leveling.userInfo(username);
+
+    // Try to get from cache first
+    const cached = await this.redisService.mainClient.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse cached user level info for ${username}`,
+          error,
+        );
+      }
+    }
+
+    // Fetch from database
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
@@ -284,7 +321,7 @@ export class LevelingService {
     const nextMilestone = this.getNextMilestone(user.currentLevel);
     const nextLevelRewards = this.calculateNextLevelRewards(user.currentLevel);
 
-    return {
+    const result = {
       user: {
         username: user.username,
         profilePicture: user.profile_picture,
@@ -294,12 +331,34 @@ export class LevelingService {
       nextMilestone,
       nextLevelRewards,
     };
+
+    // Cache the result
+    await this.redisService.mainClient.setEx(
+      cacheKey,
+      CACHE_TTL.USER_INFO,
+      JSON.stringify(result),
+    );
+
+    return result;
   }
 
   /**
-   * Get level leaderboard
+   * Get level leaderboard (with caching)
    */
   async getLevelLeaderboard(limit: number = 100, offset: number = 0) {
+    const cacheKey = RedisKeys.leveling.leaderboard(limit, offset);
+
+    // Try to get from cache first
+    const cached = await this.redisService.mainClient.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        this.logger.warn(`Failed to parse cached leaderboard`, error);
+      }
+    }
+
+    // Fetch from database
     const users = await this.prisma.user.findMany({
       take: limit,
       skip: offset,
@@ -312,19 +371,37 @@ export class LevelingService {
       },
     });
 
-    return users.map((user, index) => ({
+    const result = users.map((user, index) => ({
       rank: offset + index + 1,
       username: user.username,
       profilePicture: user.profile_picture,
       level: user.currentLevel,
       totalXp: user.totalXP,
     }));
+
+    // Cache the result
+    await this.redisService.mainClient.setEx(
+      cacheKey,
+      CACHE_TTL.LEADERBOARD,
+      JSON.stringify(result),
+    );
+
+    return result;
   }
 
   /**
-   * Get user's rank on leaderboard
+   * Get user's rank on leaderboard (with caching)
    */
   async getUserRank(username: string): Promise<number> {
+    const cacheKey = RedisKeys.leveling.userRank(username);
+
+    // Try to get from cache first
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) {
+      return parseInt(cached, 10);
+    }
+
+    // Fetch from database
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: { currentLevel: true, totalXP: true },
@@ -348,7 +425,16 @@ export class LevelingService {
       },
     });
 
-    return rank + 1;
+    const result = rank + 1;
+
+    // Cache the result
+    await this.redisService.mainClient.setEx(
+      cacheKey,
+      CACHE_TTL.USER_RANK,
+      result.toString(),
+    );
+
+    return result;
   }
 
   /**
@@ -391,9 +477,22 @@ export class LevelingService {
   }
 
   /**
-   * Get levels distribution (for analytics)
+   * Get levels distribution (for analytics) (with caching)
    */
   async getLevelsDistribution() {
+    const cacheKey = RedisKeys.leveling.distribution();
+
+    // Try to get from cache first
+    const cached = await this.redisService.mainClient.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        this.logger.warn(`Failed to parse cached distribution`, error);
+      }
+    }
+
+    // Fetch from database
     const distribution = await this.prisma.$queryRaw<
       Array<{ level: number; count: bigint }>
     >`
@@ -405,9 +504,74 @@ export class LevelingService {
       ORDER BY "currentLevel" ASC
     `;
 
-    return distribution.map((d) => ({
+    const result = distribution.map((d) => ({
       level: d.level,
       count: Number(d.count),
     }));
+
+    // Cache the result
+    await this.redisService.mainClient.setEx(
+      cacheKey,
+      CACHE_TTL.DISTRIBUTION,
+      JSON.stringify(result),
+    );
+
+    return result;
+  }
+
+  /**
+   * Invalidate user-specific caches
+   */
+  private async invalidateUserCache(username: string): Promise<void> {
+    try {
+      await Promise.all([
+        this.redisService.mainClient.del(RedisKeys.leveling.userInfo(username)),
+        this.redisService.mainClient.del(RedisKeys.leveling.userRank(username)),
+      ]);
+    } catch (error) {
+      this.logger.error(
+        `Failed to invalidate cache for user ${username}`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Invalidate global caches (leaderboard, distribution)
+   */
+  private async invalidateGlobalCaches(): Promise<void> {
+    try {
+      // Delete all leaderboard cache keys (pattern matching)
+      const leaderboardPattern = 'leveling:leaderboard:*';
+      const keys = await this.redisService.mainClient.keys(leaderboardPattern);
+      if (keys && keys.length > 0) {
+        await this.redisService.mainClient.del.apply(
+          this.redisService.mainClient,
+          keys,
+        );
+      }
+
+      // Delete distribution cache
+      await this.redisService.mainClient.del(RedisKeys.leveling.distribution());
+    } catch (error) {
+      this.logger.error('Failed to invalidate global caches', error);
+    }
+  }
+
+  /**
+   * Manually invalidate all leveling caches (useful for admin operations)
+   */
+  async invalidateAllCaches(): Promise<void> {
+    try {
+      const pattern = 'leveling:*';
+      const keys = await this.redisService.mainClient.keys(pattern);
+
+      if (keys && keys.length > 0) {
+        await this.redisService.mainClient.del.apply(this.redisService.mainClient,keys);
+        this.logger.log(`Invalidated ${keys.length} leveling cache keys`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to invalidate all leveling caches', error);
+    }
   }
 }

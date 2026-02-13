@@ -1,14 +1,14 @@
-
 export const LEVELING_CONFIG = {
-  BASE_XP: 100,
-  EXPONENT: 1.5,
-  
+  BASE_XP: 4000,
+  EXPONENT: 1.8,
+    
+
   XP_RATES: {
     COINFLIP: 1.0,
     CRASH: 0.8,
     MINES: 1.2,
   },
-  
+
   MILESTONE_REWARDS: {
     10: { balanceBonus: 100, multiplierIncrease: 0.1 },
     25: { balanceBonus: 300, multiplierIncrease: 0.15 },
@@ -17,4 +17,4 @@ export const LEVELING_CONFIG = {
   },
 } as const;
 
-export const XP_PER_DOLLAR = 1.0;
+export const XP_PER_COIN = 333.33;

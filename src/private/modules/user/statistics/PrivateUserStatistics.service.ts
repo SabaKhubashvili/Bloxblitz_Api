@@ -22,6 +22,16 @@ export class PrivateUserStatisticsService {
       },
     });
   }
+  async getUserLevel(username: string) {
+    const userLevel = await this.prismaService.user.findUnique({
+      where: { username },
+      select: { currentLevel: true },
+    });
+    if (!userLevel) {
+      throw new NotFoundException('User statistics not found');
+    }
+    return { userLevel: userLevel.currentLevel };
+  } 
   async updateStatistics(
     username: string,
     bet: number,
