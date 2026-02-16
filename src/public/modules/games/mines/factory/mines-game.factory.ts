@@ -36,7 +36,7 @@ export class MinesGameFactory {
     username: string,
     profilePicture: string,
     mines: number,
-    size: 25 | 16,
+    size: 16 | 25 | 36 | 64 | 100,
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
@@ -101,8 +101,8 @@ export class MinesGameFactory {
       const gameData: MinesGame = {
         gameId,
         mines,
-        mineMask,
-        revealedMask: 0,
+        mineMask:mineMask.toString(),
+        revealedMask: (0n).toString(),
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -124,8 +124,8 @@ export class MinesGameFactory {
       // ============================================
       stepStart = performance.now();
       this.logger.log(`Updating game ${gameId} with mineMask and nonce`);
-      await this.repo.updateGame(gameId, { mineMask, nonce }, gameData);
-      console.log(await this.redisService.get(RedisKeys.mines.game(gameId)));
+      await this.repo.updateGame(gameId, { mineMask: mineMask.toString(), nonce }, gameData);
+
 
       // Sync nonce to database (async, non-blocking)
       (this.syncNonceToDatabase(username, nonce),
@@ -341,7 +341,7 @@ export class MinesGameFactory {
     username: string,
     profilePicture: string,
     mines: number,
-    size: 25 | 16,
+    size: 16 | 25 | 36 | 64 | 100,
     gameId: string,
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
@@ -395,8 +395,8 @@ export class MinesGameFactory {
       const gameData: MinesGame = {
         gameId,
         mines,
-        mineMask,
-        revealedMask: 0,
+        mineMask: mineMask.toString(),
+        revealedMask: (0n).toString(),
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -417,7 +417,7 @@ export class MinesGameFactory {
       // STEP 5: Execute all remaining operations in parallel
       // ============================================
       await this.repo
-        .updateGame(gameId, { mineMask, nonce }, gameData)
+        .updateGame(gameId, { mineMask: mineMask.toString(), nonce }, gameData)
         .catch(async (err) => {
           this.logger.error(`Failed to update game ${gameId} in Redis:`, err);
           await this.cleanupFailedGame(username, gameId, betAmount);

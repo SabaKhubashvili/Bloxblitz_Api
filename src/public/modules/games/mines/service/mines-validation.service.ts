@@ -1,8 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { MinesGame } from '../types/mines.types';
+import { MinesCalculationService } from './mines-calculation.service';
 
 @Injectable()
 export class MinesValidationService {
+  constructor(private readonly minesCalculationService: MinesCalculationService) {}
   validateGameParams(
     rawBetAmount: string | number,
     mines: number,
@@ -46,20 +48,21 @@ export class MinesValidationService {
   }
 
   validateTileReveal(game: MinesGame, tile: number): void {
+
     if (tile < 0 || tile >= game.grid) {
       throw new BadRequestException(
         `Invalid tile index. Must be 0-${game.grid - 1}`,
       );
     }
 
-    const bit = 1 << tile;
-    if (game.revealedMask & bit) {
+    const bit = 1n << BigInt(tile);
+    if ((BigInt(game.revealedMask) & bit) !== 0n) {
       throw new BadRequestException('Tile already revealed');
     }
   }
 
   validateCashout(game: MinesGame): void {
-    if (this.countBits(game.revealedMask) === 0) {
+    if (this.minesCalculationService.countBits(BigInt(game.revealedMask)) === 0) {
       console.log('Failed to cashout - no tiles revealed:');
 
       console.log(game)
@@ -69,12 +72,5 @@ export class MinesValidationService {
     }
   }
 
-  private countBits(n: number): number {
-    let count = 0;
-    while (n) {
-      count += n & 1;
-      n >>= 1;
-    }
-    return count;
-  }
+
 }

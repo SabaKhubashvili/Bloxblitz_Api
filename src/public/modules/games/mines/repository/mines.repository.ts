@@ -9,11 +9,26 @@ export class MinesRepository {
 
   /* ---------------- FAST PATH ---------------- */
   async getGame(id: string): Promise<MinesGame | null> {
-    const game = await this.redis.get<MinesGame>(RedisKeys.mines.game(id));
+    const gameJson: string | null = await this.redis.mainClient.get(
+      RedisKeys.mines.game(id),
+    );
 
-    if (!game || !game.mineMask || game.mineMask === 0) {
+    if (!gameJson) {
+      return null;
+    }
+
+    const game = JSON.parse(gameJson, (key, value) => {
+      if (key === 'revealedMask' || key === 'mineMask') {
+        return String(value);
+      }
+      return value;
+    }) as MinesGame;
+
+    // Check if game is still initializing
+    if (!game.mineMask || BigInt(game.mineMask) === 0n) {
       throw new ConflictException('Game is initializing');
     }
+
     return game;
   }
   async setGame(id: string, game: MinesGame) {
@@ -120,20 +135,20 @@ export class MinesRepository {
   }
 
   /* ---------------- GAMEPLAY ATOMICS ---------------- */
- async atomicUpdateIfActiveAndStatus(
-  gameId: string,
-  expectedStatus: string,
-  updates: Partial<MinesGame>,
-): Promise<boolean> {
-  return this.redis.atomicUpdateIfMultiMatch(
-    RedisKeys.mines.game(gameId),
-    { 
-      active: true, 
-      status: expectedStatus 
-    },
-    updates as Record<string, any>,
-  );
-}
+  async atomicUpdateIfActiveAndStatus(
+    gameId: string,
+    expectedStatus: string,
+    updates: Partial<MinesGame>,
+  ): Promise<boolean> {
+    return this.redis.atomicUpdateIfMultiMatch(
+      RedisKeys.mines.game(gameId),
+      {
+        active: true,
+        status: expectedStatus,
+      },
+      updates as Record<string, any>,
+    );
+  }
 
   async atomicUpdateIfActiveAndMaskUnchanged(
     gameId: string,
@@ -149,7 +164,7 @@ export class MinesRepository {
 
   async atomicRevealTile(
     gameId: string,
-    tileBit: number,
+    tileBit: bigint,
     tileIndex: number,
     updates: Partial<MinesGame>,
   ): Promise<boolean> {

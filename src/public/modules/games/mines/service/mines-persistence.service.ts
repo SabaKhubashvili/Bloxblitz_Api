@@ -75,7 +75,7 @@ export class MinesPersistenceService {
         gameData: {
           revealedTiles: [],
           minePositions: this.minesCalculationService.maskToTileArray(
-            gameData.mineMask,
+            gameData.mineMask ? BigInt(gameData.mineMask) : 0n,
           ),
           cashoutTile: null,
         } as Prisma.JsonObject,
@@ -129,7 +129,7 @@ export class MinesPersistenceService {
       const updatedGameData = {
         revealedTiles: updates.revealedTiles || currentGameData.revealedTiles,
         minePositions: isGameEnding
-          ? this.minesCalculationService.maskToTileArray(gameData.mineMask)
+          ? this.minesCalculationService.maskToTileArray(gameData.mineMask ? BigInt(gameData.mineMask) : 0n)
           : currentGameData.minePositions,
         cashoutTile:
           updates.cashoutTile !== undefined

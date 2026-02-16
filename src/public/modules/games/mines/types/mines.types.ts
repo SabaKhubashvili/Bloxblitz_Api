@@ -5,8 +5,8 @@ export interface MinesGame {
   gameId: string;
   mines: number;
   gemsLeft: number;
-  mineMask: number;
-  revealedMask: number;
+  mineMask: string;
+  revealedMask: string;
   active: boolean;
   outcome: GameOutcome;
   status?: 'INITIALIZING' | "ENDING" | 'PLAYING' | 'CASHED_OUT' | 'BOMBED';

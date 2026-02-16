@@ -41,7 +41,7 @@ export class MinesGameService {
     username: string,
     profilePicture: string,
     mines: number,
-    size: 25 | 16,
+    size: 16 | 25 | 36 | 64 | 100,
   ): Promise<
     Omit<MinesGame, 'betId' | 'mineMask' | 'revealedMask' | 'serverSeed'>
   > {
@@ -77,12 +77,11 @@ export class MinesGameService {
       if (!game || game.status === 'INITIALIZING') {
         throw new ConflictException('Game is initializing');
       }
-      this.logger.log(game);
       this.validator.validateGameAccess(game, username);
       this.validator.validateTileReveal(game, tile);
-      const bit = 1 << tile;
-      const newMask = game.revealedMask | bit;
-      const hitMine = (game.mineMask & bit) !== 0;
+      const bit = 1n << BigInt(tile);
+      const newMask = BigInt(game.revealedMask) | bit;
+      const hitMine = (BigInt(game.mineMask) & bit) !== 0n;
 
       const tilesRevealed = this.calculator.countBits(newMask);
       const gemsLeft = game.grid - game.mines - tilesRevealed;
@@ -90,6 +89,9 @@ export class MinesGameService {
       let active = true;
       let multiplier = game.multiplier;
       let outcome = game.outcome;
+      console.log('OLD MASK:', game.revealedMask);
+      console.log('BIT:', bit.toString());
+      console.log('NEW MASK:', newMask.toString());
 
       if (hitMine) {
         active = false;
@@ -114,6 +116,7 @@ export class MinesGameService {
         gemsLeft,
         outcome,
         status: statusUpdate,
+        revealedMask: newMask.toString(),
       });
 
       if (!updated) {
@@ -238,7 +241,7 @@ export class MinesGameService {
         multiplier: !hitMine ? multiplier : undefined,
         serverSeed: !active ? game.serverSeed : undefined,
         minesPositions: !active
-          ? this.calculator.maskToTileArray(game.mineMask)
+          ? this.calculator.maskToTileArray(BigInt(game.mineMask))
           : undefined,
         wonBalance:
           !active && !hitMine ? game.betAmount * multiplier : -game.betAmount,
@@ -308,7 +311,9 @@ export class MinesGameService {
 
       const completedAt = new Date();
       const winnings = game.betAmount * game.multiplier;
-      const revealedTiles = this.calculator.maskToTileArray(game.revealedMask);
+      const revealedTiles = this.calculator.maskToTileArray(
+        BigInt(game.revealedMask),
+      );
       const lastTile = revealedTiles[revealedTiles.length - 1] || null;
       if (game.betId) {
         await this.redis.pubClient.publish(
@@ -332,7 +337,9 @@ export class MinesGameService {
           completedAt,
           payout: winnings,
           profit,
-          revealedTiles: this.calculator.maskToTileArray(game.revealedMask),
+          revealedTiles: this.calculator.maskToTileArray(
+            BigInt(game.revealedMask),
+          ),
           cashoutTile: lastTile,
         });
         this.levelingService.awardXpFromWager(
@@ -384,7 +391,7 @@ export class MinesGameService {
         winnings,
         multiplier: game.multiplier,
         serverSeed: game.serverSeed,
-        minesPositions: this.calculator.maskToTileArray(game.mineMask),
+        minesPositions: this.calculator.maskToTileArray(BigInt(game.mineMask)),
         lastTile,
       };
     } catch (err) {
@@ -454,6 +461,7 @@ export class MinesGameService {
   async getActiveGame(username: string) {
     const game = await this.repo.getUserActiveGame(username);
     if (!game) return null;
+    console.log(game);
 
     const { serverSeed, revealedMask, mineMask, ...rest } = game;
     return { ...rest };

@@ -35,7 +35,7 @@ export class PrivateUserStatisticsController {
       body.username,
     );
     return {
-      level: response.userLevelw || 0,
+      level: response.userLevel || 0,
     };
   }
   @Post('increment-wager')

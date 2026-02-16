@@ -232,104 +232,66 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
   async atomicRevealTile(
     key: string,
-    tileBit: number,
+    tileBit: bigint,
     tileIndex: number,
     updates: Record<string, any>,
   ): Promise<boolean> {
     const luaScript = `
-    local key = KEYS[1]
-    local tileBit = tonumber(ARGV[1])
-    local tileIndex = tonumber(ARGV[2])
-    
-    local data = redis.call('GET', key)
-    if not data then
-      return 0
-    end
-    
-    local obj = cjson.decode(data)
-    
-    -- Check if game is still active
-    if obj.active ~= true then
-      return 0
-    end
-    
-    local currentMask = tonumber(obj.revealedMask) or 0
-    
-    -- Manual bitwise AND check
-    local function bitand(a, b)
-      local result = 0
-      local bitval = 1
-      while a > 0 and b > 0 do
-        if a % 2 == 1 and b % 2 == 1 then
-          result = result + bitval
-        end
-        bitval = bitval * 2
-        a = math.floor(a / 2)
-        b = math.floor(b / 2)
-      end
-      return result
-    end
-    
-    -- Manual bitwise OR
-    local function bitor(a, b)
-      local result = 0
-      local bitval = 1
-      while a > 0 or b > 0 do
-        if a % 2 == 1 or b % 2 == 1 then
-          result = result + bitval
-        end
-        bitval = bitval * 2
-        a = math.floor(a / 2)
-        b = math.floor(b / 2)
-      end
-      return result
-    end
-    
-    -- Check if tile already revealed
-    if bitand(currentMask, tileBit) ~= 0 then
-      return 0
-    end
-    
-    -- Reveal the tile
-    obj.revealedMask = bitor(currentMask, tileBit)
-    
-    -- Add to revealedTiles array
-    if not obj.revealedTiles then
-      obj.revealedTiles = {}
-    end
-    table.insert(obj.revealedTiles, tileIndex)
-    
-    -- Apply other updates
-    local i = 3
-    while i < #ARGV do
-      local updateKey = ARGV[i]
-      local updateValue = ARGV[i + 1]
-      
-      if updateKey ~= "revealedTiles" then
-        if updateValue == "true" then
-          obj[updateKey] = true
-        elseif updateValue == "false" then
-          obj[updateKey] = false
-        elseif tonumber(updateValue) then
-          obj[updateKey] = tonumber(updateValue)
-        else
-          obj[updateKey] = updateValue
-        end
-      end
-      i = i + 2
-    end
-    
-    redis.call('SET', key, cjson.encode(obj))
-    return 1
-  `;
+local key = KEYS[1]
+local tileIndex = tonumber(ARGV[1])
 
-    const args = [String(tileBit), String(tileIndex)];
+local data = redis.call('GET', key)
+if not data then
+  return 0
+end
+
+local obj = cjson.decode(data)
+
+-- Check if game is still active
+if obj.active ~= true then
+  return 0
+end
+
+-- Add tile index to revealedTiles array
+if not obj.revealedTiles then
+  obj.revealedTiles = {}
+end
+table.insert(obj.revealedTiles, tileIndex)
+
+-- Apply ALL updates (including revealedMask which should be a string)
+local i = 2
+while i <= #ARGV do
+  local updateKey = ARGV[i]
+  local updateValue = ARGV[i + 1]
+
+  if updateKey ~= "revealedTiles" then
+    if updateValue == "true" then
+      obj[updateKey] = true
+    elseif updateValue == "false" then
+      obj[updateKey] = false
+    elseif updateKey == "revealedMask" or updateKey == "mineMask" then
+      -- Force these to remain as strings to preserve precision
+      obj[updateKey] = tostring(updateValue)
+    elseif tonumber(updateValue) then
+      obj[updateKey] = tonumber(updateValue)
+    else
+      obj[updateKey] = updateValue
+    end
+  end
+  i = i + 2
+end
+
+redis.call('SET', key, cjson.encode(obj))
+return 1
+`;
+
+    const args = [tileIndex.toString()];
     for (const [updateKey, updateValue] of Object.entries(updates)) {
       if (updateKey !== 'revealedTiles') {
-        args.push(updateKey);
-        args.push(String(updateValue));
+        args.push(updateKey, String(updateValue));
       }
     }
 
@@ -341,7 +303,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       if (result !== 1) {
         this.logger.warn(
-          `atomicRevealTile returned ${result} for key ${key}, tile ${tileIndex}, bit ${tileBit}`,
+          `atomicRevealTile returned ${result} for key ${key}, tile ${tileIndex}`,
         );
       }
 
@@ -349,13 +311,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(
         `Atomic tile reveal FAILED for key ${key}, tile ${tileIndex}:`,
-        {
-          message: error.message,
-          stack: error.stack,
-          tileBit,
-          tileIndex,
-          updates,
-        },
+        error,
       );
       return false;
     }

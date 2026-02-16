@@ -31,9 +31,9 @@ export class MinesCalculationService {
     serverSeed: string,
     clientSeed: string,
     nonce: number,
-    size: 25 | 16,
+    size: 16 | 25 | 36 | 64 | 100,
     mines: number,
-  ): number {
+  ): bigint {
     if (mines >= size) {
       throw new BadRequestException(`Cannot place ${mines} mines on a ${size}-cell grid`);
     }
@@ -67,33 +67,33 @@ export class MinesCalculationService {
       }
     }
 
-    let mask = 0;
+    let mask = 0n;
     positions.forEach((pos) => {
-      mask |= 1 << pos;
+      mask |= 1n << BigInt(pos);
     });
 
     return mask;
   }
 
-  maskToTileArray(mask: number): number[] {
+  maskToTileArray(mask: bigint): number[] {
     const tiles: number[] = [];
     let pos = 0;
     let tempMask = mask;
 
     while (tempMask > 0) {
-      if (tempMask & 1) tiles.push(pos);
-      tempMask >>= 1;
+      if (tempMask & 1n) tiles.push(pos);
+      tempMask >>= 1n;
       pos++;
     }
 
     return tiles;
   }
 
-  countBits(n: number): number {
+  countBits(n: bigint): number {
     let count = 0;
     while (n) {
-      count += n & 1;
-      n >>= 1;
+      count += Number(n & 1n);
+      n >>= 1n;
     }
     return count;
   }
