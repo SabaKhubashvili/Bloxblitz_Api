@@ -3,14 +3,16 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { TimedOutDataInterface } from './interface/TimedOut.interface';
 import { BannedData } from './interface/BannedData.interface';
-import { UserRoles } from '@prisma/client';
+import { GameType, UserRoles } from '@prisma/client';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
+import { LevelingService } from 'src/public/modules/leveling/leveling.service';
 
 @Injectable()
 export class PrivateUserService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
+    private readonly levelingService: LevelingService,
   ) {}
 
   async getUserRole(
@@ -171,5 +173,17 @@ export class PrivateUserService {
     }
 
     return { username, lastLoginIp: user.last_login_ip };
+  }
+  async addUserXp(username: string, wageredAmount: number, gameType: GameType) {
+    const newXp = await this.levelingService.awardXpFromWager(
+      username,
+      wageredAmount,
+      gameType,
+    );
+    return { username, newXp };
+  }
+  async getUserXp(username: string) {
+    const userLevelInfo = await this.levelingService.getUserLevelInfo(username);
+    return { username, ...userLevelInfo };
   }
 }

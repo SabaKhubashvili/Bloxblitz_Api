@@ -1,7 +1,9 @@
-import { Body, Get } from '@nestjs/common';
+import { Body, Get, Post } from '@nestjs/common';
 import { InternalController } from '../games/decorator/InternalController.decorator';
 import { PrivateUserService } from './privateUser.service';
 import { getUserRoleDto } from './dto/get-user-role.dto';
+import { AddUserXpDto } from './dto/add-user-xp.dto';
+import { getUserXpInfoDto } from './dto/get-user-xp-info';
 
 @InternalController('user')
 export class PrivateUserController {
@@ -19,5 +21,12 @@ export class PrivateUserController {
   getUserLastLoginIp(@Body() dto: getUserRoleDto) {
     return this.privateUserService.getUserLastLoginIp(dto.username);
   }
-  
+  @Post('/xp/add')
+  addUserXp(@Body() dto: AddUserXpDto) {
+    return this.privateUserService.addUserXp(dto.username, dto.betAmount, dto.gameType);
+  }
+  @Get('/xp')
+  getUserXp(@Body() dto: getUserXpInfoDto) {
+    return this.privateUserService.getUserXp(dto.username);
+  }
 }

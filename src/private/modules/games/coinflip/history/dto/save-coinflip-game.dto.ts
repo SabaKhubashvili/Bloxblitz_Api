@@ -24,23 +24,11 @@ class CoinflipVerificationDto {
 
   @IsString()
   @IsNotEmpty()
-  clientSeed: string;
-
-  @IsString()
-  @IsNotEmpty()
   nonce: string;
 
   @IsString()
   @IsNotEmpty()
   result: string;
-
-  @IsNumber()
-  @Min(0)
-  player1Chance: number;
-
-  @IsNumber()
-  @Min(0)
-  player2Chance: number;
 }
 
 /* ---------- Main DTO ---------- */

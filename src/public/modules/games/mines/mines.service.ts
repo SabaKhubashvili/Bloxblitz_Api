@@ -34,7 +34,7 @@ export class MinesGameService {
     private readonly userRepository: UserRepository,
     private readonly redis: RedisService,
     private readonly levelingService: LevelingService,
-  ) {}
+  ) { }
 
   async createGame(
     betAmount: number,
@@ -60,128 +60,106 @@ export class MinesGameService {
       this.logger.log(
         `User ${username} is revealing tile ${tile} in game ${gameId}`,
       );
-      const lockMines = await this.repo.lockMinesGame(gameId);
-      if (!lockMines) {
-        throw new ConflictException(
-          'Game is being processed, please try again',
-        );
-      }
-      const lockTile = await this.repo.lockGameTile(gameId, String(tile));
-      if (!lockTile) {
-        throw new ConflictException(
-          'Game is being processed, please try again',
-        );
-      }
-      const game = await this.repo.getGame(gameId);
 
+      // --- Acquire locks ---
+      if (!(await this.repo.lockMinesGame(gameId))) {
+        throw new ConflictException(
+          'Game is being processed, please try again',
+        );
+      }
+      if (!(await this.repo.lockGameTile(gameId, String(tile)))) {
+        throw new ConflictException(
+          'Game is being processed, please try again',
+        );
+      }
+
+      // --- Validate game state ---
+      const game = await this.repo.getGame(gameId);
       if (!game || game.status === 'INITIALIZING') {
         throw new ConflictException('Game is initializing');
       }
       this.validator.validateGameAccess(game, username);
       this.validator.validateTileReveal(game, tile);
+
+      // --- Compute tile result ---
       const bit = 1n << BigInt(tile);
       const newMask = BigInt(game.revealedMask) | bit;
       const hitMine = (BigInt(game.mineMask) & bit) !== 0n;
-
       const tilesRevealed = this.calculator.countBits(newMask);
       const gemsLeft = game.grid - game.mines - tilesRevealed;
 
-      let active = true;
-      let multiplier = game.multiplier;
-      let outcome = game.outcome;
-      console.log('OLD MASK:', game.revealedMask);
-      console.log('BIT:', bit.toString());
-      console.log('NEW MASK:', newMask.toString());
-
-      if (hitMine) {
-        active = false;
-        outcome = 'LOST';
-      } else {
-        multiplier = this.calculator.calculateMultiplier(
+      const multiplier = hitMine
+        ? game.multiplier
+        : this.calculator.calculateMultiplier(
           game.mines,
           game.grid,
           tilesRevealed,
         );
+      const outcome = hitMine ? 'LOST' : gemsLeft === 0 ? 'WON' : game.outcome;
+      const active = outcome === game.outcome; // still playing
+      const status = active ? 'PLAYING' : 'ENDING';
 
-        if (gemsLeft === 0) {
-          active = false;
-          outcome = 'WON';
-        }
-      }
-      const statusUpdate = !active ? 'ENDING' : 'PLAYING';
-
+      // --- Persist tile reveal ---
       const updated = await this.repo.atomicRevealTile(gameId, bit, tile, {
         active,
         multiplier,
         gemsLeft,
         outcome,
-        status: statusUpdate,
+        status,
         revealedMask: newMask.toString(),
       });
-
       if (!updated) {
         throw new BadRequestException(
           'Tile reveal failed - game state changed',
         );
       }
+
+      // --- Handle game end ---
       if (!active) {
-        await this.redis.pubClient.publish(
-          'bet.placed',
-          JSON.stringify({
-            username,
-            game: GameType.MINES,
-            profilePicture: game.creatorProfilePicture,
-            amount: game.betAmount,
-            profit: hitMine ? -game.betAmount : game.betAmount * multiplier,
-            multiplier,
-            createdAt: Date.now(),
-          }),
-        );
+        const payout = outcome === 'WON' ? game.betAmount * multiplier : 0;
+        const profit = payout - game.betAmount;
+
         await this.repo.deleteGame(game.gameId, username);
 
         if (game.betId) {
-          this.logger.log(
-            `Updating mines game record for betId ${game.betId}, outcome: ${outcome}`,
-          );
-          const completedAt = new Date();
-          const payout = outcome === 'WON' ? game.betAmount * multiplier : 0;
-          const profit = payout - game.betAmount;
           this.persistence
             .updateGame(game.betId, game, {
               outcome,
               multiplier,
-              completedAt,
               payout,
               profit,
+              completedAt: new Date(),
               revealedTiles: this.calculator.maskToTileArray(newMask),
             })
-            .then(() => {
+            .then(() =>
               this.logger.log(
-                `Mines game record updated for betId ${game.betId}, outcome: ${outcome}`,
-              );
-            })
-            .catch((err) => {
-              this.logger.error(
-                `Failed to update mines game record for betId ${game.betId}:`,
-                err,
-              );
-            });
-        }
-        if (outcome === 'WON') {
-          this.userRepository
-            .incrementGameStats(
-              username,
-              game.betAmount,
-              multiplier,
-              GameType.MINES,
-              true,
+                `Mines record updated for betId ${game.betId}, outcome: ${outcome}`,
+              ),
             )
-            .catch((err) => {
+            .catch((err) =>
               this.logger.error(
-                `Failed to increment games won for user ${username} after winning game ${game.gameId}:`,
+                `Failed to update mines record for betId ${game.betId}:`,
                 err,
-              );
-            });
+              ),
+            );
+        }
+
+        this.userRepository
+          .incrementGameStats(
+            username,
+            game.betAmount,
+            multiplier,
+            GameType.MINES,
+            outcome === 'WON',
+          )
+          .catch((err) =>
+            this.logger.error(
+              `Failed to increment game stats for ${username}:`,
+              err,
+            ),
+          );
+
+        if (outcome === 'WON') {
           this.logger.log(
             `User ${username} won game ${game.gameId} with multiplier ${multiplier}`,
           );
@@ -189,51 +167,38 @@ export class MinesGameService {
             username,
             game.betAmount * multiplier,
           );
-        } else {
-          this.userRepository
-            .incrementGameStats(
-              username,
-              game.betAmount,
-              multiplier,
-              GameType.MINES,
-              false,
-            )
-            .catch((err) => {
-              this.logger.error(
-                `Failed to increment games lost for user ${username} after losing game ${game.gameId}:`,
-                err,
-              );
-            });
         }
-        this.redisService.del(RedisKeys.user.profile(username)).catch((err) => {
-          this.logger.error(
-            `Failed to invalidate profile cache for user ${username} after game end:`,
-            err,
-          );
-        });
-        this.levelingService.awardXpFromWager(
+
+         this.levelingService.awardXpFromWager(
           username,
           game.betAmount,
           GameType.MINES,
-        );
-        this.redisService
-          .del(RedisKeys.user.publicProfile(username))
-          .catch((err) => {
-            this.logger.error(
-              `Failed to invalidate profile cache for user ${username} after game end:`,
-              err,
-            );
-          });
-        await this.sharedUserGames
-          .removeActiveGame(username, game.gameId)
-          .catch((err) => {
-            this.logger.error(
-              `Failed to remove active game cache for user ${username} and game ${game.gameId}:`,
-              err,
-            );
-          });
+        ).then(async (xpResponse) => {
+          await this.redis.pubClient.publish(
+            'bet.placed',
+            JSON.stringify({
+              username,
+              game: GameType.MINES,
+              profilePicture: game.creatorProfilePicture,
+              amount: game.betAmount,
+              profit,
+              multiplier,
+              createdAt: Date.now(),
+              level: xpResponse.newLevel,
+            }),
+          );
+        });
+
+
+
+        await Promise.allSettled([
+          this.redisService.del(RedisKeys.user.profile(username)),
+          this.redisService.del(RedisKeys.user.publicProfile(username)),
+          this.sharedUserGames.removeActiveGame(username, game.gameId),
+        ]);
       }
 
+      // --- Build response ---
       return {
         hitMine,
         active,
@@ -258,21 +223,21 @@ export class MinesGameService {
       this.logger.log(`Released locks for game ${gameId}, tile ${tile}`);
     }
   }
-
   async cashout(username: string, gameId: string) {
     try {
       this.logger.log(
         `Attempting to cashout game ${gameId} for user ${username}`,
       );
-      const lockMines = await this.repo.lockMinesGame(gameId);
-      this.logger.log(
-        `Acquired lock for cashout on game ${gameId}: ${lockMines}`,
-      );
-      if (!lockMines) {
+
+      // --- Acquire lock ---
+      if (!(await this.repo.lockMinesGame(gameId))) {
         throw new ConflictException(
           'Game is being processed, please try again',
         );
       }
+      this.logger.log(`Acquired lock for cashout on game ${gameId}`);
+
+      // --- Validate game state ---
       const game = await this.repo.getGame(gameId);
       if (!game || game.status === 'INITIALIZING' || game.status === 'ENDING') {
         throw new ConflictException('Game is being processed');
@@ -280,74 +245,79 @@ export class MinesGameService {
       if (game.status !== 'PLAYING') {
         throw new BadRequestException('Cannot cashout inactive game');
       }
-
       this.validator.validateGameAccess(game, username);
       this.validator.validateCashout(game);
 
+      // --- Persist cashout ---
       const updated = await this.repo.atomicUpdateIfActiveAndStatus(
         gameId,
-        'PLAYING', // Only proceed if still PLAYING
+        'PLAYING',
         {
           active: false,
           outcome: 'CASHED_OUT',
           status: 'ENDING',
         },
       );
-
       if (!updated) {
         throw new BadRequestException('Cashout failed - game already ended');
       }
 
-      await this.repo.deleteGame(game.gameId, username);
-
-      this.sharedUserGames
-        .removeActiveGame(username, game.gameId)
-        .catch((err) => {
-          this.logger.error(
-            `Failed to remove active game cache for user ${username} and game ${game.gameId}:`,
-            err,
-          );
-        });
-
-      const completedAt = new Date();
+      // --- Compute cashout values ---
       const winnings = game.betAmount * game.multiplier;
+      const profit = winnings - game.betAmount;
       const revealedTiles = this.calculator.maskToTileArray(
         BigInt(game.revealedMask),
       );
-      const lastTile = revealedTiles[revealedTiles.length - 1] || null;
+      const lastTile = revealedTiles[revealedTiles.length - 1] ?? null;
+
+      // --- Cleanup & side effects ---
+      await this.repo.deleteGame(game.gameId, username);
+
       if (game.betId) {
-        await this.redis.pubClient.publish(
-          'bet.placed',
-          JSON.stringify({
-            username,
-            game: GameType.MINES,
-            amount: game.betAmount,
-            profilePicture: game.creatorProfilePicture,
-            profit: winnings,
+        this.persistence
+          .updateGame(game.betId, game, {
+            outcome: GameOutcome.CASHED_OUT,
             multiplier: game.multiplier,
-            createdAt: Date.now(),
-          }),
-        );
+            completedAt: new Date(),
+            payout: winnings,
+            profit,
+            revealedTiles,
+            cashoutTile: lastTile,
+          })
+          .catch((err) =>
+            this.logger.error(
+              `Failed to update mines record for betId ${game.betId}:`,
+              err,
+            ),
+          );
 
-        const profit = winnings - game.betAmount;
-
-        this.persistence.updateGame(game.betId, game, {
-          outcome: GameOutcome.CASHED_OUT,
-          multiplier: game.multiplier,
-          completedAt,
-          payout: winnings,
-          profit,
-          revealedTiles: this.calculator.maskToTileArray(
-            BigInt(game.revealedMask),
-          ),
-          cashoutTile: lastTile,
-        });
-        this.levelingService.awardXpFromWager(
-          username,
-          game.betAmount,
-          GameType.MINES,
-        );
+        this.levelingService
+          .awardXpFromWager(username, game.betAmount, GameType.MINES)
+          .then(async (xpResponse) => {
+            await this.redis.pubClient.publish(
+              'bet.placed',
+              JSON.stringify({
+                username,
+                game: GameType.MINES,
+                profilePicture: game.creatorProfilePicture,
+                amount: game.betAmount,
+                profit,
+                multiplier: game.multiplier,
+                createdAt: Date.now(),
+                level: xpResponse.newLevel,
+              }),
+            );
+          })
+          .catch((err) =>
+            this.logger.error(`Failed to award XP for user ${username}:`, err),
+          );
       }
+
+      this.logger.log(
+        `Incrementing balance for user ${username} after cashout for game ${game.gameId} with winnings ${winnings}`,
+      );
+      this.redisService.incrementBalance(username, winnings);
+
       this.userRepository
         .incrementGameStats(
           username,
@@ -356,36 +326,25 @@ export class MinesGameService {
           GameType.MINES,
           true,
         )
-        .then(() => {
+        .then(() =>
           this.logger.log(
             `Incremented games won for user ${username} after cashout for game ${game.gameId}`,
-          );
-        })
-        .catch((err) => {
+          ),
+        )
+        .catch((err) =>
           this.logger.error(
-            `Failed to increment games won for user ${username} after winning game ${game.gameId}:`,
+            `Failed to increment games won for user ${username} after game ${game.gameId}:`,
             err,
-          );
-        });
-      this.redisService.del(RedisKeys.user.profile(username)).catch((err) => {
-        this.logger.error(
-          `Failed to invalidate profile cache for user ${username} after game end:`,
-          err,
+          ),
         );
-      });
-      this.redisService
-        .del(RedisKeys.user.publicProfile(username))
-        .catch((err) => {
-          this.logger.error(
-            `Failed to invalidate profile cache for user ${username} after game end:`,
-            err,
-          );
-        });
-      this.logger.log(
-        `Incrementing balance for user ${username} after cashout for game ${game.gameId} with winnings ${winnings}`,
-      );
-      this.redisService.incrementBalance(username, winnings);
 
+      await Promise.allSettled([
+        this.redisService.del(RedisKeys.user.profile(username)),
+        this.redisService.del(RedisKeys.user.publicProfile(username)),
+        this.sharedUserGames.removeActiveGame(username, game.gameId),
+      ]);
+
+      // --- Build response ---
       return {
         cashedOut: true,
         winnings,
@@ -399,7 +358,6 @@ export class MinesGameService {
         `Error cashing out game ${gameId} for user ${username}: ${err.message}`,
         err.stack,
       );
-
       throw err;
     } finally {
       await this.repo.unlockMinesGame(gameId);
@@ -432,7 +390,7 @@ export class MinesGameService {
 
       this.logger.log(
         `Verification for user ${username}: serverSeed=${serverSeed.substring(0, 8)}..., ` +
-          `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
+        `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
       );
 
       return {

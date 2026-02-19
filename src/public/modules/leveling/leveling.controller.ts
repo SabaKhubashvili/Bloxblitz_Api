@@ -13,7 +13,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LevelingService } from './leveling.service';
 import { LeaderboardQueryDto } from './dto/level-progress.dto';
-import { JwtAuthGuard } from 'src/middleware/jwt.middleware';
+import { type AuthenticatedRequest, JwtAuthGuard } from 'src/middleware/jwt.middleware';
 
 @ApiTags('leveling')
 @Controller('leveling')
@@ -24,7 +24,7 @@ export class LevelingController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user level information' })
-  async getMyLevelInfo(@Request() req) {
+  async getMyLevelInfo(@Request() req: AuthenticatedRequest) {
     return this.levelingService.getUserLevelInfo(req.user.username);
   }
 

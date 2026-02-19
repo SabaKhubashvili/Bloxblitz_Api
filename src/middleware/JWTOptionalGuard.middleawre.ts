@@ -8,7 +8,7 @@ import { UserRoles } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
 export interface UserPayload {
   username: string;
-  avatar_url: string;
+  profilePicture: string;
   id?: string;
 
   role: UserRoles;

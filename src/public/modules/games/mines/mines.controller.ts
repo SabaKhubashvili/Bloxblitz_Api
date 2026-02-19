@@ -41,7 +41,7 @@ export class MinesController {
     return await this.minesService.createGame(
       dto.betAmount,
       req.user.username,
-      req.user.avatar_url || "",
+      req.user.profilePicture || "",
       dto.mineCount,
       dto.gridSize,
     );

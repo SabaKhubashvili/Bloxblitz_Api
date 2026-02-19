@@ -26,7 +26,7 @@ export class LevelingService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   /**
    * Calculate XP required to reach a specific level
@@ -210,22 +210,76 @@ export class LevelingService {
     levelsGained: number;
     rewards?: any;
   }> {
+
     const user = await this.prisma.user.findUnique({
       where: { username },
-      select: { xpMultiplier: true },
+      select: {
+        username: true,
+        totalXP: true,
+        currentLevel: true,
+        xpMultiplier: true,
+        balance: true,
+      },
     });
 
     if (!user) {
       throw new Error(`User ${username} not found`);
     }
-
     const xpAmount = this.calculateXpFromWager(
       wagerAmount,
       gameType,
       user.xpMultiplier,
     );
 
-    return this.awardXp(username, xpAmount, `WAGER_${gameType}`);
+    const oldLevel = user.currentLevel;
+    const newTotalXp = user.totalXP + xpAmount;
+    const newLevel = this.getLevelFromXp(newTotalXp);
+    const leveledUp = newLevel > oldLevel;
+    const levelsGained = newLevel - oldLevel;
+
+    // Update user XP and level
+    await this.prisma.user.update({
+      where: { username },
+      data: {
+        totalXP: newTotalXp,
+        currentLevel: newLevel,
+      },
+    });
+
+    // Invalidate user-specific caches
+    await this.invalidateUserCache(username);
+
+    // If leveled up, invalidate global caches as well
+    if (leveledUp) {
+      await this.invalidateGlobalCaches();
+    }
+
+    // Handle level-up rewards
+    let rewards: any = null;
+    if (leveledUp) {
+      this.logger.log(
+        `User ${username} leveled up from ${oldLevel} to ${newLevel} (+${levelsGained} levels)`,
+      );
+
+      rewards = await this.handleLevelUp(username, oldLevel, newLevel);
+
+      const event = new LevelUpEvent(
+        username,
+        oldLevel,
+        newLevel,
+        newTotalXp,
+        rewards,
+      );
+      this.eventEmitter.emit('user.levelUp', event);
+    }
+
+    return {
+      xpAwarded: xpAmount,
+      newLevel,
+      leveledUp,
+      levelsGained,
+      rewards,
+    };
   }
 
   /**
@@ -285,7 +339,28 @@ export class LevelingService {
   /**
    * Get user level information (with caching)
    */
-  async getUserLevelInfo(username: string) {
+  async getUserLevelInfo(username: string):Promise<{
+    nextMilestone: {
+        level: number;
+        levelsToGo: number;
+        rewards: any;
+    } | null;
+    nextLevelRewards: {
+        balanceBonus: any;
+        multiplierIncrease: any;
+        isMilestone: boolean;
+    };
+    currentLevel: number;
+    xpInCurrentLevel: number;
+    xpNeededForNextLevel: number;
+    progressPercentage: number;
+    totalXp: number;
+    user: {
+        username: string;
+        profilePicture: string;
+        xpMultiplier: number;
+    };
+  }> {
     const cacheKey = RedisKeys.leveling.userInfo(username);
 
     // Try to get from cache first
@@ -567,7 +642,7 @@ export class LevelingService {
       const keys = await this.redisService.mainClient.keys(pattern);
 
       if (keys && keys.length > 0) {
-        await this.redisService.mainClient.del.apply(this.redisService.mainClient,keys);
+        await this.redisService.mainClient.del.apply(this.redisService.mainClient, keys);
         this.logger.log(`Invalidated ${keys.length} leveling cache keys`);
       }
     } catch (error) {
