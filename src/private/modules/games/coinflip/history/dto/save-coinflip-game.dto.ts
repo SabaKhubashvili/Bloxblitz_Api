@@ -17,14 +17,22 @@ class CoinflipVerificationDto {
   @IsString()
   @IsNotEmpty()
   serverSeed: string;
+  @IsString()
+  @IsNotEmpty()
+  serverSeedHash: string;
+
+
+  @IsNumber()
+  @IsNotEmpty()
+  nonce: number;
+
+  @IsNumber()
+  @Min(0)
+  eosBlockNumber: number;
 
   @IsString()
   @IsNotEmpty()
-  publicServerSeed: string;
-
-  @IsString()
-  @IsNotEmpty()
-  nonce: string;
+  eosBlockId: string;
 
   @IsString()
   @IsNotEmpty()

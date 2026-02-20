@@ -174,7 +174,7 @@ export class UserRepository {
     // Update Redis cache
     await this.redis.set(
       `user:balance:${username}`,
-      -(Math.round(newBalance * 100) / 100),
+      (Math.round(newBalance * 100) / 100).toFixed(2),
     );
 
     // Remove from dirty set (DB already updated)

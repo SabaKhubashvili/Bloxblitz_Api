@@ -38,40 +38,15 @@ export class BetHistoryService {
     const skip = (page - 1) * pageSize;
     const [userGameData, totalResult] = await this.prismaService.$transaction([
       this.prismaService.$queryRaw`
-    SELECT 
-      gh.id,
-      gh."gameType",
-      gh."betAmount",
-      gh."userUsername",
-      gh.profit,
-      gh."serverSeedHash",
-      gh."clientSeed",
-      gh.nonce,
-      gh."startedAt",
-      gh."finalMultiplier",
-      gh.payout,
-      gh.outcome,
-      gh."gameConfig",
-      CASE 
-        WHEN gh.outcome = 'PLAYING' THEN NULL 
-        ELSE gh."gameData" 
-      END as "gameData",
-      CASE 
-        WHEN gh.outcome = 'PLAYING' THEN NULL 
-        WHEN srh."serverSeed" IS NULL THEN NULL
-        ELSE jsonb_build_object('serverSeed', srh."serverSeed")
-      END as "seedRotationHistory"
-    FROM "GameHistory" gh
-    LEFT JOIN "SeedRotationHistory" srh 
-      ON gh."seedRotationHistoryId" = srh.id
-    WHERE gh."userUsername" = ${username}
-    ORDER BY gh."startedAt" DESC
+    SELECT  * from unified_game_feed
+    WHERE "userUsername" = ${username}
+    ORDER BY "createdAtp" DESC
     LIMIT ${pageSize}
     OFFSET ${skip}
   `,
       this.prismaService.$queryRaw`
     SELECT COUNT(*)::int as count
-    FROM "GameHistory"
+    FROM "unified_game_feed"
     WHERE "userUsername" = ${username}
   `,
     ]);
