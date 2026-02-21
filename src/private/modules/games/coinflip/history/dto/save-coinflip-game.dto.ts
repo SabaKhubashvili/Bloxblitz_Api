@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsObject,
   IsString,
+  MaxLength,
   Min,
   ValidateNested,
 } from "class-validator";
@@ -45,6 +46,10 @@ export class SaveCoinflipGameDto {
   @IsString()
   @IsNotEmpty()
   gameId: string;
+
+  @IsString()
+  @MaxLength(64)
+  mainPlayer: string;
 
   @IsObject()
   @ValidateNested()

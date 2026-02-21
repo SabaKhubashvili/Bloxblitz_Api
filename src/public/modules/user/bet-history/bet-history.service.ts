@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { GameOutcome } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BetHistoryResponse } from './result/get-bet-history.result';
 

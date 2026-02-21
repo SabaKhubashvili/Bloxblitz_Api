@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GameType, Side } from '@prisma/client';
+import { GameStatus, GameType, Side } from '@prisma/client';
 import { PlayerInterface } from 'src/types/jackpot.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SaveCoinflipGameDto } from './dto/save-coinflip-game.dto';
@@ -11,6 +11,7 @@ export class PrivateCoinflipHistoryService {
 
   async saveGameInHistory({
     gameId,
+    mainPlayer,
     player1,
     player2,
     winnerSide,
@@ -20,19 +21,22 @@ export class PrivateCoinflipHistoryService {
     try {
       await this.prisma.gameHistory.create({
         data: {
+          username: mainPlayer,
           gameType: 'COINFLIP',
+          betAmount: betAmount,
+          status: GameStatus.FINISHED,
+          profit: winnerSide === player1.side ? betAmount : -betAmount,
+          multiplier: 1.98,
         },
       });
       
       const coinflip = await this.prisma.coinflipGameHistory.create({
         data: {
           gameId,
-          betAmount,
           winnerSide,
           player1Side: player1.side,
           player1Username: player1.username,
           player2Username: player2.username,
-          profit: betAmount * 0.98,
           updatedAt: new Date(),
         },
       });

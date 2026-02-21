@@ -11,7 +11,7 @@ import { MinesGameFactory } from './factory/mines-game.factory';
 import { MinesValidationService } from './service/mines-validation.service';
 import { MinesPersistenceService } from './service/mines-persistence.service';
 import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.service';
-import { GameOutcome, GameType } from '@prisma/client';
+import { GameStatus, GameType } from '@prisma/client';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { VerifyMinesGameDto } from './dto/verify-game.dto';
 
@@ -75,7 +75,7 @@ export class MinesGameService {
 
       // --- Validate game state ---
       const game = await this.repo.getGame(gameId);
-      if (!game || game.status === 'INITIALIZING') {
+      if (!game || game.status === GameStatus.INITIALIZING) {
         throw new ConflictException('Game is initializing');
       }
       this.validator.validateGameAccess(game, username);
@@ -95,16 +95,15 @@ export class MinesGameService {
           game.grid,
           tilesRevealed,
         );
-      const outcome = hitMine ? 'LOST' : gemsLeft === 0 ? 'WON' : game.outcome;
-      const active = outcome === game.outcome; // still playing
-      const status = active ? 'PLAYING' : 'ENDING';
+      const outcome = hitMine ? GameStatus.LOST : gemsLeft === 0 ? GameStatus.WON : game.status;
+      const active = outcome === game.status;
+      const status = active ? GameStatus.PLAYING : GameStatus.ENDING;
 
       // --- Persist tile reveal ---
       const updated = await this.repo.atomicRevealTile(gameId, bit, tile, {
         active,
         multiplier,
         gemsLeft,
-        outcome,
         status,
         revealedMask: newMask.toString(),
       });
@@ -116,7 +115,7 @@ export class MinesGameService {
 
       // --- Handle game end ---
       if (!active) {
-        const payout = outcome === 'WON' ? game.betAmount * multiplier : 0;
+        const payout = outcome === GameStatus.WON ? game.betAmount * multiplier : 0;
         const profit = payout - game.betAmount;
 
         await this.repo.deleteGame(game.gameId, username);
@@ -124,7 +123,7 @@ export class MinesGameService {
         if (game.betId) {
           this.persistence
             .updateGame(game.betId, game, {
-              outcome,
+              status,
               multiplier,
               payout,
               profit,
@@ -254,8 +253,7 @@ export class MinesGameService {
         'PLAYING',
         {
           active: false,
-          outcome: 'CASHED_OUT',
-          status: 'ENDING',
+          status: GameStatus.CASHED_OUT,
         },
       );
       if (!updated) {
@@ -276,7 +274,7 @@ export class MinesGameService {
       if (game.betId) {
         this.persistence
           .updateGame(game.betId, game, {
-            outcome: GameOutcome.CASHED_OUT,
+            status: GameStatus.CASHED_OUT,
             multiplier: game.multiplier,
             completedAt: new Date(),
             payout: winnings,

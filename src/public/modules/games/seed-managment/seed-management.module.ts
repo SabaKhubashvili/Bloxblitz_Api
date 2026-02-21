@@ -17,7 +17,8 @@ import { MinesCalculationService } from '../mines/service/mines-calculation.serv
     SharedUserGamesService,
     MinesPersistenceService,
     BetHistoryService,
-    MinesCalculationService
+    MinesCalculationService,
+    SharedUserGamesService
   ],
   exports: [SeedManagementService],
 })

@@ -1,4 +1,4 @@
-import { GameOutcome, GameType } from "@prisma/client";
+import { GameStatus, GameType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/client";
 
 export interface BetHistoryResult {
@@ -16,7 +16,7 @@ export interface BetHistoryResult {
     } | null;
     finalMultiplier: Decimal;
     payout: Decimal;
-    outcome: GameOutcome
+    status: GameStatus;
     
 }
 

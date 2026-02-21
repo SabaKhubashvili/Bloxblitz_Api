@@ -15,7 +15,7 @@ export class SharedUserGamesService {
 
   async getActiveGames(
     username: string,
-  ): Promise<{ gameType: GameType; gameId: string }[]> {
+  ): Promise<{ gameType: GameType; id: string }[]> {
     const key = RedisKeys.user.games.active(username);
 
     // Try to get from list first
@@ -37,8 +37,8 @@ export class SharedUserGamesService {
     // Cache miss - query database
     this.logger.log(`Cache miss for active games of user ${username}`);
     const dbGames = await this.prisma.gameHistory.findMany({
-      where: { userUsername: username, outcome: 'PLAYING' },
-      select: { gameType: true, gameId: true },
+      where: { username: username, status: 'PLAYING' },
+      select: { gameType: true, id: true },
     });
 
     // Store in list format
@@ -77,7 +77,7 @@ export class SharedUserGamesService {
     if (listGames.length > 0) {
       for (const gameStr of listGames) {
         const game = JSON.parse(gameStr);
-        if (game.gameId === gameId) {
+        if (game.id === gameId) {
           await this.redis.mainClient.lRem(key, 1, gameStr);
           // Refresh TTL
           await this.redis.mainClient.expire(key, 300);
@@ -90,7 +90,7 @@ export class SharedUserGamesService {
   // Optimized: No read required, just append
   async addActiveGame(
     username: string,
-    game: { gameId: string; gameType: GameType },
+    game: { id: string; gameType: GameType },
   ) {
     const key = RedisKeys.user.games.active(username);
 
@@ -102,8 +102,8 @@ export class SharedUserGamesService {
       this.logger.log(`Cache miss on addActiveGame for user ${username}`);
 
       const dbGames = await this.prisma.gameHistory.findMany({
-        where: { userUsername: username, outcome: 'PLAYING' },
-        select: { gameType: true, gameId: true },
+        where: { username: username, status: 'PLAYING' },
+        select: { gameType: true, id: true },
       });
 
       // Add existing games + new game to list

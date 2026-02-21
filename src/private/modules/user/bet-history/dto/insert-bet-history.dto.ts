@@ -1,4 +1,5 @@
-import { GameOutcome, GameType } from '@prisma/client';
+import { GameStatus, GameType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -10,9 +11,26 @@ import {
   IsObject,
   IsNotEmpty,
   Validate,
+  ValidateNested,
+  IsDefined,
+  IsOptional,
 } from 'class-validator';
 import { TwoDecimalPlacesRegex } from 'src/class-validator/TwoDecimalPlacesRegex.validator';
+class MinesGameDataDto {
+  @IsInt({ each: true })
+  revealedTiles: number[];
 
+  @IsInt({ each: true })
+  minesPositions: number[];
+}
+
+class MinesGameConfigDto {
+  @IsInt()
+  gridSize: number;
+
+  @IsInt()
+  minesCount: number;
+}
 export class InsertBetHistoryDto {
   // ─── Identity ─────────────────────────────────────────
 
@@ -34,8 +52,8 @@ export class InsertBetHistoryDto {
   @Min(0.01)
   betAmount: number;
 
-  @IsEnum(GameOutcome)
-  outcome: GameOutcome;
+  @IsEnum(GameStatus)
+  status: GameStatus;
 
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Validate(TwoDecimalPlacesRegex)
@@ -55,15 +73,8 @@ export class InsertBetHistoryDto {
   // ─── Provably Fair ────────────────────────────────────
 
   @IsString()
-  serverSeedHash: string;
-
-  @IsString()
-  @IsNotEmpty()
-  clientSeed: string;
-
-  @IsInt()
-  @Min(0)
-  nonce: number;
+  @IsOptional()
+  seedRotationHistoryId?: string | null;
 
   // ─── Timing ───────────────────────────────────────────
 
@@ -72,9 +83,13 @@ export class InsertBetHistoryDto {
 
   // ─── Payloads ─────────────────────────────────────────
 
-  @IsObject()
-  gameConfig: Record<string, any>;
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => MinesGameDataDto)
+  gameData: MinesGameDataDto;
 
-  @IsObject()
-  gameData: Record<string, any>;
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => MinesGameConfigDto)
+  gameConfig: MinesGameConfigDto;
 }

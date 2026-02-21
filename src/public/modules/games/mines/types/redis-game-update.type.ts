@@ -1,4 +1,4 @@
-import { GameOutcome } from "@prisma/client";
+import { GameStatus } from "@prisma/client";
 
 export type RedisGameUpdate = {
   gameId: string;
@@ -6,7 +6,7 @@ export type RedisGameUpdate = {
     revealedMask?: number | string;
     active?: boolean;
     multiplier?: number;
-    outcome?: GameOutcome;
+    status?: GameStatus;
     completedAt?: Date;
     payout?: number;
     profit?: number;

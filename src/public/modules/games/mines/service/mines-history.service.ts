@@ -24,19 +24,22 @@ export class MinesHistoryService {
   }
 
   private async getFromDatabase(username: string, limit: number) {
-    const games = await this.prisma.gameHistory.findMany({
+    const games = await this.prisma.minesBetHistory.findMany({
       where: {
         userUsername: username,
-        gameType: 'MINES',
       },
       select: {
-        betAmount: true,
-        finalMultiplier: true,
-        outcome: true,
-        startedAt: true,
+        status: true,
+        createdAt: true,
+        parentHistory:{
+          select:{
+            betAmount:true,
+            multiplier:true
+          }
+        }
       },
       orderBy: {
-        startedAt: 'desc',
+        createdAt: 'desc',
       },
       take: limit,
     });

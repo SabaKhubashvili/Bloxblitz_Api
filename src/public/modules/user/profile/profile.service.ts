@@ -68,8 +68,8 @@ export class ProfileService {
     const [wagerLast7Days, wagerLast30Days] = await Promise.all([
       this.prisma.gameHistory.aggregate({
         where: {
-          userUsername: username,
-          completedAt: {
+          username: username,
+          createdAt: {
             gte: sevenDaysAgo,
           },
         },
@@ -79,8 +79,8 @@ export class ProfileService {
       }),
       this.prisma.gameHistory.aggregate({
         where: {
-          userUsername: username,
-          completedAt: {
+          username: username,
+          createdAt: {
             gte: thirtyDaysAgo,
           },
         },

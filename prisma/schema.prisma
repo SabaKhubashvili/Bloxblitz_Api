@@ -53,7 +53,8 @@ model User {
   userDepositAddresses       UserDepositAddress[]
   transactionHistory         TransactionHistory[]
 
-  betHistory      GameHistory[]
+  gameHistory GameHistory[]
+
   crashBetHistory CrashBet[]        @relation("CrashBets")
   minesBetHistory MinesBetHistory[]
 
@@ -455,30 +456,43 @@ model UserSeed {
 }
 
 model GameHistory {
-  id                    String               @id @default(uuid())
-  gameType              GameType
-  userUsername          String
+  id       String   @id @default(uuid())
+  gameType GameType
+  username String
+
+  status GameStatus
+
+  betAmount  Decimal  @db.Decimal(12, 2)
+  profit     Decimal? @db.Decimal(12, 2)
+  multiplier Decimal? @db.Decimal(10, 4)
+
   seedRotationHistoryId String?
   seedRotationHistory   SeedRotationHistory? @relation(fields: [seedRotationHistoryId], references: [id])
   createdAt             DateTime             @default(now())
 
-  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  minesBetHistory     MinesBetHistory?
+  crashBetHistory     CrashBet?
+  coinflipGameHistory CoinflipGameHistory?
+
+  User User @relation(fields: [username], references: [username], onDelete: Cascade)
 
   @@index([gameType])
   @@index([seedRotationHistoryId])
 }
 
 model CoinflipGameHistory {
-  id              Int    @id @default(autoincrement())
-  gameId          String @unique
-  betAmount       Float
-  profit          Float
+  id     Int    @id @default(autoincrement())
+  gameId String @unique
+
   player1Username String
   player2Username String
-  winnerSide      Side
-  player1Side     Side
 
-  fairness OnlinePlayerFairness? @relation(fields: [gameId], references: [gameId], onDelete: Cascade)
+  winnerSide  Side
+  player1Side Side
+
+  fairness OnlinePlayerFairness? @relation(fields: [gameId],references: [gameId],onDelete: Cascade,map: "CoinflipGameHistory_fairness_fkey")
+
+  parentHistory GameHistory? @relation(fields: [gameId], references: [id], onDelete: Cascade, map: "CoinflipGameHistory_parentHistory_fkey")
 
   createdAt DateTime @default(now())
   updatedAt DateTime
@@ -488,36 +502,49 @@ model CoinflipGameHistory {
 }
 
 model CrashBet {
-  id           String     @id @default(uuid())
-  roundId      String
-  userUsername String
-  betAmount    Decimal    @db.Decimal(10, 2)
-  cashoutAt    Decimal?   @db.Decimal(10, 4)
-  autoCashout  Decimal?   @db.Decimal(10, 4)
-  didCashout   Boolean    @default(false)
-  payout       Decimal    @default(0) @db.Decimal(12, 2)
-  profit       Decimal    @default(0) @db.Decimal(12, 2)
-  createdAt    DateTime   @default(now())
-  round        CrashRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  user         User       @relation("CrashBets", fields: [userUsername], references: [username], onDelete: Cascade)
+  id      String @id @default(uuid())
+  roundId String
+  gameId        String              @unique
 
-  fairness OnlinePlayerFairness? @relation(fields: [id], references: [gameId], onDelete: Cascade)
+  userUsername String
+
+  cashoutAt   Decimal? @db.Decimal(10, 4)
+  autoCashout Decimal? @db.Decimal(10, 4)
+  didCashout  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  round CrashRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user  User       @relation("CrashBets", fields: [userUsername], references: [username], onDelete: Cascade)
+
+  fairness      OnlinePlayerFairness? @relation(fields: [id], references: [gameId], onDelete: Cascade, map: "CrashBet_fairness_fkey")
+  parentHistory GameHistory?          @relation(fields: [gameId], references: [id], onDelete: Cascade,map: "CrashBet_parentHistory_fkey")
 
   @@index([roundId])
   @@index([userUsername, createdAt(sort: Desc)])
 }
 
 model MinesBetHistory {
-  id           String   @id @default(uuid())
-  gameId       String   @unique
+  id           String @id @default(uuid())
+  gameId       String @unique
   userUsername String
-  betAmount    Decimal  @db.Decimal(12, 2)
-  tilesOpened  Int
-  minesHit     Int
-  profit       Decimal  @db.Decimal(12, 2)
-  createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  // Game config
+  gridSize      Int
+  minesCount    Int
+  // Game Data
+  revealedTiles Int[]
+  minePositions Int[]
+  cashoutTile   Int?
+  minesHit      Int
+  //  Finance Data
+
+  status GameStatus @default(PLAYING)
+
+  createdAt DateTime @default(now())
+
+  parentHistory GameHistory? @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
   @@index([createdAt(sort: Desc)])
@@ -745,7 +772,10 @@ enum GameType {
   JACKPOT
 }
 
-enum GameOutcome {
+enum GameStatus {
+  FINISHED
+  INITIALIZING
+  ENDING
   WON
   LOST
   CASHED_OUT

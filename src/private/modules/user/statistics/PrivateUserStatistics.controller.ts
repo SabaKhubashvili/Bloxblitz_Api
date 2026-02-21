@@ -12,14 +12,6 @@ export class PrivateUserStatisticsController {
   constructor(
     private readonly privateUserStatisticsService: PrivateUserStatisticsService,
   ) {}
-  @Get('coinflip/wager')
-  async getUserCoinflipWager(@Query() body: GetCoinflipWagerDto) {
-    const response =
-      await this.privateUserStatisticsService.getUserCoinflipWager(body);
-    return {
-      totalWagered: response,
-    };
-  }
   @Post('get-wager')
   async getUserWager(@Body() body: getUserWagerDto) {
     const response = await this.privateUserStatisticsService.getUserWager(
@@ -43,15 +35,6 @@ export class PrivateUserStatisticsController {
     await this.privateUserStatisticsService.incrementTotalWager(
       body.username,
       body.amount,
-    );
-  }
-  @Post('update-stats')
-  async decrementUserWager(@Body() body: UpdateUserStatisticsDto) {
-    await this.privateUserStatisticsService.updateStatistics(
-      body.username,
-      body.bet,
-      body.isWinner,
-      body.winAmount,
     );
   }
 }

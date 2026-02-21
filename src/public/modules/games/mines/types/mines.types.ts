@@ -1,4 +1,5 @@
-import { GameOutcome } from '@prisma/client';
+import { GameStatus } from "@prisma/client";
+
 
 export interface MinesGame {
   betId?: string;
@@ -8,8 +9,7 @@ export interface MinesGame {
   mineMask: string;
   revealedMask: string;
   active: boolean;
-  outcome: GameOutcome;
-  status?: 'INITIALIZING' | "ENDING" | 'PLAYING' | 'CASHED_OUT' | 'BOMBED';
+  status: GameStatus;
   grid: number;
 
   betAmount: number;
@@ -24,4 +24,6 @@ export interface MinesGame {
   nonce: number;
 
   multiplier: number;
+
+  seedRotationHistoryId?: string | null;
 }

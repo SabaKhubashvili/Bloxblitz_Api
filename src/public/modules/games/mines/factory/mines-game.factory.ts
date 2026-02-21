@@ -13,7 +13,7 @@ import { MinesCalculationService } from '../service/mines-calculation.service';
 import { SeedManagementService } from '../../seed-managment/seed-managment.service';
 import { MinesPersistenceService } from '../service/mines-persistence.service';
 import { MinesGame } from '../types/mines.types';
-import { GameOutcome } from '@prisma/client';
+import { GameStatus } from '@prisma/client';
 import { UserRepository } from 'src/public/modules/user/user.repository';
 
 @Injectable()
@@ -115,7 +115,6 @@ export class MinesGameFactory {
         clientSeed: seedData.activeClientSeed,
         nonce,
         multiplier: 1,
-        outcome: GameOutcome.PLAYING,
         status: 'PLAYING',
       };
 
@@ -160,6 +159,7 @@ export class MinesGameFactory {
       return {
         gameId,
         mines,
+        status:gameData.status,
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -170,8 +170,8 @@ export class MinesGameFactory {
         clientSeed: seedData.activeClientSeed,
         nonce,
         multiplier: 1,
-        outcome: 'PLAYING',
         creatorProfilePicture: profilePicture,
+        seedRotationHistoryId: seedData.id,
       };
     } catch (err) {
       // Cleanup on error
@@ -409,7 +409,6 @@ export class MinesGameFactory {
         clientSeed: seedData.activeClientSeed,
         nonce,
         multiplier: 1,
-        outcome: GameOutcome.PLAYING,
         status: 'PLAYING',
       };
 
@@ -455,7 +454,8 @@ export class MinesGameFactory {
         clientSeed: seedData.activeClientSeed,
         nonce,
         multiplier: 1,
-        outcome: 'PLAYING',
+        seedRotationHistoryId: seedData.id || null,
+        status: gameData.status,
       };
     } catch (err) {
       // Cleanup on error

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BetHistoryService } from 'src/private/modules/user/bet-history/private-bet-history.service';
 
-import { GameOutcome, Prisma } from '@prisma/client';
+import { GameStatus, Prisma } from '@prisma/client';
 import { MinesGame } from '../types/mines.types';
 import { MinesCalculationService } from './mines-calculation.service';
 
@@ -39,7 +39,7 @@ export class MinesPersistenceService {
       revealedTiles?: number[];
       active?: boolean;
       multiplier?: number;
-      outcome?: GameOutcome;
+      status?: GameStatus;
       completedAt?: Date;
       payout?: number;
       profit?: number;
@@ -59,34 +59,29 @@ export class MinesPersistenceService {
         gameId: gameId,
         username,
         gameType: 'MINES',
-
-        // Provably fair data
-        serverSeedHash: gameData.serverSeedHash,
-        clientSeed: gameData.clientSeed,
-        nonce: gameData.nonce,
+        status: gameData.status,
+        finalMultiplier:1,
+        payout: 0,
 
         // Game-specific config stored in JSON
         gameConfig: {
           gridSize: gameData.grid,
           minesCount: gameData.mines,
-        } as Prisma.JsonObject,
+        },
 
         // Game-specific data stored in JSON
         gameData: {
           revealedTiles: [],
-          minePositions: this.minesCalculationService.maskToTileArray(
+          minesPositions: this.minesCalculationService.maskToTileArray(
             gameData.mineMask ? BigInt(gameData.mineMask) : 0n,
           ),
-          cashoutTile: null,
-        } as Prisma.JsonObject,
+        },
 
         // Financial data
         betAmount: gameData.betAmount,
-        finalMultiplier: gameData.multiplier,
-        payout: 0,
         profit: -gameData.betAmount,
 
-        outcome: 'PLAYING',
+        seedRotationHistoryId:gameData.seedRotationHistoryId || null,
         startedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -106,9 +101,9 @@ export class MinesPersistenceService {
       );
 
       // Get current game data from database
-      const currentGame = await this.prisma.gameHistory.findUnique({
+      const currentGame = await this.prisma.minesBetHistory.findUnique({
         where: { id: betId },
-        select: { gameId: true, gameData: true, startedAt: true },
+        select: { gameId: true, revealedTiles: true, minePositions:true, cashoutTile: true, createdAt: true },
       });
 
       if (!currentGame) {
@@ -116,11 +111,11 @@ export class MinesPersistenceService {
         return;
       }
 
-      const currentGameData = currentGame.gameData as {
-        revealedTiles: number[];
-        minePositions: number[];
-        cashoutTile: number | null;
-      };
+      const currentGameData = {
+        revealedTiles: currentGame.revealedTiles || [],
+        minePositions: currentGame.minePositions || [],
+        cashoutTile: currentGame.cashoutTile || null,
+      }
 
       // Determine if game is ending
       const isGameEnding = updates.completedAt !== undefined;
@@ -156,7 +151,7 @@ export class MinesPersistenceService {
       if (updates.completedAt) {
         updatePayload.completedAt = updates.completedAt;
         updatePayload.duration = Math.floor(
-          (updates.completedAt.getTime() - currentGame.startedAt.getTime()) /
+          (updates.completedAt.getTime() - currentGame.createdAt.getTime()) /
             1000,
         );
       }
@@ -171,7 +166,7 @@ export class MinesPersistenceService {
       }
 
       // Perform the update directly with Prisma
-      await this.prisma.gameHistory.update({
+      await this.prisma.minesBetHistory.update({
         where: { id: betId },
         data: updatePayload,
       });

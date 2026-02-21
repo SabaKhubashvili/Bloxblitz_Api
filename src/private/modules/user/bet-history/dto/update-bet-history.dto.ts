@@ -1,4 +1,4 @@
-import { GameOutcome, GameType } from '@prisma/client';
+import { GameStatus, GameType } from '@prisma/client';
 import {
   IsString,
   IsNumber,
@@ -39,8 +39,8 @@ export class UpdateBetHistoryDto {
   betAmount?: number;
 
   @IsOptional()
-  @IsEnum(GameOutcome)
-  outcome?: GameOutcome;
+  @IsEnum(GameStatus)
+  status?: GameStatus;
 
   @IsOptional()
   @IsNumber({ allowNaN: false, allowInfinity: false })

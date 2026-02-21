@@ -2,72 +2,91 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { InsertBetHistoryDto } from './dto/insert-bet-history.dto';
 import { UpdateBetHistoryDto } from './dto/update-bet-history.dto';
+import { GameType } from '@prisma/client';
+import { CreateBetDto } from './types/private-bet-history.types';
 
 @Injectable()
 export class BetHistoryService {
   constructor(private readonly prisma: PrismaService) {}
+  private mapToCreateBetDto(dto: InsertBetHistoryDto): CreateBetDto {
+    switch (dto.gameType) {
+      case GameType.CRASH:
+        return {
+          gameType: GameType.CRASH,
+          gameId: dto.gameId,
+          username: dto.username,
+          betAmount: dto.betAmount,
+          profit: dto.profit,
+          payout: dto.payout,
+        };
 
-  add(betData: InsertBetHistoryDto) {
-    return this.prisma.gameHistory.create({
+      case GameType.MINES:
+        return {
+          gameType: GameType.MINES,
+          gameId: dto.gameId,
+          username: dto.username,
+          betAmount: dto.betAmount,
+          profit: dto.profit,
+          gameData: dto.gameData,
+          gameConfig: dto.gameConfig,
+        };
+
+      default:
+        throw new Error('Unsupported game type');
+    }
+  }
+  async add(dto: InsertBetHistoryDto) {
+    const betData = this.mapToCreateBetDto(dto);
+    const gameHistory = await this.prisma.gameHistory.create({
       data: {
-        userUsername: betData.username,
-        gameId: betData.gameId,
-        betAmount: betData.betAmount,
-        outcome: betData.outcome,
-        startedAt: betData.startedAt,
-
         gameType: betData.gameType,
-        serverSeedHash: betData.serverSeedHash,
-        clientSeed: betData.clientSeed,
-        nonce: betData.nonce,
+        username: betData.username,
+        betAmount: betData.betAmount,
+        status: "PLAYING",
         profit: betData.profit,
-
-        gameConfig: betData.gameConfig,
-        gameData: betData.gameData,
-        finalMultiplier: betData.finalMultiplier,
-        payout: betData.payout,
       },
     });
+    if (betData.gameType === 'CRASH') {
+      return this.prisma.crashBet.create({
+        data: {
+          roundId: betData.gameId,
+          gameId: gameHistory.id,
+          userUsername: betData.username,
+          // fairness:{
+          //   create:{
+          //     serverSeedHash: betData.serverSeedHash,
+          //     serverSeed: betData.serverSeedHash,
+          //     nonce: betData.nonce,
+          //   }
+          // }
+        },
+      });
+    } else if (betData.gameType === 'MINES') {
+      return this.prisma.minesBetHistory.create({
+        data: {
+          userUsername: betData.username,
+          gameId: gameHistory.id,
+          
+          revealedTiles: betData.gameData.revealedTiles,
+          minePositions: betData.gameData.minesPositions,
+          minesHit: 0,
+          
+
+
+          gridSize: betData.gameConfig.gridSize,
+          minesCount: betData.gameConfig.minesCount,
+        },
+      });
+    }
+    return gameHistory;
   }
   update(betData: UpdateBetHistoryDto) {
     return this.prisma.gameHistory.updateMany({
       where: {
-        ...(betData.username !== undefined && {
-          userUsername: betData.username,
-        }),
-        gameId: betData.gameId,
+        id: betData.gameId,
       },
       data: {
-        ...(betData.username !== undefined && {
-          userUsername: betData.username,
-        }),
-        ...(betData.gameType !== undefined && {
-          gameType: betData.gameType,
-        }),
-        ...(betData.betAmount !== undefined && {
-          betAmount: betData.betAmount,
-        }),
-        ...(betData.outcome !== undefined && {
-          outcome: betData.outcome,
-        }),
-        ...(betData.finalMultiplier !== undefined && {
-          finalMultiplier: betData.finalMultiplier,
-        }),
-        ...(betData.payout !== undefined && {
-          payout: betData.payout,
-        }),
-        ...(betData.profit !== undefined && {
-          profit: betData.profit,
-        }),
-        ...(betData.serverSeedHash !== undefined && {
-          serverSeedHash: betData.serverSeedHash,
-        }),
-        ...(betData.clientSeed !== undefined && {
-          clientSeed: betData.clientSeed,
-        }),
-        ...(betData.nonce !== undefined && {
-          nonce: betData.nonce,
-        }),
+        
       },
     });
   }
