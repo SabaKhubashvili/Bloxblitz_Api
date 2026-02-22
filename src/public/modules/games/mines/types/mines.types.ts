@@ -3,6 +3,7 @@ import { GameStatus } from "@prisma/client";
 
 export interface MinesGame {
   betId?: string;
+  gameHistoryId?: string;
   gameId: string;
   mines: number;
   gemsLeft: number;

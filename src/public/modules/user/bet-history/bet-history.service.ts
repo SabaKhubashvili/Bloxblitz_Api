@@ -38,15 +38,15 @@ export class BetHistoryService {
     const [userGameData, totalResult] = await this.prismaService.$transaction([
       this.prismaService.$queryRaw`
     SELECT  * from unified_game_feed
-    WHERE "userUsername" = ${username}
-    ORDER BY "createdAtp" DESC
+    WHERE "username" = ${username}
+    ORDER BY "created_at" DESC
     LIMIT ${pageSize}
     OFFSET ${skip}
   `,
       this.prismaService.$queryRaw`
     SELECT COUNT(*)::int as count
     FROM "unified_game_feed"
-    WHERE "userUsername" = ${username}
+    WHERE "username" = ${username}
   `,
     ]);
     const total = (totalResult as any)[0]?.count || 0;

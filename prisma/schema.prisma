@@ -536,9 +536,9 @@ model MinesBetHistory {
   revealedTiles Int[]
   minePositions Int[]
   cashoutTile   Int?
-  minesHit      Int
+  minesHit      Int?
+  
   //  Finance Data
-
   status GameStatus @default(PLAYING)
 
   createdAt DateTime @default(now())

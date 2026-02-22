@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { InsertBetHistoryDto } from './dto/insert-bet-history.dto';
 import { UpdateBetHistoryDto } from './dto/update-bet-history.dto';
-import { GameType } from '@prisma/client';
+import { GameStatus, GameType } from '@prisma/client';
 import { CreateBetDto } from './types/private-bet-history.types';
 
 @Injectable()
@@ -42,12 +42,12 @@ export class BetHistoryService {
         gameType: betData.gameType,
         username: betData.username,
         betAmount: betData.betAmount,
-        status: "PLAYING",
+        status: 'PLAYING',
         profit: betData.profit,
       },
     });
     if (betData.gameType === 'CRASH') {
-      return this.prisma.crashBet.create({
+      const game = await this.prisma.crashBet.create({
         data: {
           roundId: betData.gameId,
           gameId: gameHistory.id,
@@ -61,33 +61,30 @@ export class BetHistoryService {
           // }
         },
       });
-    } else if (betData.gameType === 'MINES') {
-      return this.prisma.minesBetHistory.create({
+      return { gameHistoryId: gameHistory.id, betId: game.id };
+    } else if (betData.gameType === GameType.MINES) {
+      const game = await this.prisma.minesBetHistory.create({
         data: {
           userUsername: betData.username,
           gameId: gameHistory.id,
-          
+
           revealedTiles: betData.gameData.revealedTiles,
           minePositions: betData.gameData.minesPositions,
-          minesHit: 0,
-          
-
 
           gridSize: betData.gameConfig.gridSize,
           minesCount: betData.gameConfig.minesCount,
         },
       });
+      return { gameHistoryId: gameHistory.id, betId: game.id };
     }
-    return gameHistory;
+    return { gameHistoryId: gameHistory.id, betId: gameHistory.id || null };
   }
   update(betData: UpdateBetHistoryDto) {
     return this.prisma.gameHistory.updateMany({
       where: {
         id: betData.gameId,
       },
-      data: {
-        
-      },
+      data: {},
     });
   }
 }

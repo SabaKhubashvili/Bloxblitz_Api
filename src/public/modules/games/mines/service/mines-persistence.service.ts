@@ -20,11 +20,11 @@ export class MinesPersistenceService {
     gameId: string,
     username: string,
     gameData: Omit<MinesGame, 'betId'>,
-  ): Promise<string> {
+  ): Promise<{ betId: string | null; gameHistoryId: string }> {
     return await this.backupToDatabase(gameId, username, gameData)
       .then((data) => {
         this.logger.log(`✅ Database backup completed for game ${gameId}`);
-        return data.id;
+        return {betId:data.betId,gameHistoryId:data.gameHistoryId};
       })
       .catch((error) => {
         this.logger.error(`Database backup failed for game ${gameId}:`, error);
@@ -34,6 +34,7 @@ export class MinesPersistenceService {
 
   async updateGame(
     gameId: string,
+    gameHistoryId: string,
     gameData: MinesGame,
     updates: {
       revealedTiles?: number[];
@@ -43,10 +44,11 @@ export class MinesPersistenceService {
       completedAt?: Date;
       payout?: number;
       profit?: number;
+      minesHit?: number;
       cashoutTile?: number | null;
     },
   ) {
-    await this.updateDatabase(gameId, gameData, updates);
+    await this.updateDatabase(gameId,gameHistoryId, gameData, updates);
   }
 
   private async backupToDatabase(
@@ -92,6 +94,7 @@ export class MinesPersistenceService {
 
   private async updateDatabase(
     betId: string,
+    gameHistoryId:string,
     gameData: MinesGame,
     updates: any,
   ): Promise<void> {
@@ -103,7 +106,7 @@ export class MinesPersistenceService {
       // Get current game data from database
       const currentGame = await this.prisma.minesBetHistory.findUnique({
         where: { id: betId },
-        select: { gameId: true, revealedTiles: true, minePositions:true, cashoutTile: true, createdAt: true },
+        select: { gameId: true, revealedTiles: true, minePositions:true, cashoutTile: true, createdAt: true, },
       });
 
       if (!currentGame) {
@@ -121,7 +124,7 @@ export class MinesPersistenceService {
       const isGameEnding = updates.completedAt !== undefined;
 
       // Prepare gameData JSON field
-      const updatedGameData = {
+      const updatedGameData: Prisma.MinesBetHistoryUpdateArgs['data'] = {
         revealedTiles: updates.revealedTiles || currentGameData.revealedTiles,
         minePositions: isGameEnding
           ? this.minesCalculationService.maskToTileArray(gameData.mineMask ? BigInt(gameData.mineMask) : 0n)
@@ -130,46 +133,28 @@ export class MinesPersistenceService {
           updates.cashoutTile !== undefined
             ? updates.cashoutTile
             : currentGameData.cashoutTile,
+        minesHit: updates.minesHit !== undefined ? updates.minesHit : null,
+        status: updates.status || gameData.status,
       };
 
-      // Prepare update data - using Prisma directly for better control
-      const updatePayload: any = {
-        gameData: updatedGameData,
-      };
 
-      // Update multiplier
-      if (updates.multiplier !== undefined) {
-        updatePayload.finalMultiplier = updates.multiplier;
-      }
 
-      // Update outcome
-      if (updates.outcome) {
-        updatePayload.outcome = updates.outcome;
-      }
-
-      // Update completion time and calculate duration
-      if (updates.completedAt) {
-        updatePayload.completedAt = updates.completedAt;
-        updatePayload.duration = Math.floor(
-          (updates.completedAt.getTime() - currentGame.createdAt.getTime()) /
-            1000,
-        );
-      }
-
-      // Update financial data
-      if (updates.payout !== undefined) {
-        updatePayload.payout = updates.payout;
-      }
-
-      if (updates.profit !== undefined) {
-        updatePayload.profit = updates.profit;
-      }
 
       // Perform the update directly with Prisma
       await this.prisma.minesBetHistory.update({
         where: { id: betId },
-        data: updatePayload,
+        data: updatedGameData,
       });
+      await this.prisma.gameHistory.update({
+        where:{
+          id: gameHistoryId
+        },
+        data:{
+          multiplier: updates.multiplier !== undefined ? updates.multiplier : undefined,
+          status: updates.status !== undefined ? updates.status : undefined,
+          profit: updates.profit !== undefined ? updates.profit : undefined,
+        }
+    })
 
       this.logger.debug(`Game history ${betId} updated successfully`);
     } catch (error) {

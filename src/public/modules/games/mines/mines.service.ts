@@ -97,7 +97,7 @@ export class MinesGameService {
         );
       const outcome = hitMine ? GameStatus.LOST : gemsLeft === 0 ? GameStatus.WON : game.status;
       const active = outcome === game.status;
-      const status = active ? GameStatus.PLAYING : GameStatus.ENDING;
+      const status = active ? GameStatus.PLAYING : outcome === GameStatus.WON ? GameStatus.WON : GameStatus.LOST;
 
       // --- Persist tile reveal ---
       const updated = await this.repo.atomicRevealTile(gameId, bit, tile, {
@@ -122,13 +122,14 @@ export class MinesGameService {
 
         if (game.betId) {
           this.persistence
-            .updateGame(game.betId, game, {
-              status,
+            .updateGame(game.betId, game.gameHistoryId!, game, {
+              status: outcome === GameStatus.WON ? GameStatus.CASHED_OUT : GameStatus.LOST,
               multiplier,
               payout,
               profit,
               completedAt: new Date(),
               revealedTiles: this.calculator.maskToTileArray(newMask),
+              minesHit: hitMine ? tile : undefined,
             })
             .then(() =>
               this.logger.log(
@@ -273,7 +274,7 @@ export class MinesGameService {
 
       if (game.betId) {
         this.persistence
-          .updateGame(game.betId, game, {
+          .updateGame(game.betId, game.gameHistoryId!, game, {
             status: GameStatus.CASHED_OUT,
             multiplier: game.multiplier,
             completedAt: new Date(),

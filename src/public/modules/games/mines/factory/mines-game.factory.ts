@@ -133,7 +133,7 @@ export class MinesGameFactory {
           .backupGame(gameId, username, gameData)
           .then((betId) => {
             this.repo
-              .updateGame(gameId, { betId: betId }, gameData)
+              .updateGame(gameId, { gameHistoryId:betId.gameHistoryId, betId: betId.betId || undefined }, gameData)
               .catch((err) => {
                 this.logger.error(
                   `Failed to update betId for game ${gameId}:`,
@@ -425,19 +425,20 @@ export class MinesGameFactory {
 
       // Sync nonce to database and backup game (async, non-blocking)
 
-      (this.syncNonceToDatabase(username, nonce),
-        await this.persistence
-          .backupGame(gameId, username, gameData)
-          .then(async (betId) => {
-            if (betId) {
-              await this.repo.updateGame(gameId, { betId }, gameData).catch((err) => {
-                this.logger.error(
-                  `Failed to update betId for game ${gameId}:`,
-                  err,
-                );
-              });
-            }
-          }));
+      this.syncNonceToDatabase(username, nonce);
+      
+      await this.persistence
+        .backupGame(gameId, username, gameData)
+        .then(async (betId) => {
+          if (betId) {
+            await this.repo.updateGame(gameId, { gameHistoryId: betId.gameHistoryId, betId: betId.betId || undefined }, gameData).catch((err) => {
+              this.logger.error(
+                `Failed to update betId for game ${gameId}:`,
+                err,
+              );
+            });
+          }
+        });
 
       // Return response (without sensitive data)
       return {
