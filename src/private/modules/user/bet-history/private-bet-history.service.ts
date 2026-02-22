@@ -1,35 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { InsertBetHistoryDto } from './dto/insert-bet-history.dto';
+import {
+  CrashGameConfigDto,
+  InsertBetHistoryDto,
+  MinesGameConfigDto,
+  MinesGameDataDto,
+} from './dto/insert-bet-history.dto';
 import { UpdateBetHistoryDto } from './dto/update-bet-history.dto';
-import { GameStatus, GameType } from '@prisma/client';
+import { GameType } from '@prisma/client';
 import { CreateBetDto } from './types/private-bet-history.types';
 
 @Injectable()
 export class BetHistoryService {
+  private readonly logger = new Logger(BetHistoryService.name);
+
   constructor(private readonly prisma: PrismaService) {}
   private mapToCreateBetDto(dto: InsertBetHistoryDto): CreateBetDto {
     switch (dto.gameType) {
-      case GameType.CRASH:
+      case GameType.CRASH: {
         return {
-          gameType: GameType.CRASH,
-          gameId: dto.gameId,
+          gameType: 'CRASH',
           username: dto.username,
           betAmount: dto.betAmount,
           profit: dto.profit,
           payout: dto.payout,
+          gameConfig: dto.gameConfig as CrashGameConfigDto,
         };
+      }
 
-      case GameType.MINES:
+      case GameType.MINES: {
         return {
-          gameType: GameType.MINES,
-          gameId: dto.gameId,
+          gameType: 'MINES',
           username: dto.username,
           betAmount: dto.betAmount,
           profit: dto.profit,
-          gameData: dto.gameData,
-          gameConfig: dto.gameConfig,
+          payout: dto.payout,
+          gameData: dto.gameData as MinesGameDataDto,
+          gameConfig: dto.gameConfig as MinesGameConfigDto,
         };
+      }
 
       default:
         throw new Error('Unsupported game type');
@@ -37,32 +46,30 @@ export class BetHistoryService {
   }
   async add(dto: InsertBetHistoryDto) {
     const betData = this.mapToCreateBetDto(dto);
+
     const gameHistory = await this.prisma.gameHistory.create({
       data: {
         gameType: betData.gameType,
         username: betData.username,
         betAmount: betData.betAmount,
-        status: 'PLAYING',
+        status: dto.status,
         profit: betData.profit,
+        multiplier: dto.finalMultiplier,
       },
     });
     if (betData.gameType === 'CRASH') {
       const game = await this.prisma.crashBet.create({
         data: {
-          roundId: betData.gameId,
           gameId: gameHistory.id,
+          roundId: betData.gameConfig.roundId,
           userUsername: betData.username,
-          // fairness:{
-          //   create:{
-          //     serverSeedHash: betData.serverSeedHash,
-          //     serverSeed: betData.serverSeedHash,
-          //     nonce: betData.nonce,
-          //   }
-          // }
+          autoCashout: betData.gameConfig.autoCashoutAt,
         },
       });
       return { gameHistoryId: gameHistory.id, betId: game.id };
     } else if (betData.gameType === GameType.MINES) {
+      this.logger.log(`Ddto ${JSON.stringify(dto)}`);
+
       const game = await this.prisma.minesBetHistory.create({
         data: {
           userUsername: betData.username,
@@ -73,6 +80,7 @@ export class BetHistoryService {
 
           gridSize: betData.gameConfig.gridSize,
           minesCount: betData.gameConfig.minesCount,
+          nonce: betData.gameConfig.nonce || 0,
         },
       });
       return { gameHistoryId: gameHistory.id, betId: game.id };

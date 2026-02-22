@@ -507,6 +507,9 @@ private async checkActiveGamesLua(username: string): Promise<number> {
           where: {
             username,
             seedRotationHistoryId: null,
+            gameType:{
+              in: [GameType.MINES],
+            }
           },
           data: {
             seedRotationHistoryId: rotationId,

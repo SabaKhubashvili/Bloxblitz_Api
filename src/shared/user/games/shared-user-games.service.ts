@@ -66,7 +66,6 @@ export class SharedUserGamesService {
     const key = RedisKeys.user.games.active(username);
 
     await this.redis.mainClient.del(key);
-    await this.redis.mainClient.del(key);
   }
 
   async removeActiveGame(username: string, gameId: string) {
@@ -77,7 +76,7 @@ export class SharedUserGamesService {
     if (listGames.length > 0) {
       for (const gameStr of listGames) {
         const game = JSON.parse(gameStr);
-        if (game.id === gameId) {
+        if (game.gameId === gameId) {
           await this.redis.mainClient.lRem(key, 1, gameStr);
           // Refresh TTL
           await this.redis.mainClient.expire(key, 300);

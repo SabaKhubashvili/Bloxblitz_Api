@@ -1,26 +1,47 @@
-import { GameType } from '@prisma/client';
+import type { GameType } from '@prisma/client';
 
-interface BaseBetDto<T extends GameType> {
-  gameType: T;
-  gameId: string;
+interface BaseBetDto {
+  gameType: GameType;
   username: string;
   betAmount: number;
-  profit: number;
-}
-
-interface CrashBetDto extends BaseBetDto<typeof GameType.CRASH> {
+  profit?: number;
   payout?: number;
 }
 
-interface MinesBetDto extends BaseBetDto<typeof GameType.MINES> {
+/**
+ * MINES
+ */
+export interface MinesBetDto extends BaseBetDto {
+  gameType: 'MINES';
+
   gameData: {
     revealedTiles: number[];
     minesPositions: number[];
   };
+
   gameConfig: {
     gridSize: number;
     minesCount: number;
+    nonce: number;
   };
 }
 
-export type CreateBetDto = CrashBetDto | MinesBetDto;
+/**
+ * CRASH
+ */
+export interface CrashBetDto extends BaseBetDto {
+  gameType: 'CRASH';
+
+
+  gameConfig: {
+    maxMultiplier: number;
+    houseEdge: number;
+    autoCashoutAt?: number
+
+  roundId:string
+  };
+}
+
+export type CreateBetDto =
+  | MinesBetDto
+  | CrashBetDto;

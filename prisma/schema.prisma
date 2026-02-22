@@ -428,7 +428,7 @@ model CrashRound {
   totalWagered Decimal    @default(0) @db.Decimal(12, 2)
   totalPayout  Decimal    @default(0) @db.Decimal(12, 2)
   createdAt    DateTime   @default(now())
-  bets         CrashBet[]
+  
   chain        HashChain  @relation(fields: [chainId], references: [chainId], onDelete: Cascade)
 
   @@unique([chainId, roundNumber])
@@ -504,7 +504,7 @@ model CoinflipGameHistory {
 model CrashBet {
   id      String @id @default(uuid())
   roundId String
-  gameId        String              @unique
+  gameId        String  @unique
 
   userUsername String
 
@@ -514,10 +514,8 @@ model CrashBet {
 
   createdAt DateTime @default(now())
 
-  round CrashRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
   user  User       @relation("CrashBets", fields: [userUsername], references: [username], onDelete: Cascade)
 
-  fairness      OnlinePlayerFairness? @relation(fields: [id], references: [gameId], onDelete: Cascade, map: "CrashBet_fairness_fkey")
   parentHistory GameHistory?          @relation(fields: [gameId], references: [id], onDelete: Cascade,map: "CrashBet_parentHistory_fkey")
 
   @@index([roundId])
@@ -532,6 +530,9 @@ model MinesBetHistory {
   // Game config
   gridSize      Int
   minesCount    Int
+
+  nonce         Int
+
   // Game Data
   revealedTiles Int[]
   minePositions Int[]
@@ -563,7 +564,6 @@ model OnlinePlayerFairness {
   result         String
   createdAt      DateTime @default(now())
 
-  crashBets           CrashBet[]
   coinflipGameHistory CoinflipGameHistory?
 
   @@index([gameType])

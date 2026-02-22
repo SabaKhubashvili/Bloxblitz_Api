@@ -1,5 +1,5 @@
 import { GameStatus, GameType } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -16,7 +16,27 @@ import {
   IsOptional,
 } from 'class-validator';
 import { TwoDecimalPlacesRegex } from 'src/class-validator/TwoDecimalPlacesRegex.validator';
-class MinesGameDataDto {
+
+export class CrashGameConfigDto {
+  @IsNumber()
+  @Min(1)
+  maxMultiplier: number;
+
+  @IsNumber()
+  @Min(0)
+  houseEdge: number;
+
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  autoCashoutAt?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  roundId: string;
+}
+
+export class MinesGameDataDto {
   @IsInt({ each: true })
   revealedTiles: number[];
 
@@ -24,13 +44,22 @@ class MinesGameDataDto {
   minesPositions: number[];
 }
 
-class MinesGameConfigDto {
+export class MinesGameConfigDto {
   @IsInt()
   gridSize: number;
 
   @IsInt()
   minesCount: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  nonce:number
 }
+
+type GameDataDto = MinesGameDataDto;
+type GameConfigDto = MinesGameConfigDto | CrashGameConfigDto;
+
 export class InsertBetHistoryDto {
   // ─── Identity ─────────────────────────────────────────
 
@@ -38,9 +67,6 @@ export class InsertBetHistoryDto {
   @IsNotEmpty()
   username: string;
 
-  @IsString()
-  @IsNotEmpty()
-  gameId: string;
 
   @IsEnum(GameType)
   gameType: GameType;
@@ -57,24 +83,23 @@ export class InsertBetHistoryDto {
 
   @IsNumber({ allowNaN: false, allowInfinity: false })
   @Validate(TwoDecimalPlacesRegex)
-  @Min(0)
-  finalMultiplier: number;
-
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Validate(TwoDecimalPlacesRegex)
-  @Min(0)
-  payout: number;
-
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @Validate(TwoDecimalPlacesRegex)
-  @Min(0)
-  profit: number;
-
-  // ─── Provably Fair ────────────────────────────────────
-
-  @IsString()
   @IsOptional()
-  seedRotationHistoryId?: string | null;
+  @Min(0)
+  @Max(1001)
+  finalMultiplier?: number;
+
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Validate(TwoDecimalPlacesRegex)
+  @IsOptional()
+  @Min(0)
+  payout?: number;
+
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Validate(TwoDecimalPlacesRegex)
+
+  @IsOptional()
+  profit?: number;
+
 
   // ─── Timing ───────────────────────────────────────────
 
@@ -85,11 +110,26 @@ export class InsertBetHistoryDto {
 
   @IsDefined()
   @ValidateNested()
-  @Type(() => MinesGameDataDto)
-  gameData: MinesGameDataDto;
+  @IsOptional()
+  @Type(() => Object) // Required for nested validation
+  @Transform(({ obj }) => {
+    // obj = parent InsertBetHistoryDto
+    if (obj.gameType === GameType.MINES) {
+      return Object.assign(new MinesGameDataDto(), obj.gameData);
+    }
+    // You can add other game types here in the future
+    return obj.gameData;
+  })
+  gameData: GameDataDto;
 
-  @IsDefined()
   @ValidateNested()
-  @Type(() => MinesGameConfigDto)
-  gameConfig: MinesGameConfigDto;
+  @Type(() => Object)
+  @Transform(({ obj }) => {
+    if (obj.gameType === GameType.CRASH)
+      return Object.assign(new CrashGameConfigDto(), obj.gameConfig);
+    if (obj.gameType === GameType.MINES)
+      return Object.assign(new MinesGameConfigDto(), obj.gameConfig);
+    return obj.gameConfig;
+  })
+  gameConfig: GameConfigDto;
 }

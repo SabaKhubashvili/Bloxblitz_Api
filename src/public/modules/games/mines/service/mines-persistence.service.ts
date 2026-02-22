@@ -19,9 +19,10 @@ export class MinesPersistenceService {
   async backupGame(
     gameId: string,
     username: string,
+    nonce: number,
     gameData: Omit<MinesGame, 'betId'>,
   ): Promise<{ betId: string | null; gameHistoryId: string }> {
-    return await this.backupToDatabase(gameId, username, gameData)
+    return await this.backupToDatabase(gameId, username,nonce, gameData)
       .then((data) => {
         this.logger.log(`✅ Database backup completed for game ${gameId}`);
         return {betId:data.betId,gameHistoryId:data.gameHistoryId};
@@ -54,13 +55,13 @@ export class MinesPersistenceService {
   private async backupToDatabase(
     gameId: string,
     username: string,
+    nonce: number,
     gameData: Omit<MinesGame, 'betId'>,
   ) {
     try {
       return await this.betHistoryService.add({
-        gameId: gameId,
-        username,
         gameType: 'MINES',
+        username,
         status: gameData.status,
         finalMultiplier:1,
         payout: 0,
@@ -69,6 +70,7 @@ export class MinesPersistenceService {
         gameConfig: {
           gridSize: gameData.grid,
           minesCount: gameData.mines,
+          nonce
         },
 
         // Game-specific data stored in JSON
@@ -83,7 +85,7 @@ export class MinesPersistenceService {
         betAmount: gameData.betAmount,
         profit: -gameData.betAmount,
 
-        seedRotationHistoryId:gameData.seedRotationHistoryId || null,
+        // seedRotationHistoryId:gameData.seedRotationHistoryId || null,
         startedAt: new Date().toISOString(),
       });
     } catch (error) {

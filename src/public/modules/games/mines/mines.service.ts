@@ -190,7 +190,8 @@ export class MinesGameService {
         });
 
 
-
+        this.logger.log(`Game ${game.gameId} ended for user ${username}`);
+        
         await Promise.allSettled([
           this.redisService.del(RedisKeys.user.profile(username)),
           this.redisService.del(RedisKeys.user.publicProfile(username)),

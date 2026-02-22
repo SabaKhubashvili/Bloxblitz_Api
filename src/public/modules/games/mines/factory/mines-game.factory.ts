@@ -101,8 +101,8 @@ export class MinesGameFactory {
       const gameData: MinesGame = {
         gameId,
         mines,
-        mineMask:mineMask.toString(),
-        revealedMask: (0n).toString(),
+        mineMask: mineMask.toString(),
+        revealedMask: 0n.toString(),
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -123,17 +123,27 @@ export class MinesGameFactory {
       // ============================================
       stepStart = performance.now();
       this.logger.log(`Updating game ${gameId} with mineMask and nonce`);
-      await this.repo.updateGame(gameId, { mineMask: mineMask.toString(), nonce }, gameData);
-
+      await this.repo.updateGame(
+        gameId,
+        { mineMask: mineMask.toString(), nonce },
+        gameData,
+      );
 
       // Sync nonce to database (async, non-blocking)
       (this.syncNonceToDatabase(username, nonce),
         // Backup game to persistent storage
         await this.persistence
-          .backupGame(gameId, username, gameData)
+          .backupGame(gameId, username, nonce, gameData)
           .then((betId) => {
             this.repo
-              .updateGame(gameId, { gameHistoryId:betId.gameHistoryId, betId: betId.betId || undefined }, gameData)
+              .updateGame(
+                gameId,
+                {
+                  gameHistoryId: betId.gameHistoryId,
+                  betId: betId.betId || undefined,
+                },
+                gameData,
+              )
               .catch((err) => {
                 this.logger.error(
                   `Failed to update betId for game ${gameId}:`,
@@ -159,7 +169,7 @@ export class MinesGameFactory {
       return {
         gameId,
         mines,
-        status:gameData.status,
+        status: gameData.status,
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -363,7 +373,7 @@ export class MinesGameFactory {
         username,
         gameId,
         betAmount,
-        seedData
+        seedData,
       );
 
       // Handle Lua script errors
@@ -396,7 +406,7 @@ export class MinesGameFactory {
         gameId,
         mines,
         mineMask: mineMask.toString(),
-        revealedMask: (0n).toString(),
+        revealedMask: 0n.toString(),
         revealedTiles: [],
         gemsLeft: size - mines,
         grid: size,
@@ -426,17 +436,26 @@ export class MinesGameFactory {
       // Sync nonce to database and backup game (async, non-blocking)
 
       this.syncNonceToDatabase(username, nonce);
-      
+
       await this.persistence
-        .backupGame(gameId, username, gameData)
+        .backupGame(gameId, username, nonce, gameData)
         .then(async (betId) => {
           if (betId) {
-            await this.repo.updateGame(gameId, { gameHistoryId: betId.gameHistoryId, betId: betId.betId || undefined }, gameData).catch((err) => {
-              this.logger.error(
-                `Failed to update betId for game ${gameId}:`,
-                err,
-              );
-            });
+            await this.repo
+              .updateGame(
+                gameId,
+                {
+                  gameHistoryId: betId.gameHistoryId,
+                  betId: betId.betId || undefined,
+                },
+                gameData,
+              )
+              .catch((err) => {
+                this.logger.error(
+                  `Failed to update betId for game ${gameId}:`,
+                  err,
+                );
+              });
           }
         });
 
@@ -461,7 +480,12 @@ export class MinesGameFactory {
     } catch (err) {
       // Cleanup on error
       this.logger.error(`Slow path failed for game ${gameId}:`, err);
-      await this.cleanupFailedGame(username, gameId, betAmount,balanceDeducted);
+      await this.cleanupFailedGame(
+        username,
+        gameId,
+        betAmount,
+        balanceDeducted,
+      );
       throw err;
     }
   }
@@ -489,7 +513,7 @@ export class MinesGameFactory {
     username: string,
     gameId: string,
     betAmount: number,
-    balanceDeducted?:boolean,
+    balanceDeducted?: boolean,
   ): Promise<void> {
     if (balanceDeducted) {
       await this.userRepository.incrementUserBalance(username, betAmount);
