@@ -52,6 +52,7 @@ model User {
   sentBalanceTipTransactions BalanceTipTransaction[] @relation("TipTransactionSender")
   userDepositAddresses       UserDepositAddress[]
   transactionHistory         TransactionHistory[]
+  xpEvents                   XpEvent[]  
 
   gameHistory GameHistory[]
 
@@ -128,6 +129,27 @@ model UserStatistics {
   @@index([totalWageredMm2(sort: Desc)])
   @@index([netProfit(sort: Desc)])
   @@index([biggestWin(sort: Desc)])
+}
+
+model XpEvent {
+  id           String   @id @default(uuid())
+  userUsername String
+  amount       Int
+  source       XpSource // GAME_WIN, DAILY_LOGIN, REFERRAL, etc.
+  referenceId  String?  // gameId, etc.
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@index([userUsername, createdAt(sort: Desc)])
+}
+
+enum XpSource {
+  GAME_WIN
+  DAILY_LOGIN
+  REFERRAL_WAGER
+  STREAK_BONUS
+  PROMO
 }
 
 model ipBans {
@@ -428,6 +450,9 @@ model CrashRound {
   totalWagered Decimal    @default(0) @db.Decimal(12, 2)
   totalPayout  Decimal    @default(0) @db.Decimal(12, 2)
   createdAt    DateTime   @default(now())
+
+  finished Boolean @default(false)
+  finishedAt DateTime?
   
   chain        HashChain  @relation(fields: [chainId], references: [chainId], onDelete: Cascade)
 

@@ -19,39 +19,43 @@ export class PrivateCoinflipHistoryService {
     verificationData,
   }: SaveCoinflipGameDto): Promise<void> {
     try {
-      await this.prisma.gameHistory.create({
-        data: {
-          username: mainPlayer,
-          gameType: 'COINFLIP',
-          betAmount: betAmount,
-          status: GameStatus.FINISHED,
-          profit: winnerSide === player1.side ? betAmount : -betAmount,
-          multiplier: 1.98,
-        },
-      });
-      
-      const coinflip = await this.prisma.coinflipGameHistory.create({
-        data: {
-          gameId,
-          winnerSide,
-          player1Side: player1.side,
-          player1Username: player1.username,
-          player2Username: player2.username,
-          updatedAt: new Date(),
-        },
-      });
-      
-      await this.prisma.onlinePlayerFairness.create({
-        data: {
-          gameId:coinflip.gameId,
-          gameType: GameType.COINFLIP,
-          serverSeedHash: verificationData.serverSeedHash,
-          serverSeed: verificationData.serverSeed,
-          eosBlockNumber: verificationData.eosBlockNumber,
-          eosBlockId: verificationData.eosBlockId,
-          nonce: verificationData.nonce,
-          result: verificationData.result,
-        },
+      const isWinner =
+        (mainPlayer === player1.username && winnerSide === player1.side) ||
+        (mainPlayer === player2.username && winnerSide !== player1.side);
+
+      await this.prisma.$transaction(async (prisma) => {
+        const createdGameHistory = await prisma.gameHistory.create({
+          data: {
+            username: mainPlayer,
+            gameType: 'COINFLIP',
+            betAmount: betAmount,
+            status: GameStatus.FINISHED,
+            profit: isWinner ? betAmount : -betAmount,
+            multiplier: 1.98,
+          },
+        });
+        await prisma.onlinePlayerFairness.create({
+          data: {
+            gameId: createdGameHistory.id,
+            gameType: GameType.COINFLIP,
+            serverSeedHash: verificationData.serverSeedHash,
+            serverSeed: verificationData.serverSeed,
+            eosBlockNumber: verificationData.eosBlockNumber,
+            eosBlockId: verificationData.eosBlockId,
+            nonce: verificationData.nonce,
+            result: verificationData.result,
+          },
+        });
+        await prisma.coinflipGameHistory.create({
+          data: {
+            gameId: createdGameHistory.id,
+            winnerSide,
+            player1Side: player1.side,
+            player1Username: player1.username,
+            player2Username: player2.username,
+            updatedAt: new Date(),
+          },
+        });
       });
     } catch (error) {
       this.logger.error(

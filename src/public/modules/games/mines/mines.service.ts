@@ -11,7 +11,7 @@ import { MinesGameFactory } from './factory/mines-game.factory';
 import { MinesValidationService } from './service/mines-validation.service';
 import { MinesPersistenceService } from './service/mines-persistence.service';
 import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.service';
-import { GameStatus, GameType } from '@prisma/client';
+import { GameStatus, GameType, XpSource } from '@prisma/client';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { VerifyMinesGameDto } from './dto/verify-game.dto';
 
@@ -34,7 +34,7 @@ export class MinesGameService {
     private readonly userRepository: UserRepository,
     private readonly redis: RedisService,
     private readonly levelingService: LevelingService,
-  ) { }
+  ) {}
 
   async createGame(
     betAmount: number,
@@ -91,13 +91,21 @@ export class MinesGameService {
       const multiplier = hitMine
         ? game.multiplier
         : this.calculator.calculateMultiplier(
-          game.mines,
-          game.grid,
-          tilesRevealed,
-        );
-      const outcome = hitMine ? GameStatus.LOST : gemsLeft === 0 ? GameStatus.WON : game.status;
+            game.mines,
+            game.grid,
+            tilesRevealed,
+          );
+      const outcome = hitMine
+        ? GameStatus.LOST
+        : gemsLeft === 0
+          ? GameStatus.WON
+          : game.status;
       const active = outcome === game.status;
-      const status = active ? GameStatus.PLAYING : outcome === GameStatus.WON ? GameStatus.WON : GameStatus.LOST;
+      const status = active
+        ? GameStatus.PLAYING
+        : outcome === GameStatus.WON
+          ? GameStatus.WON
+          : GameStatus.LOST;
 
       // --- Persist tile reveal ---
       const updated = await this.repo.atomicRevealTile(gameId, bit, tile, {
@@ -115,7 +123,8 @@ export class MinesGameService {
 
       // --- Handle game end ---
       if (!active) {
-        const payout = outcome === GameStatus.WON ? game.betAmount * multiplier : 0;
+        const payout =
+          outcome === GameStatus.WON ? game.betAmount * multiplier : 0;
         const profit = payout - game.betAmount;
 
         await this.repo.deleteGame(game.gameId, username);
@@ -123,7 +132,10 @@ export class MinesGameService {
         if (game.betId) {
           this.persistence
             .updateGame(game.betId, game.gameHistoryId!, game, {
-              status: outcome === GameStatus.WON ? GameStatus.CASHED_OUT : GameStatus.LOST,
+              status:
+                outcome === GameStatus.WON
+                  ? GameStatus.CASHED_OUT
+                  : GameStatus.LOST,
               multiplier,
               payout,
               profit,
@@ -169,29 +181,31 @@ export class MinesGameService {
           );
         }
 
-         this.levelingService.awardXpFromWager(
-          username,
-          game.betAmount,
-          GameType.MINES,
-        ).then(async (xpResponse) => {
-          await this.redis.pubClient.publish(
-            'bet.placed',
-            JSON.stringify({
-              username,
-              game: GameType.MINES,
-              profilePicture: game.creatorProfilePicture,
-              amount: game.betAmount,
-              profit,
-              multiplier,
-              createdAt: Date.now(),
-              level: xpResponse.newLevel,
-            }),
-          );
-        });
-
+        this.levelingService
+          .awardXpFromWager(
+            username,
+            game.betAmount,
+            GameType.MINES,
+            `MINES_BET_${game.betId}`,
+          )
+          .then(async (xpResponse) => {
+            await this.redis.pubClient.publish(
+              'bet.placed',
+              JSON.stringify({
+                username,
+                game: GameType.MINES,
+                profilePicture: game.creatorProfilePicture,
+                amount: game.betAmount,
+                profit,
+                multiplier,
+                createdAt: Date.now(),
+                level: xpResponse.newLevel,
+              }),
+            );
+          });
 
         this.logger.log(`Game ${game.gameId} ended for user ${username}`);
-        
+
         await Promise.allSettled([
           this.redisService.del(RedisKeys.user.profile(username)),
           this.redisService.del(RedisKeys.user.publicProfile(username)),
@@ -292,7 +306,12 @@ export class MinesGameService {
           );
 
         this.levelingService
-          .awardXpFromWager(username, game.betAmount, GameType.MINES)
+          .awardXpFromWager(
+            username,
+            game.betAmount,
+            GameType.MINES,
+            game.betId ? `MINES_BET_${game.betId}` : undefined,
+          )
           .then(async (xpResponse) => {
             await this.redis.pubClient.publish(
               'bet.placed',
@@ -390,7 +409,7 @@ export class MinesGameService {
 
       this.logger.log(
         `Verification for user ${username}: serverSeed=${serverSeed.substring(0, 8)}..., ` +
-        `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
+          `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
       );
 
       return {

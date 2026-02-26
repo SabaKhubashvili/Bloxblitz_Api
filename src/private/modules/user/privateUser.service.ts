@@ -174,11 +174,12 @@ export class PrivateUserService {
 
     return { username, lastLoginIp: user.last_login_ip };
   }
-  async addUserXp(username: string, wageredAmount: number, gameType: GameType) {
+  async addUserXp(username: string, wageredAmount: number, gameType: GameType, referenceId?: string) {
     const newXp = await this.levelingService.awardXpFromWager(
       username,
       wageredAmount,
       gameType,
+      referenceId,
     );
     return { username, newXp };
   }

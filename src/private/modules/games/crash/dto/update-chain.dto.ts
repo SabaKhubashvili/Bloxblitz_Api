@@ -10,5 +10,6 @@ export class UpdateChainDto {
   @IsInt()
   @Min(0)
   roundNumber: number;
+  
 }
 

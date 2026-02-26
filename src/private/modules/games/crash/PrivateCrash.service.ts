@@ -46,6 +46,7 @@ export class PrivateCrashService {
         clientSeed: data.clientSeed,
       },
       select: {
+        id:true,
         roundNumber: true,
         crashPoint: true,
         gameHash: true,
@@ -63,7 +64,7 @@ export class PrivateCrashService {
     });
   }
   async updateRound(data: UpdateCrashRoundDto) {
-    return this.prisma.crashRound.updateMany({
+    const crUpdate = await this.prisma.crashRound.updateMany({
       where: {
         chainId: data.chainId,
         roundNumber: data.roundNumber,
@@ -72,8 +73,21 @@ export class PrivateCrashService {
         totalBets: data.totalBets,
         totalPayout: data.totalPayout,
         totalWagered: data.totalWagered,
-      },
+        finished: data.finished,
+        ...(data.finished === true ? { finishedAt: new Date() } : {}), 
+      }
     });
+    if(data.roundNumber > 0 && data.finished === true){
+      await this.prisma.hashChain.update({
+        where: {
+          chainId: data.chainId,
+        },
+        data: {
+          currentRound: data.roundNumber + 1,
+        },
+      });
+    }
+    return crUpdate;
   }
   async GetCrashHistoryByHash(gameHash: string, chainId: string) {
     return this.prisma.crashRound.findFirst({

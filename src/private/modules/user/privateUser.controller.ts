@@ -23,7 +23,7 @@ export class PrivateUserController {
   }
   @Post('/xp/add')
   addUserXp(@Body() dto: AddUserXpDto) {
-    return this.privateUserService.addUserXp(dto.username, dto.betAmount, dto.gameType);
+    return this.privateUserService.addUserXp(dto.username, dto.betAmount, dto.gameType, dto.referenceId);
   }
   @Get('/xp')
   getUserXp(@Body() dto: getUserXpInfoDto) {

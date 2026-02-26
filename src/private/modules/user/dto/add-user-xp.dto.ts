@@ -1,5 +1,5 @@
 import { GameType } from "@prisma/client";
-import { IsEnum, IsNumber, IsPositive, IsString, MaxLength } from "class-validator";
+import { IsEnum, IsNumber, IsOptional, IsPositive, IsString, MaxLength } from "class-validator";
 import { Type } from "class-transformer";
 
 export class AddUserXpDto {
@@ -14,4 +14,9 @@ export class AddUserXpDto {
 
   @IsEnum(GameType)
   gameType: GameType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  referenceId?: string;
 }

@@ -6,9 +6,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Decimal } from '@prisma/client/runtime/client';
 import { LevelUpEvent } from './events/level-up.event';
-import { GameType } from '@prisma/client';
+import { GameType, XpSource } from '@prisma/client';
 import { RedisService } from 'src/provider/redis/redis.service';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
+import { getRakebackRate } from './utils/levelToRakeback';
 
 // Cache TTL constants (in seconds)
 const CACHE_TTL = {
@@ -26,7 +27,7 @@ export class LevelingService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   /**
    * Calculate XP required to reach a specific level
@@ -203,6 +204,7 @@ export class LevelingService {
     username: string,
     wagerAmount: number | Decimal,
     gameType: GameType,
+    referenceId?: string,
   ): Promise<{
     xpAwarded: number;
     newLevel: number;
@@ -210,7 +212,6 @@ export class LevelingService {
     levelsGained: number;
     rewards?: any;
   }> {
-
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
@@ -243,6 +244,14 @@ export class LevelingService {
       data: {
         totalXP: newTotalXp,
         currentLevel: newLevel,
+      },
+    });
+    await this.prisma.xpEvent.create({
+      data: {
+        userUsername: username,
+        amount: xpAmount,
+        source: XpSource.GAME_WIN,
+        referenceId: referenceId || null,
       },
     });
 
@@ -339,26 +348,27 @@ export class LevelingService {
   /**
    * Get user level information (with caching)
    */
-  async getUserLevelInfo(username: string):Promise<{
+  async getUserLevelInfo(username: string): Promise<{
     nextMilestone: {
-        level: number;
-        levelsToGo: number;
-        rewards: any;
+      level: number;
+      levelsToGo: number;
+      rewards: any;
     } | null;
     nextLevelRewards: {
-        balanceBonus: any;
-        multiplierIncrease: any;
-        isMilestone: boolean;
+      balanceBonus: any;
+      multiplierIncrease: any;
+      isMilestone: boolean;
     };
     currentLevel: number;
     xpInCurrentLevel: number;
     xpNeededForNextLevel: number;
     progressPercentage: number;
     totalXp: number;
+    xpEarned24H:number;
     user: {
-        username: string;
-        profilePicture: string;
-        xpMultiplier: number;
+      username: string;
+      profilePicture: string;
+      xpMultiplier: number;
     };
   }> {
     const cacheKey = RedisKeys.leveling.userInfo(username);
@@ -377,16 +387,31 @@ export class LevelingService {
     }
 
     // Fetch from database
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-      select: {
-        username: true,
-        totalXP: true,
-        currentLevel: true,
-        xpMultiplier: true,
-        profile_picture: true,
-      },
-    });
+   const userDbQuery = await this.prisma.$queryRaw<
+  {
+    username: string;
+    totalXP: number;
+    currentLevel: number;
+    xpMultiplier: number;
+    profile_picture: string;
+    xpEarned24H: number;
+  }[]
+>`
+  SELECT 
+    u.username,
+    u."totalXP",
+    u."currentLevel",
+    u."xpMultiplier",
+    u.profile_picture,
+    COALESCE(SUM(x.amount), 0) AS "xpEarned24H"
+  FROM "User" u
+  LEFT JOIN "XpEvent" x 
+    ON x."userUsername" = u.username
+    AND x."createdAt" >= NOW() - INTERVAL '24 HOURS'
+  WHERE u.username = ${username}
+  GROUP BY u.id;
+`;
+    const user = userDbQuery[0];
 
     if (!user) {
       throw new Error(`User ${username} not found`);
@@ -395,7 +420,7 @@ export class LevelingService {
     const progress = this.getXpProgress(user.totalXP);
     const nextMilestone = this.getNextMilestone(user.currentLevel);
     const nextLevelRewards = this.calculateNextLevelRewards(user.currentLevel);
-
+    const rakeBackRate = getRakebackRate(user.currentLevel);
     const result = {
       user: {
         username: user.username,
@@ -405,7 +430,12 @@ export class LevelingService {
       ...progress,
       nextMilestone,
       nextLevelRewards,
+      rakeBackRate,
+      xpEarned24H: parseFloat(user.xpEarned24H.toString()),
     };
+    this.logger.debug(
+      `Fetched level info for user ${username}: ${JSON.stringify(result)}`,
+    );
 
     // Cache the result
     await this.redisService.mainClient.setEx(
@@ -642,7 +672,10 @@ export class LevelingService {
       const keys = await this.redisService.mainClient.keys(pattern);
 
       if (keys && keys.length > 0) {
-        await this.redisService.mainClient.del.apply(this.redisService.mainClient, keys);
+        await this.redisService.mainClient.del.apply(
+          this.redisService.mainClient,
+          keys,
+        );
         this.logger.log(`Invalidated ${keys.length} leveling cache keys`);
       }
     } catch (error) {

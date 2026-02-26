@@ -7,13 +7,31 @@ import {
   IsString,
   MaxLength,
   Min,
+  MinLength,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { type PlayerInterface } from "src/types/jackpot.interface";
 
 /* ---------- Nested DTOs ---------- */
-
+class PlayerInterface {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20)
+  @MinLength(3)
+  username: string;
+  @IsString()
+  @IsNotEmpty()
+  profilePicture: string;
+  @IsNumber()
+  @IsNotEmpty()
+  level: number;
+  @IsString()
+  @IsNotEmpty()
+  betAmount: string;
+  @IsEnum(['H', 'T'])
+  @IsNotEmpty()
+  side: 'H' | 'T';
+}
 class CoinflipVerificationDto {
   @IsString()
   @IsNotEmpty()
@@ -53,12 +71,12 @@ export class SaveCoinflipGameDto {
 
   @IsObject()
   @ValidateNested()
-  @Type(() => Object)
+  @Type(() => PlayerInterface)
   player1: PlayerInterface;
 
   @IsObject()
   @ValidateNested()
-  @Type(() => Object)
+  @Type(() => PlayerInterface)
   player2: PlayerInterface;
 
   @IsEnum(Side)

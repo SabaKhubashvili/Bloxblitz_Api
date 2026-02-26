@@ -6,6 +6,7 @@ import {
   IsString,
   Min,
   Validate,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TwoDecimalPlacesRegex } from 'src/class-validator/TwoDecimalPlacesRegex.validator';
@@ -40,4 +41,10 @@ export class UpdateCrashRoundDto {
   @Validate(TwoDecimalPlacesRegex)
   @Min(0)
   totalPayout?: number;
+
+  
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  finished?: boolean;
 }

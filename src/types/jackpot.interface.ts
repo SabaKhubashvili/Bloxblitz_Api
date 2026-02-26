@@ -2,7 +2,7 @@ import { $Enums, Variant } from '@prisma/client';
 
 export interface PlayerInterface {
   username: string;
-  profile_picture: string;
+  profilePicture: string;
   bet: number;
   side: 'H' | 'T';
   items: Array<CoinflipItem>;
@@ -11,7 +11,7 @@ export interface CoinflipItem {
   id: number;
   name: string;
   variant: Variant[];
-  item_picture: string;
+  itemPicture: string;
   value: number;
 }
 

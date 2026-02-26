@@ -43,6 +43,12 @@ export class MinesHistoryService {
       },
       take: limit,
     });
-    return games;
+    const data = games.map((game) => ({
+      status: game.status,
+      createdAt: game.createdAt,
+      betAmount: game?.parentHistory?.betAmount || 0,
+      multiplier: game?.parentHistory?.multiplier || 0,
+    }));
+    return data;
   }
 }

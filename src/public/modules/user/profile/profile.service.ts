@@ -9,6 +9,7 @@ import { Decimal } from '@prisma/client/runtime/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { RedisService } from 'src/provider/redis/redis.service';
+import { LevelingService } from '../../leveling/leveling.service';
 
 @Injectable()
 export class ProfileService {
@@ -16,107 +17,113 @@ export class ProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
+    private readonly levelingService: LevelingService
   ) {}
   private readonly USER_PROFILE_CACHE_TTL = 300; // 5 minutes
   private readonly USER_RANK_CACHE_TTL = 60; // 1 minute (ranks change more frequently)
 
   async getProfile(username: string) {
-  try {
-    const cachedProfile = await this.redisService.get(
-      RedisKeys.user.profile(username),
-    );
-    if (cachedProfile) {
-      return cachedProfile;
-    }
+    try {
+      const cachedProfile = await this.redisService.get(
+        RedisKeys.user.profile(username),
+      );
+      if (cachedProfile) {
+        return cachedProfile;
+      }
 
-    // Calculate date boundaries for 7 and 30 days ago
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      // Calculate date boundaries for 7 and 30 days ago
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-      select: {
-        id: true,
-        username: true,
-        currentLevel: true,
-        totalXP: true,
-        profile_picture: true,
-        created_at: true,
+      const user = await this.prisma.user.findUnique({
+        where: { username },
+        select: {
+          id: true,
+          username: true,
+          currentLevel: true,
+          totalXP: true,
+          profile_picture: true,
+          created_at: true,
+          statistics: {
+            select: {
+              totalWagered: true,
+              totalWithdrawals: true,
+              totalDeposits: true,
+              totalProfit: true,
+              totalLoss: true,
+            },
+          },
+          
+          settings: {
+            select: {
+              privateProfile: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new BadRequestException('User not found.');
+      }
+
+      // Calculate wagers for past 7 and 30 days
+      const [wagerLast7Days, wagerLast30Days] = await Promise.all([
+        this.prisma.gameHistory.aggregate({
+          where: {
+            username: username,
+            createdAt: {
+              gte: sevenDaysAgo,
+            },
+          },
+          _sum: {
+            betAmount: true,
+          },
+        }),
+        this.prisma.gameHistory.aggregate({
+          where: {
+            username: username,
+            createdAt: {
+              gte: thirtyDaysAgo,
+            },
+          },
+          _sum: {
+            betAmount: true,
+          },
+        }),
+      ]);
+      const xpLeftForNextLevel = this.levelingService.getXpProgress(user.totalXP);
+      const profileData = {
+        ...user,
         statistics: {
-          select: {
-            totalWagered: true,
-            totalWithdrawals: true,
-            totalDeposits: true,
-            totalProfit: true,
-            totalLoss: true,
-          },
+          ...user.statistics,
+          wagerLast7Days: wagerLast7Days._sum.betAmount?.toNumber() || 0,
+          wagerLast30Days: wagerLast30Days._sum.betAmount?.toNumber() || 0,
         },
-        settings: {
-          select: {
-            privateProfile: true,
-          },
-        },
-      },
-    });
+        totalXp:xpLeftForNextLevel.totalXp,
+        currentLevel: xpLeftForNextLevel.currentLevel,
+        xpNeededForNextLevel: xpLeftForNextLevel.xpNeededForNextLevel,
+        xpPercentage: xpLeftForNextLevel.progressPercentage,
+      };
 
-    if (!user) {
-      throw new BadRequestException('User not found.');
+      await this.redisService.mainClient.setEx(
+        RedisKeys.user.profile(username),
+        3600,
+        JSON.stringify(profileData),
+      );
+
+      return profileData;
+    } catch (err) {
+      this.logger.error(
+        `Error fetching profile for ${username}: ${err.message}`,
+      );
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      const message = 'An error occurred while fetching profile data.';
+      throw new InternalServerErrorException(message);
     }
-
-    // Calculate wagers for past 7 and 30 days
-    const [wagerLast7Days, wagerLast30Days] = await Promise.all([
-      this.prisma.gameHistory.aggregate({
-        where: {
-          username: username,
-          createdAt: {
-            gte: sevenDaysAgo,
-          },
-        },
-        _sum: {
-          betAmount: true,
-        },
-      }),
-      this.prisma.gameHistory.aggregate({
-        where: {
-          username: username,
-          createdAt: {
-            gte: thirtyDaysAgo,
-          },
-        },
-        _sum: {
-          betAmount: true,
-        },
-      }),
-    ]);
-
-    const profileData = {
-      ...user,
-      statistics: {
-        ...user.statistics,
-        wagerLast7Days: wagerLast7Days._sum.betAmount?.toNumber() || 0,
-        wagerLast30Days: wagerLast30Days._sum.betAmount?.toNumber() || 0,
-      },
-    };
-
-    await this.redisService.mainClient.setEx(
-      RedisKeys.user.profile(username),
-      3600,
-      JSON.stringify(profileData),
-    );
-
-    return profileData;
-  } catch (err) {
-    this.logger.error(
-      `Error fetching profile for ${username}: ${err.message}`,
-    );
-    if (err instanceof BadRequestException) {
-      throw err;
-    }
-    const message = 'An error occurred while fetching profile data.';
-    throw new InternalServerErrorException(message);
   }
-}
 
   async setPrivateProfile(username: string, newVal: boolean) {
     try {
@@ -158,7 +165,24 @@ export class ProfileService {
     const cacheKey = RedisKeys.user.publicProfile(username);
 
     // Try to get from cache first
-    const cached = await this.redisService.get(cacheKey);
+    const cached: {
+      username: string;
+      role: string;
+      currentLevel: number;
+      totalXP: number;
+      profile_picture: string;
+      created_at: Date;
+      statistics: {
+        totalWagered: number;
+        totalGamesWon: number;
+        biggestWin: number;
+        totalGamesPlayed: number;
+      };
+      leaderboardRank: number;
+      winRate: number;
+      isOnline: boolean;
+      privateProfile: boolean;
+    } | null = await this.redisService.get(cacheKey);
     if (cached) {
       if (isPrivate?.privateProfile) {
         const {
@@ -226,13 +250,15 @@ export class ProfileService {
     const winRate = user.totalGamesPlayed
       ? Number(((user.totalGamesWon / user.totalGamesPlayed) * 100).toFixed(1))
       : 0;
-
+    const levelInfo = await this.levelingService.getUserLevelInfo(username);
     // Format response
     const response = {
       username: user.username,
       role: user.role,
-      currentLevel: user.currentLevel,
-      totalXP: user.totalXP,
+      currentLevel: levelInfo.currentLevel,
+      totalXP: levelInfo.totalXp,
+      progressPercentage: levelInfo.progressPercentage,
+      xpNeededForNextLevel: levelInfo.xpNeededForNextLevel,
       profile_picture: user.profile_picture,
       created_at: user.created_at,
       statistics: {
@@ -251,7 +277,7 @@ export class ProfileService {
       this.USER_PROFILE_CACHE_TTL,
       JSON.stringify(response),
     );
-    if(isPrivate?.privateProfile){
+    if (isPrivate?.privateProfile) {
       const {
         statistics,
         totalXP,
