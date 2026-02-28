@@ -13,6 +13,7 @@ import { SharedUserGamesService } from 'src/shared/user/games/shared-user-games.
 import { BetHistoryService } from 'src/private/modules/user/bet-history/private-bet-history.service';
 import { UserRepository } from '../../user/user.repository';
 import { LevelingService } from '../../leveling/leveling.service';
+import { PrivateRakebackService } from 'src/private/modules/user/rakeback/rakeback.service';
 
 
 @Module({
@@ -30,7 +31,8 @@ import { LevelingService } from '../../leveling/leveling.service';
     SharedUserGamesService,
     BetHistoryService,
     UserRepository,
-    LevelingService
+    LevelingService,
+    PrivateRakebackService
   ],
   exports: [MinesGameService],
 })

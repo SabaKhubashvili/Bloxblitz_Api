@@ -18,6 +18,7 @@ import { VerifyMinesGameDto } from './dto/verify-game.dto';
 import { RedisKeys } from 'src/provider/redis/redis.keys';
 import { UserRepository } from '../../user/user.repository';
 import { LevelingService } from '../../leveling/leveling.service';
+import { PrivateRakebackService } from 'src/private/modules/user/rakeback/rakeback.service';
 
 @Injectable()
 export class MinesGameService {
@@ -34,7 +35,8 @@ export class MinesGameService {
     private readonly userRepository: UserRepository,
     private readonly redis: RedisService,
     private readonly levelingService: LevelingService,
-  ) {}
+    private readonly privateRakebackService: PrivateRakebackService,
+  ) { }
 
   async createGame(
     betAmount: number,
@@ -91,10 +93,10 @@ export class MinesGameService {
       const multiplier = hitMine
         ? game.multiplier
         : this.calculator.calculateMultiplier(
-            game.mines,
-            game.grid,
-            tilesRevealed,
-          );
+          game.mines,
+          game.grid,
+          tilesRevealed,
+        );
       const outcome = hitMine
         ? GameStatus.LOST
         : gemsLeft === 0
@@ -180,6 +182,12 @@ export class MinesGameService {
             game.betAmount * multiplier,
           );
         }
+        this.privateRakebackService.processRakebackForUser(username, game.betAmount).catch((err) =>
+          this.logger.error(
+            `Failed to process rakeback for user ${username} after game ${game.gameId}:`,
+            err,
+          ),
+        );
 
         this.levelingService
           .awardXpFromWager(
@@ -336,6 +344,12 @@ export class MinesGameService {
         `Incrementing balance for user ${username} after cashout for game ${game.gameId} with winnings ${winnings}`,
       );
       this.redisService.incrementBalance(username, winnings);
+      this.privateRakebackService.processRakebackForUser(username, game.betAmount).catch((err) =>
+        this.logger.error(
+          `Failed to process rakeback for user ${username} after game ${game.gameId}:`,
+          err,
+        ),
+      );
 
       this.userRepository
         .incrementGameStats(
@@ -409,7 +423,7 @@ export class MinesGameService {
 
       this.logger.log(
         `Verification for user ${username}: serverSeed=${serverSeed.substring(0, 8)}..., ` +
-          `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
+        `clientSeed=${clientSeed}, nonce=${nonce}, mines=${mines}, gridSize=${gridSize}`,
       );
 
       return {

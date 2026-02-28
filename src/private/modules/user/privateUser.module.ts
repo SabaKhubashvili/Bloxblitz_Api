@@ -4,9 +4,10 @@ import { BetHistoryModule } from "./bet-history/private-bet-history.module";
 import { PrivateProvablyFairModule } from "./provably-fair/private-provably-fair.module";
 import { PrivateUserService } from "./privateUser.service";
 import { LevelingService } from "src/public/modules/leveling/leveling.service";
+import { PrivateRakebackModule } from "./rakeback/rakeback.module";
 
 @Module({
-    imports:[BetHistoryModule,PrivateProvablyFairModule],
+    imports:[BetHistoryModule,PrivateProvablyFairModule,PrivateRakebackModule],
     providers:[PrivateUserService,LevelingService],
     controllers:[PrivateUserController]
 })
