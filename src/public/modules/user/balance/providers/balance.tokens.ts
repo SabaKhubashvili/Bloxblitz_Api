@@ -1,1 +1,0 @@
-export const BALANCE_PROVIDER = Symbol('BALANCE_PROVIDER');

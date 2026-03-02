@@ -1,0 +1,164 @@
+import { EntityId } from '../../../shared/value-objects/entity-id.vo.js';
+import { Money } from '../../../shared/value-objects/money.vo.js';
+import { Result, Ok, Err } from '../../../shared/types/result.type.js';
+import { MineMask } from '../value-objects/mine-mask.vo.js';
+import { GameStatus } from '../value-objects/game-status.vo.js';
+import {
+  InvalidMineCountError,
+  GameNotActiveError,
+  InvalidTileIndexError,
+  TileAlreadyRevealedError,
+  NoTilesRevealedError,
+  MinesError,
+} from '../errors/mines.errors.js';
+
+/** House edge applied to all multiplier calculations (1%). */
+const HOUSE_EDGE = 0.01;
+
+export interface CreateMinesGameParams {
+  id?: string;
+  username: string;
+  betAmount: Money;
+  mineCount: number;
+  mineMask: MineMask;
+  nonce: number;
+  gridSize: number;
+  revealedTiles?: Set<number>;
+  status?: GameStatus;
+}
+
+export interface RevealResult {
+  isMine: boolean;
+  multiplier: number;
+}
+
+export interface CashoutResult {
+  profit: Money;
+  multiplier: number;
+}
+
+export enum AvailableGridSizes {
+  "4X4" = 4,
+  "5X5" = 5,
+  "6X6" = 6,
+  "8X8" = 8,
+  "10X10" = 10,
+}
+export class MinesGame {
+  readonly id: EntityId;
+  readonly username: string;
+  readonly betAmount: Money;
+  readonly mineCount: number;
+  private readonly mineMask: MineMask;
+  private _status: GameStatus;
+  private _revealedTiles: Set<number>;
+  readonly nonce: number;
+  readonly gridSize: number;
+
+  private constructor(
+    id: EntityId,
+    username: string,
+    betAmount: Money,
+    mineCount: number,
+    mineMask: MineMask,
+    status: GameStatus,
+    revealedTiles: Set<number>,
+    nonce: number,
+    gridSize: number,
+  ) {
+    this.id = id;
+    this.username = username;
+    this.betAmount = betAmount;
+    this.mineCount = mineCount;
+    this.mineMask = mineMask;
+    this._status = status;
+    this._revealedTiles = new Set(revealedTiles);
+    this.nonce = nonce;
+    this.gridSize = gridSize;
+  }
+
+  static create(params: CreateMinesGameParams): Result<MinesGame, MinesError> {
+    if (params.mineCount < 1 || params.mineCount >= params.gridSize) {
+      return Err(new InvalidMineCountError());
+    }
+
+    return Ok(
+      new MinesGame(
+        new EntityId(params.id),
+        params.username,
+        params.betAmount,
+        params.mineCount,
+        params.mineMask,
+        params.status ?? GameStatus.ACTIVE,
+        params.revealedTiles ?? new Set<number>(),
+        params.nonce,
+        params.gridSize,
+      ),
+    );
+  }
+
+  get status(): GameStatus {
+    return this._status;
+  }
+
+  get revealedTiles(): ReadonlySet<number> {
+    return this._revealedTiles;
+  }
+
+  revealTile(tileIndex: number): Result<RevealResult, MinesError> {
+    if (this._status !== GameStatus.ACTIVE) return Err(new GameNotActiveError());
+    if (tileIndex < 0 || tileIndex >= this.gridSize) return Err(new InvalidTileIndexError());
+    if (this._revealedTiles.has(tileIndex)) return Err(new TileAlreadyRevealedError());
+
+    this._revealedTiles = new Set([...this._revealedTiles, tileIndex]);
+    const isMine = this.mineMask.hasMineAt(tileIndex);
+
+    if (isMine) {
+      this._status = GameStatus.LOST;
+    }
+
+    return Ok({ isMine, multiplier: this.calculateMultiplier() });
+  }
+
+  cashout(): Result<CashoutResult, MinesError> {
+    if (this._status !== GameStatus.ACTIVE) return Err(new GameNotActiveError());
+    if (this._revealedTiles.size === 0) return Err(new NoTilesRevealedError());
+
+    const multiplier = this.calculateMultiplier();
+    const profit = this.betAmount.multiply(multiplier);
+    this._status = GameStatus.WON;
+
+    return Ok({ profit, multiplier });
+  }
+
+  /**
+   * Computes the current payout multiplier.
+   *
+   * Formula: M = ∏(i=0 to r-1) [(n-i) / (n-m-i)] × (1 - houseEdge)
+   * where n = gridSize, m = mineCount, r = safe tiles revealed so far.
+   *
+   * This is equivalent to 1 / P(surviving all r reveals) × (1 - houseEdge).
+   */
+  calculateMultiplier(): number {
+    const n = this.gridSize;
+    const m = this.mineCount;
+    const r = this._revealedTiles.size;
+
+    if (r === 0) return 1;
+
+    let multiplier = 1;
+    for (let i = 0; i < r; i++) {
+      multiplier *= (n - i) / (n - m - i);
+    }
+
+    return Math.round(multiplier * (1 - HOUSE_EDGE) * 10_000) / 10_000;
+  }
+
+  getMinePositions(): number[] {
+    return this.mineMask.toArray();
+  }
+
+  isActive(): boolean {
+    return this._status === GameStatus.ACTIVE;
+  }
+}

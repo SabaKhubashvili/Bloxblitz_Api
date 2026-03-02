@@ -1,40 +1,23 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AdminModule } from './public/modules/admin/admin.module';
-import { ConfigModule } from '@nestjs/config';
-import { GamesModule } from './public/modules/games/games.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { PrivateModule } from './private/private.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { GiveawayModule } from './public/modules/giveaway/giveaway.module';
-import { RedisModule } from './provider/redis/redis.module';
-import { BotModule } from './public/modules/bot/bot.module';
-import { UserModule } from './public/modules/user/user.module';
-import { WorkersModule } from './workers/workers.module';
-import { IntegrationsModule } from './integrations/integrations.module';
-import { DiscordNotificationService } from './utils/discord_webhook.util';
-import { LevelingModule } from './public/modules/leveling/leveling.module';
+
+import { AppController } from './app.controller';
+
+import { RedisModule } from './infrastructure/cache/redis.module';
+import { PrismaModule } from './infrastructure/persistance/prisma/prisma.module';
+import { WorkersModule } from './infrastructure/workers/workers.module';
+import { MinesModule } from './modules/game/mines.module';
+import { UserModule } from './modules/user/user.module';
+
 @Module({
   imports: [
-    ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
-    AdminModule,
-    GamesModule,
     PrismaModule,
     RedisModule,
-    GiveawayModule,
-
+    WorkersModule,
+    MinesModule,
     UserModule,
-    BotModule,
-    LevelingModule,
-    IntegrationsModule,
-
-    PrivateModule,
-    WorkersModule
-
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
