@@ -18,8 +18,7 @@ import {
     private readonly logger = new Logger(PrismaService.name);
   
     constructor() {
-      console.log(process.cwd());
-  
+
       const adapter = new PrismaPg({
         connectionString: process.env.DATABASE_URL!,
         connect_timeout: 5000,

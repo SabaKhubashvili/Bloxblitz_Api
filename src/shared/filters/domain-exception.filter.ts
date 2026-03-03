@@ -29,6 +29,25 @@ import {
   BalanceFetchError,
 } from '../../domain/user/errors/user.errors.js';
 
+// ── Leveling errors ───────────────────────────────────────────────────────────
+import {
+  LevelingUserNotFoundError,
+  InvalidXpAmountError,
+  InvalidLevelError,
+  LevelingPersistenceError,
+} from '../../domain/leveling/errors/leveling.errors.js';
+
+// ── Rakeback errors ──────────────────────────────────────────────────────────
+import {
+  RakebackNotFoundError,
+  RakebackNotUnlockedError,
+  RakebackWindowClosedError,
+  RakebackAlreadyClaimedError,
+  ZeroRakebackBalanceError,
+  RakebackClaimInProgressError,
+  RakebackAccumulationError,
+} from '../../domain/rakeback/errors/rakeback.errors.js';
+
 /**
  * Global domain-exception filter.
  *
@@ -88,6 +107,21 @@ export class DomainExceptionFilter implements ExceptionFilter {
     ) {
       return HttpStatus.BAD_REQUEST;
     }
+
+    // ── Leveling errors ───────────────────────────────────────────────────────
+    if (error instanceof LevelingUserNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof InvalidXpAmountError)      return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidLevelError)         return HttpStatus.BAD_REQUEST;
+    if (error instanceof LevelingPersistenceError)  return HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // ── Rakeback errors ─────────────────────────────────────────────────────
+    if (error instanceof RakebackNotFoundError)        return HttpStatus.NOT_FOUND;
+    if (error instanceof ZeroRakebackBalanceError)     return HttpStatus.BAD_REQUEST;
+    if (error instanceof RakebackNotUnlockedError)     return HttpStatus.FORBIDDEN;
+    if (error instanceof RakebackWindowClosedError)    return HttpStatus.FORBIDDEN;
+    if (error instanceof RakebackAlreadyClaimedError)  return HttpStatus.CONFLICT;
+    if (error instanceof RakebackClaimInProgressError) return HttpStatus.CONFLICT;
+    if (error instanceof RakebackAccumulationError)    return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

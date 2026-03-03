@@ -1,0 +1,2 @@
+export const PROFILE_REPOSITORY = Symbol('PROFILE_REPOSITORY');
+export const PROFILE_CACHE_PORT = Symbol('PROFILE_CACHE_PORT');

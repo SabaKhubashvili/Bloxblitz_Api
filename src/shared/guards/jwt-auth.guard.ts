@@ -6,13 +6,19 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { UserRole, isValidUserRole } from '../enums/user-role.enum.js';
 
 export interface JwtPayload {
   sub: string;
   username: string;
-  role: string;
+  role: UserRole;
 }
 
+/**
+ * Verifies the Bearer token and attaches a validated `JwtPayload` to the
+ * request.  The `role` claim is validated against the `UserRole` enum to
+ * prevent tokens with spoofed or garbage role values from passing through.
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
@@ -27,9 +33,15 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
+
+      if (!isValidUserRole(payload.role)) {
+        throw new UnauthorizedException('Token contains an invalid role');
+      }
+
       request['user'] = payload;
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

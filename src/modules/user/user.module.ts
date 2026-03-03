@@ -19,6 +19,7 @@ import { BalanceController } from '../../presentation/http/public/user/balance.c
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
+import { RolesGuard }   from '../../shared/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
   providers: [
     // Guards
     JwtAuthGuard,
+    RolesGuard,
 
     // Use cases
     GetBalanceUseCase,

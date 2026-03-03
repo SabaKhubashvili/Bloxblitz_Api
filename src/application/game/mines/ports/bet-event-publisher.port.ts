@@ -1,7 +1,7 @@
 export interface BetPlacedEvent {
   username: string;
   betAmount: number;
-  gameType: 'MINES';
+  gameType: string;
   gameId: string;
 }
 

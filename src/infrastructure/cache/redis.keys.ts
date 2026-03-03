@@ -144,6 +144,11 @@ export const RedisKeys = {
       },
     },
   
+    /* ─────────────── QUEUES ─────────────── */
+    queue: {
+      rakebackWagers: () => `queue:rakeback:wagers`,
+    },
+
     /* ─────────────── LEVELING ─────────────── */
     leveling: {
       userInfo: (username: string) => `leveling:userInfo:${username}`,

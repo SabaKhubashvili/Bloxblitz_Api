@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { LevelingModule } from '../user/leveling.module.js';
 
 // Use cases — game flow
 import { CreateMinesGameUseCase } from '../../application/game/mines/use-cases/create-mines-game.use-case.js';
@@ -42,6 +43,7 @@ import { MinesHistoryController } from '../../presentation/http/public/game/mine
 
 // Shared guards
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
+import { RolesGuard }   from '../../shared/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -49,6 +51,7 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
+    LevelingModule,
   ],
   controllers: [MinesController, MinesHistoryController],
   providers: [
@@ -67,6 +70,7 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
 
     // Guards
     JwtAuthGuard,
+    RolesGuard,
 
     // Port bindings — game flow
     { provide: MINES_GAME_REPOSITORY, useClass: MinesGameRepository },
