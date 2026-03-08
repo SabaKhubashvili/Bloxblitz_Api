@@ -1,8 +1,8 @@
-import { EntityId } from '../../../shared/value-objects/entity-id.vo.js';
-import { Money } from '../../../shared/value-objects/money.vo.js';
-import { Result, Ok, Err } from '../../../shared/types/result.type.js';
-import { MineMask } from '../value-objects/mine-mask.vo.js';
-import { GameStatus } from '../value-objects/game-status.vo.js';
+import { EntityId } from '../../../shared/value-objects/entity-id.vo';
+import { Money } from '../../../shared/value-objects/money.vo';
+import { Result, Ok, Err } from '../../../shared/types/result.type';
+import { MineMask } from '../value-objects/mine-mask.vo';
+import { GameStatus } from '../value-objects/game-status.vo';
 import {
   InvalidMineCountError,
   GameNotActiveError,
@@ -10,7 +10,7 @@ import {
   TileAlreadyRevealedError,
   NoTilesRevealedError,
   MinesError,
-} from '../errors/mines.errors.js';
+} from '../errors/mines.errors';
 
 /** House edge applied to all multiplier calculations (1%). */
 const HOUSE_EDGE = 0.01;

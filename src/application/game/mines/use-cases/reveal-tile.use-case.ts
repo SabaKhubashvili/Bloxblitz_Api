@@ -1,24 +1,24 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port.js';
-import type { IMinesCachePort } from '../ports/mines-cache.port.js';
-import type { IMinesBalanceLedgerPort } from '../ports/mines-balance-ledger.port.js';
-import type { IMinesHistoryCachePort } from '../ports/mines-history-cache.port.js';
-import type { RevealTileCommand } from '../dto/reveal-tile.command.js';
-import type { RevealTileOutputDto } from '../dto/mines-game.output-dto.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port';
+import type { IMinesCachePort } from '../ports/mines-cache.port';
+import type { IMinesBalanceLedgerPort } from '../ports/mines-balance-ledger.port';
+import type { IMinesHistoryCachePort } from '../ports/mines-history-cache.port';
+import type { RevealTileCommand } from '../dto/reveal-tile.command';
+import type { RevealTileOutputDto } from '../dto/mines-game.output-dto';
 import {
   MINES_GAME_REPOSITORY,
   MINES_CACHE_PORT,
   MINES_BALANCE_LEDGER,
   MINES_HISTORY_CACHE_PORT,
-} from '../tokens/mines.tokens.js';
+} from '../tokens/mines.tokens';
 import {
   GameNotFoundError,
   MinesError,
-} from '../../../../domain/game/mines/errors/mines.errors.js';
-import { GameStatus } from '../../../../domain/game/mines/value-objects/game-status.vo.js';
-import { MinesGameMapper } from '../mappers/mines-game.mapper.js';
+} from '../../../../domain/game/mines/errors/mines.errors';
+import { GameStatus } from '../../../../domain/game/mines/value-objects/game-status.vo';
+import { MinesGameMapper } from '../mappers/mines-game.mapper';
 
 @Injectable()
 export class RevealTileUseCase

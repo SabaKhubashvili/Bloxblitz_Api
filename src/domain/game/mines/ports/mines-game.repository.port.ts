@@ -1,4 +1,4 @@
-import { MinesGame } from '../entities/mines-game.entity.js';
+import { MinesGame } from '../entities/mines-game.entity';
 
 export interface IMinesGameRepository {
   findActiveByusername(username: string): Promise<MinesGame | null>;

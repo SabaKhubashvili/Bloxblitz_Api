@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port.js';
-import { UserSeed } from '../../../../domain/user/entities/user-seed.entity.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { RedisService } from '../../../cache/redis.service.js';
+import { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port';
+import { UserSeed } from '../../../../domain/user/entities/user-seed.entity';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../../cache/redis.service';
 
 const nonceKey = (username: string) => `user:nonce:${username}`;
 

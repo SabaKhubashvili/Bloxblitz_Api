@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { RedisService } from '../cache/redis.service.js';
-import { RedisKeys } from '../cache/redis.keys.js';
-import { AccumulateRakebackUseCase } from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case.js';
+import { RedisService } from '../cache/redis.service';
+import { RedisKeys } from '../cache/redis.keys';
+import { AccumulateRakebackUseCase } from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case';
 
 const POLL_INTERVAL_MS = 500;
 const BATCH_SIZE = 50;

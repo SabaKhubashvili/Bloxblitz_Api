@@ -1,8 +1,8 @@
-import { LevelProgress } from '../../../../domain/leveling/entities/level-progress.entity.js';
-import { LevelVO } from '../../../../domain/leveling/value-objects/level.vo.js';
-import { XpAmount } from '../../../../domain/leveling/value-objects/xp-amount.vo.js';
-import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto.js';
-import type { TierInfoOutputDto } from '../dto/tier-info.output-dto.js';
+import { LevelProgress } from '../../../../domain/leveling/entities/level-progress.entity';
+import { LevelVO } from '../../../../domain/leveling/value-objects/level.vo';
+import { XpAmount } from '../../../../domain/leveling/value-objects/xp-amount.vo';
+import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto';
+import type { TierInfoOutputDto } from '../dto/tier-info.output-dto';
 
 export interface RawLevelRecord {
   username:     string;

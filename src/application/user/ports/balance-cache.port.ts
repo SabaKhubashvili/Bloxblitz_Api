@@ -1,4 +1,4 @@
-import type { UserBalanceRecord } from '../../../domain/user/ports/balance.repository.port.js';
+import type { UserBalanceRecord } from '../../../domain/user/ports/balance.repository.port';
 
 /**
  * Short-lived read cache for the balance HTTP endpoint.

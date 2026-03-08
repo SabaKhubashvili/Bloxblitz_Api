@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { RedisService } from '../../../cache/redis.service.js';
-import { RedisKeys } from '../../../cache/redis.keys.js';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../../cache/redis.service';
+import { RedisKeys } from '../../../cache/redis.keys';
 import type {
   IBalanceRepository,
   UserBalanceRecord,
-} from '../../../../domain/user/ports/balance.repository.port.js';
+} from '../../../../domain/user/ports/balance.repository.port';
 
 /**
  * Implements IBalanceRepository with a two-tier read strategy:

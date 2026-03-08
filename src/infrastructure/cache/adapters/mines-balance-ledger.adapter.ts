@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
+import { RedisService } from '../redis.service';
 import type {
   IMinesBalanceLedgerPort,
   PlaceBetParams,
   PlaceBetResult,
   SettlePayoutParams,
-} from '../../../application/game/mines/ports/mines-balance-ledger.port.js';
+} from '../../../application/game/mines/ports/mines-balance-ledger.port';
 
 /** Per-game audit ledger key. Capped at 50 entries, TTL 7 days. */
 const auditKey = (gameId: string) => `ledger:mines:${gameId}`;

@@ -1,30 +1,30 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { LevelingModule } from '../user/leveling.module.js';
+import { LevelingModule } from '../user/leveling.module';
 
 // Use cases — game flow
-import { CreateMinesGameUseCase } from '../../application/game/mines/use-cases/create-mines-game.use-case.js';
-import { RevealTileUseCase } from '../../application/game/mines/use-cases/reveal-tile.use-case.js';
-import { CashoutMinesGameUseCase } from '../../application/game/mines/use-cases/cashout-mines-game.use-case.js';
-import { GetActiveMinesGameUseCase } from '../../application/game/mines/use-cases/get-active-mines-game.use-case.js';
+import { CreateMinesGameUseCase } from '../../application/game/mines/use-cases/create-mines-game.use-case';
+import { RevealTileUseCase } from '../../application/game/mines/use-cases/reveal-tile.use-case';
+import { CashoutMinesGameUseCase } from '../../application/game/mines/use-cases/cashout-mines-game.use-case';
+import { GetActiveMinesGameUseCase } from '../../application/game/mines/use-cases/get-active-mines-game.use-case';
 
 // Use cases — history
-import { GetUserMinesHistoryUseCase } from '../../application/game/mines/use-cases/get-user-mines-history.use-case.js';
-import { GetMinesRoundByIdUseCase } from '../../application/game/mines/use-cases/get-mines-round-by-id.use-case.js';
+import { GetUserMinesHistoryUseCase } from '../../application/game/mines/use-cases/get-user-mines-history.use-case';
+import { GetMinesRoundByIdUseCase } from '../../application/game/mines/use-cases/get-mines-round-by-id.use-case';
 
 // Domain services
-import { MinesFairnessDomainService } from '../../domain/game/mines/services/mines-fairness.domain-service.js';
+import { MinesFairnessDomainService } from '../../domain/game/mines/services/mines-fairness.domain-service';
 
 // Infrastructure — game flow
-import { MinesGameRepository } from '../../infrastructure/persistance/repositories/game/mines-game.repository.js';
-import { MinesGameStateCacheAdapter } from '../../infrastructure/cache/adapters/mines-game-state.cache-adapter.js';
-import { MinesBalanceLedgerAdapter } from '../../infrastructure/cache/adapters/mines-balance-ledger.adapter.js';
-import { BetEventPublisher } from '../../infrastructure/messaging/redis-pub-sub/bet-event.publisher.js';
-import { UserSeedRepository } from '../../infrastructure/persistance/repositories/user/user-seed.repository.js';
+import { MinesGameRepository } from '../../infrastructure/persistance/repositories/game/mines-game.repository';
+import { MinesGameStateCacheAdapter } from '../../infrastructure/cache/adapters/mines-game-state.cache-adapter';
+import { MinesBalanceLedgerAdapter } from '../../infrastructure/cache/adapters/mines-balance-ledger.adapter';
+import { BetEventPublisher } from '../../infrastructure/messaging/redis-pub-sub/bet-event.publisher';
+import { UserSeedRepository } from '../../infrastructure/persistance/repositories/user/user-seed.repository';
 
 // Infrastructure — history
-import { PrismaMinesHistoryRepository } from '../../infrastructure/persistance/repositories/game/mines-history.repository.js';
-import { MinesHistoryCacheAdapter } from '../../infrastructure/cache/adapters/mines-history-cache.adapter.js';
+import { PrismaMinesHistoryRepository } from '../../infrastructure/persistance/repositories/game/mines-history.repository';
+import { MinesHistoryCacheAdapter } from '../../infrastructure/cache/adapters/mines-history-cache.adapter';
 
 // Tokens
 import {
@@ -35,15 +35,15 @@ import {
   USER_SEED_REPOSITORY,
   MINES_HISTORY_REPOSITORY,
   MINES_HISTORY_CACHE_PORT,
-} from '../../application/game/mines/tokens/mines.tokens.js';
+} from '../../application/game/mines/tokens/mines.tokens';
 
 // Presentation
-import { MinesController } from '../../presentation/http/public/game/mines/mines.controller.js';
-import { MinesHistoryController } from '../../presentation/http/public/game/mines/mines-history.controller.js';
+import { MinesController } from '../../presentation/http/public/game/mines/mines.controller';
+import { MinesHistoryController } from '../../presentation/http/public/game/mines/mines-history.controller';
 
 // Shared guards
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
-import { RolesGuard }   from '../../shared/guards/roles.guard.js';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard }   from '../../shared/guards/roles.guard';
 
 @Module({
   imports: [

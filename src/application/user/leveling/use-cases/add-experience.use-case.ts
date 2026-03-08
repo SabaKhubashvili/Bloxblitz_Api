@@ -1,16 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { ILevelingRepository } from '../../../../domain/leveling/ports/leveling.repository.port.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { ILevelingRepository } from '../../../../domain/leveling/ports/leveling.repository.port';
 import {
   LevelingUserNotFoundError,
   LevelingError,
-} from '../../../../domain/leveling/errors/leveling.errors.js';
-import type { ILevelingCachePort } from '../ports/leveling-cache.port.js';
-import { LEVELING_REPOSITORY, LEVELING_CACHE_PORT } from '../tokens/leveling.tokens.js';
-import { LevelProgressMapper } from '../mappers/level-progress.mapper.js';
-import type { AddExperienceCommand } from '../dto/add-experience.command.js';
-import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto.js';
+} from '../../../../domain/leveling/errors/leveling.errors';
+import type { ILevelingCachePort } from '../ports/leveling-cache.port';
+import { LEVELING_REPOSITORY, LEVELING_CACHE_PORT } from '../tokens/leveling.tokens';
+import { LevelProgressMapper } from '../mappers/level-progress.mapper';
+import type { AddExperienceCommand } from '../dto/add-experience.command';
+import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto';
 
 /**
  * Grants XP to a user, recalculates their level and tier, persists the change,

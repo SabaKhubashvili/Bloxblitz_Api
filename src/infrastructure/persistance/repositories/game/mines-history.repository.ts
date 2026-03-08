@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GameType } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaService } from '../../prisma/prisma.service';
 import type {
   IMinesHistoryRepository,
   MinesHistoryPage,
   MinesHistoryRecord,
   MinesHistorySortOrder,
-} from '../../../../domain/game/mines/ports/mines-history.repository.port.js';
+} from '../../../../domain/game/mines/ports/mines-history.repository.port';
 
 @Injectable()
 export class PrismaMinesHistoryRepository implements IMinesHistoryRepository {

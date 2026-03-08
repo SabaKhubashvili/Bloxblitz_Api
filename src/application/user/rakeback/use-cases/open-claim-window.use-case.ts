@@ -1,12 +1,12 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum.js';
-import { ClaimWindowPolicy } from '../../../../domain/rakeback/policies/claim-window.policy.js';
-import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface.js';
-import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
-import type { RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors.js';
-import { RAKEBACK_REPOSITORY, TIME_PROVIDER } from '../tokens/rakeback.tokens.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
+import { ClaimWindowPolicy } from '../../../../domain/rakeback/policies/claim-window.policy';
+import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface';
+import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type { RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors';
+import { RAKEBACK_REPOSITORY, TIME_PROVIDER } from '../tokens/rakeback.tokens';
 
 interface OpenWindowInput {
   type: RakebackType.WEEKLY | RakebackType.MONTHLY;

@@ -11,6 +11,10 @@ import { UserModule } from './modules/user/user.module';
 import { LevelingModule } from './modules/user/leveling.module';
 import { RakebackModule } from './modules/user/rakeback.module';
 import { ProfileModule } from './modules/user/profile.module';
+import { DailySpinModule } from './modules/rewards/daily-spin.module';
+import { BetHistoryModule } from './modules/game/bet-history.module';
+import { TransactionModule } from './modules/user/transaction.module';
+import { KinguinModule } from './modules/kinguin.module';
 
 @Module({
   imports: [
@@ -20,9 +24,13 @@ import { ProfileModule } from './modules/user/profile.module';
     WorkersModule,
     MinesModule,
     UserModule,
+    TransactionModule,
     LevelingModule,
     RakebackModule,
     ProfileModule,
+    DailySpinModule,
+    BetHistoryModule,
+    KinguinModule,
   ],
   controllers: [AppController],
 })

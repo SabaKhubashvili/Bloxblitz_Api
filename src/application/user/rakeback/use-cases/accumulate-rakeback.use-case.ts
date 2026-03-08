@@ -1,12 +1,12 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { RakebackRates } from '../../../../domain/rakeback/value-objects/rakeback-rate.vo.js';
-import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
-import type { IRakebackCachePort } from '../ports/rakeback-cache.port.js';
-import type { AccumulateRakebackCommand } from '../dto/accumulate-rakeback.command.js';
-import { RakebackAccumulationError, type RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors.js';
-import { RAKEBACK_REPOSITORY, RAKEBACK_CACHE_PORT } from '../tokens/rakeback.tokens.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { RakebackRates } from '../../../../domain/rakeback/value-objects/rakeback-rate.vo';
+import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type { IRakebackCachePort } from '../ports/rakeback-cache.port';
+import type { AccumulateRakebackCommand } from '../dto/accumulate-rakeback.command';
+import { RakebackAccumulationError, type RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors';
+import { RAKEBACK_REPOSITORY, RAKEBACK_CACHE_PORT } from '../tokens/rakeback.tokens';
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;

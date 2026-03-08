@@ -1,4 +1,4 @@
-import type { XpSource } from '../../../../domain/leveling/enums/xp-source.enum.js';
+import type { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 
 export interface AddExperienceCommand {
   readonly username:     string;

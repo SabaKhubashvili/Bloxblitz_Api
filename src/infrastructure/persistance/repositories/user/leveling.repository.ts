@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { XpSource as PrismaXpSource } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import type { ILevelingRepository } from '../../../../domain/leveling/ports/leveling.repository.port.js';
+import { PrismaService } from '../../prisma/prisma.service';
+import type { ILevelingRepository } from '../../../../domain/leveling/ports/leveling.repository.port';
 import type {
   LevelProgress,
   XpEventRecord,
-} from '../../../../domain/leveling/entities/level-progress.entity.js';
-import { LevelProgressMapper } from '../../../../application/user/leveling/mappers/level-progress.mapper.js';
+} from '../../../../domain/leveling/entities/level-progress.entity';
+import { LevelProgressMapper } from '../../../../application/user/leveling/mappers/level-progress.mapper';
 
 /**
  * Prisma implementation of ILevelingRepository.

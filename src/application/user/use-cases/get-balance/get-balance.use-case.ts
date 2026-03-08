@@ -1,17 +1,17 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { Money } from '../../../../domain/shared/value-objects/money.vo.js';
-import type { IBalanceRepository } from '../../../../domain/user/ports/balance.repository.port.js';
-import type { IBalanceCachePort } from '../../ports/balance-cache.port.js';
-import type { GetBalanceCommand } from '../../dto/get-balance.command.js';
-import type { GetBalanceOutputDto } from '../../dto/get-balance.output-dto.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { Money } from '../../../../domain/shared/value-objects/money.vo';
+import type { IBalanceRepository } from '../../../../domain/user/ports/balance.repository.port';
+import type { IBalanceCachePort } from '../../ports/balance-cache.port';
+import type { GetBalanceCommand } from '../../dto/get-balance.command';
+import type { GetBalanceOutputDto } from '../../dto/get-balance.output-dto';
 import {
   UserNotFoundError,
   BalanceFetchError,
   type UserError,
-} from '../../../../domain/user/errors/user.errors.js';
-import { BALANCE_REPOSITORY, BALANCE_CACHE_PORT } from '../../tokens/user.tokens.js';
+} from '../../../../domain/user/errors/user.errors';
+import { BALANCE_REPOSITORY, BALANCE_CACHE_PORT } from '../../tokens/user.tokens';
 
 /**
  * How long (seconds) the read-through cache entry lives.

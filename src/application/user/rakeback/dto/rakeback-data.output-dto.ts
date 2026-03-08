@@ -1,4 +1,4 @@
-import type { RakebackTypeInfo } from '../../../../domain/rakeback/entities/rakeback.entity.js';
+import type { RakebackTypeInfo } from '../../../../domain/rakeback/entities/rakeback.entity';
 
 export interface RakebackDataOutputDto {
   daily: RakebackTypeInfo;

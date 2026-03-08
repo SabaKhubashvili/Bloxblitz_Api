@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { DomainError } from '../../domain/shared/errors/domain.error.js';
+import { DomainError } from '../../domain/shared/errors/domain.error';
 
 // ── Mines errors ─────────────────────────────────────────────────────────────
 import {
@@ -21,13 +21,13 @@ import {
   InsufficientBalanceError,
   MinesHistoryFetchError,
   MinesRoundNotFoundError,
-} from '../../domain/game/mines/errors/mines.errors.js';
+} from '../../domain/game/mines/errors/mines.errors';
 
 // ── User errors ───────────────────────────────────────────────────────────────
 import {
   UserNotFoundError,
   BalanceFetchError,
-} from '../../domain/user/errors/user.errors.js';
+} from '../../domain/user/errors/user.errors';
 
 // ── Leveling errors ───────────────────────────────────────────────────────────
 import {
@@ -35,7 +35,7 @@ import {
   InvalidXpAmountError,
   InvalidLevelError,
   LevelingPersistenceError,
-} from '../../domain/leveling/errors/leveling.errors.js';
+} from '../../domain/leveling/errors/leveling.errors';
 
 // ── Rakeback errors ──────────────────────────────────────────────────────────
 import {
@@ -46,7 +46,16 @@ import {
   ZeroRakebackBalanceError,
   RakebackClaimInProgressError,
   RakebackAccumulationError,
-} from '../../domain/rakeback/errors/rakeback.errors.js';
+} from '../../domain/rakeback/errors/rakeback.errors';
+
+// ── Kinguin errors ───────────────────────────────────────────────────────
+import {
+  KinguinCodeNotFoundError,
+  KinguinCodeAlreadyRedeemedError,
+  KinguinCodeExpiredError,
+  KinguinCodeDisabledError,
+  KinguinCodeRedemptionInProgressError,
+} from '../../domain/kinguin/errors/kinguin.errors';
 
 /**
  * Global domain-exception filter.
@@ -122,6 +131,13 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof RakebackAlreadyClaimedError)  return HttpStatus.CONFLICT;
     if (error instanceof RakebackClaimInProgressError) return HttpStatus.CONFLICT;
     if (error instanceof RakebackAccumulationError)    return HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // ── Kinguin errors ─────────────────────────────────────────────────────
+    if (error instanceof KinguinCodeNotFoundError)           return HttpStatus.NOT_FOUND;
+    if (error instanceof KinguinCodeAlreadyRedeemedError)   return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeExpiredError)           return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeDisabledError)          return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeRedemptionInProgressError) return HttpStatus.CONFLICT;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

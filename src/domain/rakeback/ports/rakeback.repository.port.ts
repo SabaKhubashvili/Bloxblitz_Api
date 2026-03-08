@@ -1,5 +1,5 @@
-import type { Rakeback } from '../entities/rakeback.entity.js';
-import type { RakebackType } from '../enums/rakeback-type.enum.js';
+import type { Rakeback } from '../entities/rakeback.entity';
+import type { RakebackType } from '../enums/rakeback-type.enum';
 
 export interface ClaimLogData {
   type: RakebackType;

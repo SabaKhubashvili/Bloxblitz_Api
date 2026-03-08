@@ -1,4 +1,4 @@
-import { Tier } from '../enums/tier.enum.js';
+import { Tier } from '../enums/tier.enum';
 
 interface TierEntry {
   readonly min: number;

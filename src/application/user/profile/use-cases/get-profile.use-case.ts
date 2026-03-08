@@ -1,16 +1,16 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { IProfileRepository } from '../../../../domain/user/ports/profile.repository.port.js';
-import type { IProfileCachePort } from '../ports/profile-cache.port.js';
-import type { GetProfileQuery } from '../dto/get-profile.query.js';
-import type { ProfileOutputDto } from '../dto/profile.output-dto.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { IProfileRepository } from '../../../../domain/user/ports/profile.repository.port';
+import type { IProfileCachePort } from '../ports/profile-cache.port';
+import type { GetProfileQuery } from '../dto/get-profile.query';
+import type { ProfileOutputDto } from '../dto/profile.output-dto';
 import {
   UserNotFoundError,
   type UserError,
-} from '../../../../domain/user/errors/user.errors.js';
-import { PROFILE_REPOSITORY, PROFILE_CACHE_PORT } from '../tokens/profile.tokens.js';
-import { XpCalculationDomainService } from '../../../../domain/leveling/services/xp-calculation.domain-service.js';
+} from '../../../../domain/user/errors/user.errors';
+import { PROFILE_REPOSITORY, PROFILE_CACHE_PORT } from '../tokens/profile.tokens';
+import { XpCalculationDomainService } from '../../../../domain/leveling/services/xp-calculation.domain-service';
 
 const CACHE_TTL_SECONDS = 60;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { IRakebackBalancePort } from '../../../application/user/rakeback/ports/rakeback-balance.port.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { IRakebackBalancePort } from '../../../application/user/rakeback/ports/rakeback-balance.port';
 
 /**
  * Balance is stored as JSON `{"b": <balance>, "p": <petValueBalance>}` in Redis.

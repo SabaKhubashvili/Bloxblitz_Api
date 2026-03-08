@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
+import { RedisService } from '../redis.service';
 import {
   IMinesCachePort,
   AtomicRevealResult,
   RawGameState,
-} from '../../../application/game/mines/ports/mines-cache.port.js';
-import { RedisKeys } from '../redis.keys.js';
+} from '../../../application/game/mines/ports/mines-cache.port';
+import { RedisKeys } from '../redis.keys';
 
 const activeGameKey = RedisKeys.mines.activeGame;
 const gameKey = (gameId: string) => RedisKeys.mines.game(gameId);

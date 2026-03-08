@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { IRakebackCachePort, RakebackSnapshot } from '../../../application/user/rakeback/ports/rakeback-cache.port.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { IRakebackCachePort, RakebackSnapshot } from '../../../application/user/rakeback/ports/rakeback-cache.port';
 
 const LOCK_PREFIX = 'lock:rakeback:claim:';
 

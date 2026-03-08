@@ -1,4 +1,4 @@
-import type { ProfileOutputDto } from '../dto/profile.output-dto.js';
+import type { ProfileOutputDto } from '../dto/profile.output-dto';
 
 export interface IProfileCachePort {
   get(username: string): Promise<ProfileOutputDto | null>;

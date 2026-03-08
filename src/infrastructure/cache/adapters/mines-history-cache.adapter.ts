@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { IMinesHistoryCachePort } from '../../../application/game/mines/ports/mines-history-cache.port.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { IMinesHistoryCachePort } from '../../../application/game/mines/ports/mines-history-cache.port';
 import type {
   MinesHistoryOutputDto,
   MinesHistoryItemOutputDto,
-} from '../../../application/game/mines/dto/mines-history.output-dto.js';
-import type { MinesHistorySortOrder } from '../../../domain/game/mines/ports/mines-history.repository.port.js';
+} from '../../../application/game/mines/dto/mines-history.output-dto';
+import type { MinesHistorySortOrder } from '../../../domain/game/mines/ports/mines-history.repository.port';
 
 /**
  * Redis-backed implementation of IMinesHistoryCachePort.

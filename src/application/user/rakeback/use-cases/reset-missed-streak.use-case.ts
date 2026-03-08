@@ -1,10 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok } from '../../../../domain/shared/types/result.type.js';
-import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum.js';
-import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
-import type { RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors.js';
-import { RAKEBACK_REPOSITORY } from '../tokens/rakeback.tokens.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok } from '../../../../domain/shared/types/result.type';
+import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
+import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type { RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors';
+import { RAKEBACK_REPOSITORY } from '../tokens/rakeback.tokens';
 
 /**
  * Standalone use-case that resets streaks for a given type.

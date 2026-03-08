@@ -11,19 +11,19 @@ import {
   UseFilters,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard.js';
-import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../../../../shared/guards/roles.guard.js';
-import { Roles } from '../../../../shared/decorators/roles.decorator.js';
-import { UserRole } from '../../../../shared/enums/user-role.enum.js';
-import { CurrentUser } from '../../../../shared/decorators/current-user.decorator.js';
-import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter.js';
-import { GetUserLevelUseCase } from '../../../../application/user/leveling/use-cases/get-user-level.use-case.js';
-import { AddExperienceUseCase } from '../../../../application/user/leveling/use-cases/add-experience.use-case.js';
-import { SetUserLevelUseCase } from '../../../../application/user/leveling/use-cases/set-user-level.use-case.js';
-import { GetTierByLevelUseCase } from '../../../../application/user/leveling/use-cases/get-tier-by-level.use-case.js';
-import { AddExperienceHttpDto } from './dto/add-experience.http-dto.js';
-import { SetUserLevelHttpDto } from './dto/set-user-level.http-dto.js';
+import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { UserRole } from '../../../../shared/enums/user-role.enum';
+import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
+import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';
+import { GetUserLevelUseCase } from '../../../../application/user/leveling/use-cases/get-user-level.use-case';
+import { AddExperienceUseCase } from '../../../../application/user/leveling/use-cases/add-experience.use-case';
+import { SetUserLevelUseCase } from '../../../../application/user/leveling/use-cases/set-user-level.use-case';
+import { GetTierByLevelUseCase } from '../../../../application/user/leveling/use-cases/get-tier-by-level.use-case';
+import { AddExperienceHttpDto } from './dto/add-experience.http-dto';
+import { SetUserLevelHttpDto } from './dto/set-user-level.http-dto';
 
 /**
  * Leveling HTTP controller.

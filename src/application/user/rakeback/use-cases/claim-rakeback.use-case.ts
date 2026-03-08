@@ -1,23 +1,23 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface.js';
-import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
-import type { IRakebackCachePort } from '../ports/rakeback-cache.port.js';
-import type { IRakebackBalancePort } from '../ports/rakeback-balance.port.js';
-import type { ClaimRakebackCommand } from '../dto/claim-rakeback.command.js';
-import type { ClaimResultOutputDto } from '../dto/rakeback-data.output-dto.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface';
+import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type { IRakebackCachePort } from '../ports/rakeback-cache.port';
+import type { IRakebackBalancePort } from '../ports/rakeback-balance.port';
+import type { ClaimRakebackCommand } from '../dto/claim-rakeback.command';
+import type { ClaimResultOutputDto } from '../dto/rakeback-data.output-dto';
 import {
   RakebackNotFoundError,
   RakebackClaimInProgressError,
   type RakebackError,
-} from '../../../../domain/rakeback/errors/rakeback.errors.js';
+} from '../../../../domain/rakeback/errors/rakeback.errors';
 import {
   RAKEBACK_REPOSITORY,
   RAKEBACK_CACHE_PORT,
   RAKEBACK_BALANCE_PORT,
   TIME_PROVIDER,
-} from '../tokens/rakeback.tokens.js';
+} from '../tokens/rakeback.tokens';
 
 const CLAIM_LOCK_TTL_MS = 5_000;
 

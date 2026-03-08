@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { LevelVO } from '../../../../domain/leveling/value-objects/level.vo.js';
-import { InvalidLevelError, LevelingError } from '../../../../domain/leveling/errors/leveling.errors.js';
-import { LevelProgressMapper } from '../mappers/level-progress.mapper.js';
-import type { GetTierByLevelQuery } from '../dto/get-tier-by-level.query.js';
-import type { TierInfoOutputDto } from '../dto/tier-info.output-dto.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { LevelVO } from '../../../../domain/leveling/value-objects/level.vo';
+import { InvalidLevelError, LevelingError } from '../../../../domain/leveling/errors/leveling.errors';
+import { LevelProgressMapper } from '../mappers/level-progress.mapper';
+import type { GetTierByLevelQuery } from '../dto/get-tier-by-level.query';
+import type { TierInfoOutputDto } from '../dto/tier-info.output-dto';
 
 /**
  * Pure, read-only, infrastructure-free use-case.

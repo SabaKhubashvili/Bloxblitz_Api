@@ -1,4 +1,4 @@
-import type { LevelProgress } from '../../../../domain/leveling/entities/level-progress.entity.js';
+import type { LevelProgress } from '../../../../domain/leveling/entities/level-progress.entity';
 
 export interface ILevelingCachePort {
   getUserLevel(username: string): Promise<LevelProgress | null>;

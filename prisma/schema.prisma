@@ -60,6 +60,9 @@ model User {
   crashBetHistory CrashBet[]        @relation("CrashBets")
   minesBetHistory MinesBetHistory[]
 
+  dailySpinHistory DailySpinHistory[] @relation("DailySpinHistory")
+  dailySpinState   DailySpinState?    @relation("DailySpinState")
+
   @@index([username, rblx_id])
   @@index([totalXP(sort: Desc)])
   @@index([currentLevel(sort: Desc)])
@@ -819,10 +822,17 @@ model TransactionHistory {
 
   createdAt DateTime @default(now())
 
+  // Single-column indexes retained for lookups by those fields alone
   @@index([userUsername])
   @@index([category])
   @@index([referenceId])
   @@index([createdAt])
+  // Composite index: covers the common paginated history query
+  // WHERE userUsername = ? ORDER BY createdAt DESC
+  @@index([userUsername, createdAt(sort: Desc)])
+  // Composite indexes for filtered queries
+  @@index([userUsername, category])
+  @@index([userUsername, direction])
 }
 
 enum PaymentProviders {
@@ -945,4 +955,36 @@ enum UserRoles {
 enum BotTradeStatus {
   NONE
   WITHDRAW_ACCEPTED
+}
+
+// ─── Daily Spin ───────────────────────────────────────────────────────────────
+
+model DailySpinHistory {
+  id           String   @id @default(uuid())
+  userUsername String
+  prizeTier    Int
+  prizeAmount  Decimal  @db.Decimal(12, 2)
+  prizeLabel   String
+  createdAt    DateTime @default(now())
+
+  user User @relation("DailySpinHistory", fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@index([userUsername])
+  @@index([createdAt(sort: Desc)])
+  @@index([userUsername, createdAt(sort: Desc)])
+}
+
+model DailySpinState {
+  id           String   @id @default(uuid())
+  userUsername String   @unique
+  lastSpinAt   DateTime
+  nextSpinAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation("DailySpinState", fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@index([userUsername])
+  @@index([nextSpinAt])
 }

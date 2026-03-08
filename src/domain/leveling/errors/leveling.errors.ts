@@ -1,4 +1,4 @@
-import { DomainError } from '../../shared/errors/domain.error.js';
+import { DomainError } from '../../shared/errors/domain.error';
 
 export abstract class LevelingError extends DomainError {}
 

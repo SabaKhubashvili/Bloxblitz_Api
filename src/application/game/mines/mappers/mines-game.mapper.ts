@@ -1,9 +1,9 @@
-import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity.js';
+import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity';
 import {
   MinesGameOutputDto,
   RevealTileOutputDto,
   CashoutOutputDto,
-} from '../dto/mines-game.output-dto.js';
+} from '../dto/mines-game.output-dto';
 
 export class MinesGameMapper {
   static toOutputDto(game: MinesGame): MinesGameOutputDto {

@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   IBetEventPublisherPort,
   BetPlacedEvent,
-} from '../../../application/game/mines/ports/bet-event-publisher.port.js';
-import { RedisService } from '../../cache/redis.service.js';
-import { RedisKeys } from '../../cache/redis.keys.js';
+} from '../../../application/game/mines/ports/bet-event-publisher.port';
+import { RedisService } from '../../cache/redis.service';
+import { RedisKeys } from '../../cache/redis.keys';
 
 const BET_PLACED_CHANNEL = 'events:bet:placed';
 

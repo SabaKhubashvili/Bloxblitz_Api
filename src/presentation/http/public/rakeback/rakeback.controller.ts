@@ -8,13 +8,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard.js';
-import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../../../../shared/decorators/current-user.decorator.js';
-import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter.js';
-import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum.js';
-import { GetRakebackDataUseCase } from '../../../../application/user/rakeback/use-cases/get-rakeback-data.use-case.js';
-import { ClaimRakebackUseCase } from '../../../../application/user/rakeback/use-cases/claim-rakeback.use-case.js';
+import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
+import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';
+import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
+import { GetRakebackDataUseCase } from '../../../../application/user/rakeback/use-cases/get-rakeback-data.use-case';
+import { ClaimRakebackUseCase } from '../../../../application/user/rakeback/use-cases/claim-rakeback.use-case';
 
 @Controller('rakeback')
 @UseGuards(JwtAuthGuard)

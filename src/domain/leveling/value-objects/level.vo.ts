@@ -1,9 +1,9 @@
-import { Tier } from '../enums/tier.enum.js';
+import { Tier } from '../enums/tier.enum';
 import {
   resolveLevelName,
   resolveTier,
   resolveTierNumber,
-} from '../mappers/level-to-level-name.mapper.js';
+} from '../mappers/level-to-level-name.mapper';
 
 /**
  * Immutable value-object for a player level in the range [0, 100].

@@ -1,14 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port.js';
-import type { MinesGameOutputDto } from '../dto/mines-game.output-dto.js';
-import { MINES_GAME_REPOSITORY } from '../tokens/mines.tokens.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port';
+import type { MinesGameOutputDto } from '../dto/mines-game.output-dto';
+import { MINES_GAME_REPOSITORY } from '../tokens/mines.tokens';
 import {
   GameNotFoundError,
   MinesError,
-} from '../../../../domain/game/mines/errors/mines.errors.js';
-import { MinesGameMapper } from '../mappers/mines-game.mapper.js';
+} from '../../../../domain/game/mines/errors/mines.errors';
+import { MinesGameMapper } from '../mappers/mines-game.mapper';
 
 export interface GetActiveMinesGameQuery {
   username: string;

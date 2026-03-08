@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { RakebackType } from '../../domain/rakeback/enums/rakeback-type.enum.js';
-import { OpenClaimWindowUseCase } from '../../application/user/rakeback/use-cases/open-claim-window.use-case.js';
-import { CloseClaimWindowUseCase } from '../../application/user/rakeback/use-cases/close-claim-window.use-case.js';
+import { RakebackType } from '../../domain/rakeback/enums/rakeback-type.enum';
+import { OpenClaimWindowUseCase } from '../../application/user/rakeback/use-cases/open-claim-window.use-case';
+import { CloseClaimWindowUseCase } from '../../application/user/rakeback/use-cases/close-claim-window.use-case';
 
 /**
  * Cron-driven scheduler for weekly and monthly rakeback windows.

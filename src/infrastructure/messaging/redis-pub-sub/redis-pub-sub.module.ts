@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BetEventPublisher } from './bet-event.publisher.js';
+import { BetEventPublisher } from './bet-event.publisher';
 
 @Module({
   providers: [BetEventPublisher],

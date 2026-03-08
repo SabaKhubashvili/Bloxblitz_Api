@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { IBalanceCachePort } from '../../../application/user/ports/balance-cache.port.js';
-import type { UserBalanceRecord } from '../../../domain/user/ports/balance.repository.port.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { IBalanceCachePort } from '../../../application/user/ports/balance-cache.port';
+import type { UserBalanceRecord } from '../../../domain/user/ports/balance.repository.port';
 
 /**
  * Stores and retrieves the balance API response snapshot using Redis.

@@ -149,6 +149,12 @@ export const RedisKeys = {
       rakebackWagers: () => `queue:rakeback:wagers`,
     },
 
+    /* ─────────────── DAILY SPIN ─────────────── */
+    dailySpin: {
+      status: (username: string) => `daily-spin:status:${username}`,
+      lock:   (username: string) => `daily-spin:lock:${username}`,
+    },
+
     /* ─────────────── LEVELING ─────────────── */
     leveling: {
       userInfo: (username: string) => `leveling:userInfo:${username}`,

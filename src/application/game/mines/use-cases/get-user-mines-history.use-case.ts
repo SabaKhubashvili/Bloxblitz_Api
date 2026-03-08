@@ -1,22 +1,22 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import type { IMinesHistoryRepository } from '../../../../domain/game/mines/ports/mines-history.repository.port.js';
-import type { IMinesHistoryCachePort } from '../ports/mines-history-cache.port.js';
-import type { GetMinesHistoryQuery } from '../dto/get-mines-history.query.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import type { IMinesHistoryRepository } from '../../../../domain/game/mines/ports/mines-history.repository.port';
+import type { IMinesHistoryCachePort } from '../ports/mines-history-cache.port';
+import type { GetMinesHistoryQuery } from '../dto/get-mines-history.query';
 import type {
   MinesHistoryOutputDto,
   MinesHistoryItemOutputDto,
-} from '../dto/mines-history.output-dto.js';
-import type { MinesHistoryRecord } from '../../../../domain/game/mines/ports/mines-history.repository.port.js';
+} from '../dto/mines-history.output-dto';
+import type { MinesHistoryRecord } from '../../../../domain/game/mines/ports/mines-history.repository.port';
 import {
   MinesHistoryFetchError,
   type MinesError,
-} from '../../../../domain/game/mines/errors/mines.errors.js';
+} from '../../../../domain/game/mines/errors/mines.errors';
 import {
   MINES_HISTORY_REPOSITORY,
   MINES_HISTORY_CACHE_PORT,
-} from '../tokens/mines.tokens.js';
+} from '../tokens/mines.tokens';
 
 /** Cache TTL for paginated history pages (seconds). */
 const HISTORY_PAGE_TTL = 120;

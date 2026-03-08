@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { PrismaService } from '../../prisma/prisma.service';
 import type {
   IProfileRepository,
   UserProfileRecord,
-} from '../../../../domain/user/ports/profile.repository.port.js';
+} from '../../../../domain/user/ports/profile.repository.port';
 
 @Injectable()
 export class PrismaProfileRepository implements IProfileRepository {
@@ -50,6 +50,20 @@ export class PrismaProfileRepository implements IProfileRepository {
       statistics: user.statistics,
       settings: user.settings,
     };
+  }
+
+  async updatePrivateProfile(
+    username: string,
+    privateProfile: boolean,
+  ): Promise<{ privateProfile: boolean }> {
+    const result = await this.prisma.userSettings.upsert({
+      where: { userUsername: username },
+      update: { privateProfile },
+      create: { userUsername: username, privateProfile },
+      select: { privateProfile: true },
+    });
+
+    return { privateProfile: result.privateProfile };
   }
 
   async sumWagerSince(username: string, since: Date): Promise<number> {

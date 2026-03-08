@@ -5,9 +5,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
-import { UserRole } from '../enums/user-role.enum.js';
-import type { JwtPayload } from './jwt-auth.guard.js';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+import { UserRole } from '../enums/user-role.enum';
+import type { JwtPayload } from './jwt-auth.guard';
 
 /**
  * Enforces role-based access control.

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { RedisService } from '../cache/redis.service.js';
-import { PrismaService } from '../persistance/prisma/prisma.service.js';
-import { RedisKeys } from '../cache/redis.keys.js';
+import { RedisService } from '../cache/redis.service';
+import { PrismaService } from '../persistance/prisma/prisma.service';
+import { RedisKeys } from '../cache/redis.keys';
 
 const DIRTY_SET_KEY = 'user:balance:dirty';
 const SYNC_INTERVAL_MS = 1000;

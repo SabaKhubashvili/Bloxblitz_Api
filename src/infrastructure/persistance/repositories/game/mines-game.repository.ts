@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port.js';
-import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity.js';
-import { GameStatus } from '../../../../domain/game/mines/value-objects/game-status.vo.js';
-import { MineMask } from '../../../../domain/game/mines/value-objects/mine-mask.vo.js';
-import { Money } from '../../../../domain/shared/value-objects/money.vo.js';
-import { RedisService } from '../../../cache/redis.service.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { RedisKeys } from '../../../cache/redis.keys.js';
+import { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port';
+import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity';
+import { GameStatus } from '../../../../domain/game/mines/value-objects/game-status.vo';
+import { MineMask } from '../../../../domain/game/mines/value-objects/mine-mask.vo';
+import { Money } from '../../../../domain/shared/value-objects/money.vo';
+import { RedisService } from '../../../cache/redis.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RedisKeys } from '../../../cache/redis.keys';
 import { GameStatus as PrismaGameStatus, GameType } from '@prisma/client';
 
 const activeGameKey = RedisKeys.mines.activeGame;

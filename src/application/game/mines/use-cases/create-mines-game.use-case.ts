@@ -1,28 +1,28 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { Money } from '../../../../domain/shared/value-objects/money.vo.js';
-import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity.js';
-import { MinesFairnessDomainService } from '../../../../domain/game/mines/services/mines-fairness.domain-service.js';
-import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port.js';
-import type { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port.js';
-import type { CreateMinesGameCommand } from '../dto/create-mines-game.command.js';
-import type { MinesGameOutputDto } from '../dto/mines-game.output-dto.js';
-import type { IMinesBalanceLedgerPort } from '../ports/mines-balance-ledger.port.js';
-import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { Money } from '../../../../domain/shared/value-objects/money.vo';
+import { MinesGame } from '../../../../domain/game/mines/entities/mines-game.entity';
+import { MinesFairnessDomainService } from '../../../../domain/game/mines/services/mines-fairness.domain-service';
+import type { IMinesGameRepository } from '../../../../domain/game/mines/ports/mines-game.repository.port';
+import type { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port';
+import type { CreateMinesGameCommand } from '../dto/create-mines-game.command';
+import type { MinesGameOutputDto } from '../dto/mines-game.output-dto';
+import type { IMinesBalanceLedgerPort } from '../ports/mines-balance-ledger.port';
+import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 import {
   MINES_GAME_REPOSITORY,
   MINES_BALANCE_LEDGER,
   BET_EVENT_PUBLISHER,
   USER_SEED_REPOSITORY,
-} from '../tokens/mines.tokens.js';
+} from '../tokens/mines.tokens';
 import {
   InsufficientBalanceError,
   UserSeedNotFoundError,
   ActiveGameExistsError,
   MinesError,
-} from '../../../../domain/game/mines/errors/mines.errors.js';
-import { MinesGameMapper } from '../mappers/mines-game.mapper.js';
+} from '../../../../domain/game/mines/errors/mines.errors';
+import { MinesGameMapper } from '../mappers/mines-game.mapper';
 
 @Injectable()
 export class CreateMinesGameUseCase

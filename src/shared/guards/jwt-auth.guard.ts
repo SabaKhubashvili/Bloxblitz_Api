@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { UserRole, isValidUserRole } from '../enums/user-role.enum.js';
+import { UserRole, isValidUserRole } from '../enums/user-role.enum';
 
 export interface JwtPayload {
   sub: string;

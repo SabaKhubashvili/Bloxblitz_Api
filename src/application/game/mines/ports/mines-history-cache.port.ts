@@ -1,5 +1,5 @@
-import type { MinesHistoryOutputDto, MinesHistoryItemOutputDto } from '../dto/mines-history.output-dto.js';
-import type { MinesHistorySortOrder } from '../../../../domain/game/mines/ports/mines-history.repository.port.js';
+import type { MinesHistoryOutputDto, MinesHistoryItemOutputDto } from '../dto/mines-history.output-dto';
+import type { MinesHistorySortOrder } from '../../../../domain/game/mines/ports/mines-history.repository.port';
 
 /**
  * Short-lived read cache for the mines history endpoints.

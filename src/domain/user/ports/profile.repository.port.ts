@@ -22,4 +22,8 @@ export interface UserProfileRecord {
 export interface IProfileRepository {
   findByUsername(username: string): Promise<UserProfileRecord | null>;
   sumWagerSince(username: string, since: Date): Promise<number>;
+  updatePrivateProfile(
+    username: string,
+    privateProfile: boolean,
+  ): Promise<{ privateProfile: boolean }>;
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHmac } from 'crypto';
-import { MineMask } from '../value-objects/mine-mask.vo.js';
+import { MineMask } from '../value-objects/mine-mask.vo';
 
 /**
  * Provably fair mine generation using HMAC-SHA256.

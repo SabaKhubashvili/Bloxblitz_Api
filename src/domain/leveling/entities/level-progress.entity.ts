@@ -1,10 +1,10 @@
-import { Result, Ok, Err } from '../../shared/types/result.type.js';
-import { LevelVO } from '../value-objects/level.vo.js';
-import { XpAmount } from '../value-objects/xp-amount.vo.js';
-import { XpCalculationDomainService } from '../services/xp-calculation.domain-service.js';
-import { InvalidXpAmountError, InvalidLevelError } from '../errors/leveling.errors.js';
-import { Tier } from '../enums/tier.enum.js';
-import type { XpSource } from '../enums/xp-source.enum.js';
+import { Result, Ok, Err } from '../../shared/types/result.type';
+import { LevelVO } from '../value-objects/level.vo';
+import { XpAmount } from '../value-objects/xp-amount.vo';
+import { XpCalculationDomainService } from '../services/xp-calculation.domain-service';
+import { InvalidXpAmountError, InvalidLevelError } from '../errors/leveling.errors';
+import { Tier } from '../enums/tier.enum';
+import type { XpSource } from '../enums/xp-source.enum';
 
 // ── Value types ────────────────────────────────────────────────────────────────
 

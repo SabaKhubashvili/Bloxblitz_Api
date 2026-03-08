@@ -1,14 +1,14 @@
-import { Result, Ok, Err } from '../../shared/types/result.type.js';
-import { RakebackType } from '../enums/rakeback-type.enum.js';
-import { ClaimWindowPolicy } from '../policies/claim-window.policy.js';
-import { DailyClaimPolicy } from '../policies/daily-claim.policy.js';
+import { Result, Ok, Err } from '../../shared/types/result.type';
+import { RakebackType } from '../enums/rakeback-type.enum';
+import { ClaimWindowPolicy } from '../policies/claim-window.policy';
+import { DailyClaimPolicy } from '../policies/daily-claim.policy';
 import {
   RakebackNotUnlockedError,
   RakebackWindowClosedError,
   RakebackAlreadyClaimedError,
   ZeroRakebackBalanceError,
   type RakebackError,
-} from '../errors/rakeback.errors.js';
+} from '../errors/rakeback.errors';
 
 // ── Result types ─────────────────────────────────────────────────────────────
 

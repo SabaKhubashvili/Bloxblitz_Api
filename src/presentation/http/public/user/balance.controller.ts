@@ -6,11 +6,11 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard.js';
-import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../../../../shared/decorators/current-user.decorator.js';
-import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter.js';
-import { GetBalanceUseCase } from '../../../../application/user/use-cases/get-balance/get-balance.use-case.js';
+import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
+import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';
+import { GetBalanceUseCase } from '../../../../application/user/use-cases/get-balance/get-balance.use-case';
 
 /**
  * Exposes a single authenticated endpoint: GET /user/balance

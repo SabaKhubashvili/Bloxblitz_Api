@@ -5,21 +5,21 @@ import { JwtModule } from '@nestjs/jwt';
 import {
   BALANCE_REPOSITORY,
   BALANCE_CACHE_PORT,
-} from '../../application/user/tokens/user.tokens.js';
+} from '../../application/user/tokens/user.tokens';
 
 // ── Application (use cases) ──────────────────────────────────────────────────
-import { GetBalanceUseCase } from '../../application/user/use-cases/get-balance/get-balance.use-case.js';
+import { GetBalanceUseCase } from '../../application/user/use-cases/get-balance/get-balance.use-case';
 
 // ── Infrastructure (port implementations) ───────────────────────────────────
-import { PrismaBalanceRepository } from '../../infrastructure/persistance/repositories/user/balance.repository.js';
-import { BalanceCacheAdapter } from '../../infrastructure/cache/adapters/balance-cache.adapter.js';
+import { PrismaBalanceRepository } from '../../infrastructure/persistance/repositories/user/balance.repository';
+import { BalanceCacheAdapter } from '../../infrastructure/cache/adapters/balance-cache.adapter';
 
 // ── Presentation ─────────────────────────────────────────────────────────────
-import { BalanceController } from '../../presentation/http/public/user/balance.controller.js';
+import { BalanceController } from '../../presentation/http/public/user/balance.controller';
 
 // ── Shared ───────────────────────────────────────────────────────────────────
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
-import { RolesGuard }   from '../../shared/guards/roles.guard.js';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard }   from '../../shared/guards/roles.guard';
 
 @Module({
   imports: [

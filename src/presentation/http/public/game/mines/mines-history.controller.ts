@@ -8,13 +8,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard.js';
-import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator.js';
-import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter.js';
-import { GetUserMinesHistoryUseCase } from '../../../../../application/game/mines/use-cases/get-user-mines-history.use-case.js';
-import { GetMinesRoundByIdUseCase } from '../../../../../application/game/mines/use-cases/get-mines-round-by-id.use-case.js';
-import { MinesHistoryQueryDto } from './dto/mines-history-query.dto.js';
+import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
+import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter';
+import { GetUserMinesHistoryUseCase } from '../../../../../application/game/mines/use-cases/get-user-mines-history.use-case';
+import { GetMinesRoundByIdUseCase } from '../../../../../application/game/mines/use-cases/get-mines-round-by-id.use-case';
+import { MinesHistoryQueryDto } from './dto/mines-history-query.dto';
 
 @Controller('games/mines/history')
 @UseGuards(JwtAuthGuard)

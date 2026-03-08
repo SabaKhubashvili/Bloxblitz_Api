@@ -1,4 +1,4 @@
-import type { LevelProgress, XpEventRecord } from '../entities/level-progress.entity.js';
+import type { LevelProgress, XpEventRecord } from '../entities/level-progress.entity';
 
 export interface ILevelingRepository {
   /** Returns null when the user has never had XP recorded. */

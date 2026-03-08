@@ -1,13 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUseCase } from '../../../shared/use-case.interface.js';
-import { Result, Ok, Err } from '../../../../domain/shared/types/result.type.js';
-import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum.js';
-import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface.js';
-import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
-import type { IRakebackCachePort } from '../ports/rakeback-cache.port.js';
-import type { RakebackDataOutputDto } from '../dto/rakeback-data.output-dto.js';
-import { RakebackNotFoundError, type RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors.js';
-import { RAKEBACK_REPOSITORY, RAKEBACK_CACHE_PORT, TIME_PROVIDER } from '../tokens/rakeback.tokens.js';
+import type { IUseCase } from '../../../shared/use-case.interface';
+import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
+import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
+import type { ITimeProvider } from '../../../../domain/rakeback/interfaces/time-provider.interface';
+import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type { IRakebackCachePort } from '../ports/rakeback-cache.port';
+import type { RakebackDataOutputDto } from '../dto/rakeback-data.output-dto';
+import { RakebackNotFoundError, type RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors';
+import { RAKEBACK_REPOSITORY, RAKEBACK_CACHE_PORT, TIME_PROVIDER } from '../tokens/rakeback.tokens';
 
 @Injectable()
 export class GetRakebackDataUseCase

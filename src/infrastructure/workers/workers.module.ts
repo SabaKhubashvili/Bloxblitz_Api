@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BalanceSyncWorker } from './balance-sync.worker.js';
+import { BalanceSyncWorker } from './balance-sync.worker';
 
 @Module({
   providers: [BalanceSyncWorker],

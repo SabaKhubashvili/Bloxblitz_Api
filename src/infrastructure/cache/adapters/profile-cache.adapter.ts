@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { IProfileCachePort } from '../../../application/user/profile/ports/profile-cache.port.js';
-import type { ProfileOutputDto } from '../../../application/user/profile/dto/profile.output-dto.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { IProfileCachePort } from '../../../application/user/profile/ports/profile-cache.port';
+import type { ProfileOutputDto } from '../../../application/user/profile/dto/profile.output-dto';
 
 @Injectable()
 export class ProfileCacheAdapter implements IProfileCachePort {

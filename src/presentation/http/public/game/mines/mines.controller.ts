@@ -9,16 +9,16 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { IsInt, IsNumber, Min, Max } from 'class-validator';
-import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard.js';
-import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator.js';
-import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter.js';
-import { CreateMinesGameUseCase } from '../../../../../application/game/mines/use-cases/create-mines-game.use-case.js';
-import { RevealTileUseCase } from '../../../../../application/game/mines/use-cases/reveal-tile.use-case.js';
-import { CashoutMinesGameUseCase } from '../../../../../application/game/mines/use-cases/cashout-mines-game.use-case.js';
-import { GetActiveMinesGameUseCase } from '../../../../../application/game/mines/use-cases/get-active-mines-game.use-case.js';
-import { CreateMinesHttpDto } from './dto/create-mines-game.dto.js';
-import { RevealTileHttpDto } from './dto/reveal-mines-tile.dto.js';
+import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
+import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter';
+import { CreateMinesGameUseCase } from '../../../../../application/game/mines/use-cases/create-mines-game.use-case';
+import { RevealTileUseCase } from '../../../../../application/game/mines/use-cases/reveal-tile.use-case';
+import { CashoutMinesGameUseCase } from '../../../../../application/game/mines/use-cases/cashout-mines-game.use-case';
+import { GetActiveMinesGameUseCase } from '../../../../../application/game/mines/use-cases/get-active-mines-game.use-case';
+import { CreateMinesHttpDto } from './dto/create-mines-game.dto';
+import { RevealTileHttpDto } from './dto/reveal-mines-tile.dto';
 
 
 

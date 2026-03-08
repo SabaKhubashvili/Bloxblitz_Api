@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { Rakeback, type RakebackProps } from '../../../../domain/rakeback/entities/rakeback.entity.js';
-import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum.js';
-import type { IRakebackRepository, ClaimLogData } from '../../../../domain/rakeback/ports/rakeback.repository.port.js';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Rakeback, type RakebackProps } from '../../../../domain/rakeback/entities/rakeback.entity';
+import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
+import type { IRakebackRepository, ClaimLogData } from '../../../../domain/rakeback/ports/rakeback.repository.port';
 
 type PrismaRakeback = Prisma.UserRakebackGetPayload<object>;
 

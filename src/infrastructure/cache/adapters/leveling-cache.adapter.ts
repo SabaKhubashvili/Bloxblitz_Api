@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../redis.service.js';
-import { RedisKeys } from '../redis.keys.js';
-import type { ILevelingCachePort } from '../../../application/user/leveling/ports/leveling-cache.port.js';
+import { RedisService } from '../redis.service';
+import { RedisKeys } from '../redis.keys';
+import type { ILevelingCachePort } from '../../../application/user/leveling/ports/leveling-cache.port';
 import {
   LevelProgressMapper,
   type CachedLevelData,
-} from '../../../application/user/leveling/mappers/level-progress.mapper.js';
-import type { LevelProgress } from '../../../domain/leveling/entities/level-progress.entity.js';
+} from '../../../application/user/leveling/mappers/level-progress.mapper';
+import type { LevelProgress } from '../../../domain/leveling/entities/level-progress.entity';
 
 const DEFAULT_TTL_SECONDS = 300; // 5 minutes
 

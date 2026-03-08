@@ -1,5 +1,5 @@
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
-import { XpSource } from '../../../../../domain/leveling/enums/xp-source.enum.js';
+import { XpSource } from '../../../../../domain/leveling/enums/xp-source.enum';
 
 export class AddExperienceHttpDto {
   @IsInt()

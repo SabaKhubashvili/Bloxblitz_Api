@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
 // ── Use cases ────────────────────────────────────────────────────────────────
-import { AccumulateRakebackUseCase }  from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case.js';
-import { GetRakebackDataUseCase }     from '../../application/user/rakeback/use-cases/get-rakeback-data.use-case.js';
-import { ClaimRakebackUseCase }       from '../../application/user/rakeback/use-cases/claim-rakeback.use-case.js';
-import { OpenClaimWindowUseCase }     from '../../application/user/rakeback/use-cases/open-claim-window.use-case.js';
-import { CloseClaimWindowUseCase }    from '../../application/user/rakeback/use-cases/close-claim-window.use-case.js';
-import { ResetMissedStreakUseCase }   from '../../application/user/rakeback/use-cases/reset-missed-streak.use-case.js';
+import { AccumulateRakebackUseCase }  from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case';
+import { GetRakebackDataUseCase }     from '../../application/user/rakeback/use-cases/get-rakeback-data.use-case';
+import { ClaimRakebackUseCase }       from '../../application/user/rakeback/use-cases/claim-rakeback.use-case';
+import { OpenClaimWindowUseCase }     from '../../application/user/rakeback/use-cases/open-claim-window.use-case';
+import { CloseClaimWindowUseCase }    from '../../application/user/rakeback/use-cases/close-claim-window.use-case';
+import { ResetMissedStreakUseCase }   from '../../application/user/rakeback/use-cases/reset-missed-streak.use-case';
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 import {
@@ -15,24 +15,24 @@ import {
   RAKEBACK_CACHE_PORT,
   RAKEBACK_BALANCE_PORT,
   TIME_PROVIDER,
-} from '../../application/user/rakeback/tokens/rakeback.tokens.js';
+} from '../../application/user/rakeback/tokens/rakeback.tokens';
 
 // ── Infrastructure ───────────────────────────────────────────────────────────
-import { PrismaRakebackRepository } from '../../infrastructure/persistance/repositories/user/rakeback.repository.js';
-import { RakebackCacheAdapter }     from '../../infrastructure/cache/adapters/rakeback-cache.adapter.js';
-import { RakebackBalanceAdapter }   from '../../infrastructure/cache/adapters/rakeback-balance.adapter.js';
-import { SystemTimeProvider }       from '../../infrastructure/time/system-time-provider.js';
+import { PrismaRakebackRepository } from '../../infrastructure/persistance/repositories/user/rakeback.repository';
+import { RakebackCacheAdapter }     from '../../infrastructure/cache/adapters/rakeback-cache.adapter';
+import { RakebackBalanceAdapter }   from '../../infrastructure/cache/adapters/rakeback-balance.adapter';
+import { SystemTimeProvider }       from '../../infrastructure/time/system-time-provider';
 
 // ── Workers ──────────────────────────────────────────────────────────────────
-import { RakebackAccumulationWorker } from '../../infrastructure/workers/rakeback-accumulation.worker.js';
-import { RakebackSchedulerWorker }    from '../../infrastructure/workers/rakeback-scheduler.worker.js';
+import { RakebackAccumulationWorker } from '../../infrastructure/workers/rakeback-accumulation.worker';
+import { RakebackSchedulerWorker }    from '../../infrastructure/workers/rakeback-scheduler.worker';
 
 // ── Presentation ─────────────────────────────────────────────────────────────
-import { RakebackController } from '../../presentation/http/public/rakeback/rakeback.controller.js';
+import { RakebackController } from '../../presentation/http/public/rakeback/rakeback.controller';
 
 // ── Guards ────────────────────────────────────────────────────────────────────
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard.js';
-import { RolesGuard }   from '../../shared/guards/roles.guard.js';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard }   from '../../shared/guards/roles.guard';
 
 @Module({
   imports: [
