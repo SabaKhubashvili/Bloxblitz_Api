@@ -20,13 +20,11 @@ import { ProfileController } from '../../presentation/http/public/user/profile.c
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { AuthModule } from '../auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
   ],
   controllers: [ProfileController],
   providers: [

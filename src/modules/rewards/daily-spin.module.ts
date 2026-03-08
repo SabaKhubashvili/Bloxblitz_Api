@@ -24,7 +24,8 @@ import { DailySpinController } from '../../presentation/http/public/user/rewards
 // ── Cross-module dependency ───────────────────────────────────────────────────
 // GetUserLevelUseCase is exported by LevelingModule and injected by the
 // SpinDailyWheelUseCase and GetDailySpinStatusUseCase.
-import { LevelingModule } from '../user/leveling.module';
+import { LevelingModule } from '../user/statistics/leveling.module';
+import { AuthModule } from '../auth.module';
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
@@ -32,10 +33,7 @@ import { RolesGuard }   from '../../shared/guards/roles.guard';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret:      process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
     // Provides GetUserLevelUseCase
     LevelingModule,
   ],

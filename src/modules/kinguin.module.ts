@@ -29,13 +29,11 @@ import { TransactionModule } from './user/transaction.module';
 import { JwtAuthGuard } from '../shared/guards/jwt-auth.guard';
 import { RedisModule } from '../infrastructure/cache/redis.module';
 import { PrismaModule } from '../infrastructure/persistance/prisma/prisma.module';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
     TransactionModule,
     RedisModule,
     PrismaModule,

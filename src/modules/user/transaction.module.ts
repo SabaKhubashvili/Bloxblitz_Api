@@ -17,13 +17,11 @@ import { TransactionController } from '../../presentation/http/public/user/trans
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { AuthModule } from '../auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret:      process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
   ],
   controllers: [TransactionController],
   providers: [

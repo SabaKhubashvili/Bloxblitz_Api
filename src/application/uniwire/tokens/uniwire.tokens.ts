@@ -1,0 +1,2 @@
+export const UNIWIRE_API_PORT = Symbol('UNIWIRE_API_PORT');
+export const UNIWIRE_REPOSITORY = Symbol('UNIWIRE_REPOSITORY');

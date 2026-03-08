@@ -33,13 +33,11 @@ import { RakebackController } from '../../presentation/http/public/rakeback/rake
 // ── Guards ────────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../shared/guards/roles.guard';
+import { AuthModule } from '../auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret:      process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
   ],
   controllers: [RakebackController],
   providers: [

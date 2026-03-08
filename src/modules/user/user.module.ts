@@ -20,33 +20,16 @@ import { BalanceController } from '../../presentation/http/public/user/balance.c
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../shared/guards/roles.guard';
+import { AuthModule } from '../auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
   ],
-  controllers: [BalanceController],
   providers: [
     // Guards
     JwtAuthGuard,
     RolesGuard,
-
-    // Use cases
-    GetBalanceUseCase,
-
-    // Port → Implementation bindings
-    // The use case depends on the Symbol tokens (interfaces).
-    // NestJS resolves them to these concrete classes at runtime.
-    { provide: BALANCE_REPOSITORY, useClass: PrismaBalanceRepository },
-    { provide: BALANCE_CACHE_PORT,  useClass: BalanceCacheAdapter },
-  ],
-  exports: [
-    // Export the use case so other modules (e.g., AdminModule)
-    // can reuse GetBalanceUseCase without re-declaring providers.
-    GetBalanceUseCase,
   ],
 })
 export class UserModule {}

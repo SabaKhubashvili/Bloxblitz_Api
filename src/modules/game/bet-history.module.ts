@@ -16,13 +16,11 @@ import { BetHistoryController } from '../../presentation/http/public/game/bet-hi
 
 // Shared guards
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { AuthModule } from '../auth.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
-    }),
+    AuthModule,
   ],
   controllers: [BetHistoryController],
   providers: [

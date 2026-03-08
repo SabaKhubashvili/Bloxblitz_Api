@@ -57,6 +57,17 @@ import {
   KinguinCodeRedemptionInProgressError,
 } from '../../domain/kinguin/errors/kinguin.errors';
 
+import {
+  UniwireProfileNotFoundError,
+  UniwirePayoutNotFoundError,
+  UniwireTransactionNotFoundError,
+  UniwireAddressNotFoundError,
+  UniwirePayoutFailedError,
+  UniwireTransactionNotConfirmedError,
+  UniwireExchangeRateUnavailableError,
+  UniwireApiError,
+} from '../../domain/uniwire/errors/uniwire.errors';
+
 /**
  * Global domain-exception filter.
  *
@@ -138,6 +149,16 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof KinguinCodeExpiredError)           return HttpStatus.BAD_REQUEST;
     if (error instanceof KinguinCodeDisabledError)          return HttpStatus.BAD_REQUEST;
     if (error instanceof KinguinCodeRedemptionInProgressError) return HttpStatus.CONFLICT;
+
+    // ── Uniwire errors ─────────────────────────────────────────────────────
+    if (error instanceof UniwireProfileNotFoundError)     return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwirePayoutNotFoundError)       return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwireTransactionNotFoundError)  return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwireAddressNotFoundError)      return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwirePayoutFailedError)        return HttpStatus.BAD_REQUEST;
+    if (error instanceof UniwireTransactionNotConfirmedError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof UniwireExchangeRateUnavailableError) return HttpStatus.SERVICE_UNAVAILABLE;
+    if (error instanceof UniwireApiError)                  return HttpStatus.BAD_GATEWAY;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;
