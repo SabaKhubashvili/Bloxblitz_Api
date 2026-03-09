@@ -14,17 +14,16 @@ import { GetBalanceUseCase } from '../../application/user/use-cases/get-balance/
 import { PrismaBalanceRepository } from '../../infrastructure/persistance/repositories/user/balance.repository';
 import { BalanceCacheAdapter } from '../../infrastructure/cache/adapters/balance-cache.adapter';
 
-// ── Presentation ─────────────────────────────────────────────────────────────
-import { BalanceController } from '../../presentation/http/public/user/balance.controller';
-
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
     AuthModule,
+    WalletModule
   ],
   providers: [
     // Guards
