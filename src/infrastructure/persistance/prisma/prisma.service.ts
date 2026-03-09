@@ -10,6 +10,7 @@ import {
   import { makeRetryExtension } from './extensions/retryPrisma.extension';
   import * as fs from 'fs';
   
+  
   @Injectable()
   export class PrismaService
     extends PrismaClient
