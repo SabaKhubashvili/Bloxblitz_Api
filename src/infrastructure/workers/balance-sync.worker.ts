@@ -76,20 +76,21 @@ export class BalanceSyncWorker {
    */
   private async flushBalancesToDb(usernames: string[]): Promise<void> {
     const balanceKeys = usernames.map((u) => RedisKeys.user.balance.user(u));
-    const rawBalances = (await this.redis.mget(balanceKeys)) as { b?: number }[];
+    const rawBalances = (await this.redis.mget(balanceKeys)) as string[];
 
     const updates: Array<{ username: string; balance: number }> = [];
 
     for (let i = 0; i < usernames.length; i++) {
       const raw = rawBalances[i];
       if (raw === null || raw === undefined) continue;
-
+      this.logger.log(`Raw balance: ${JSON.stringify(raw)}`);
       let balance: number;
       try {
-        const parsed = JSON.parse(raw as string) as { b?: number };
-        balance = parsed.b ?? 0;
+        const parsed = JSON.parse(raw as string) as number;
+        balance = parsed ?? 0;
       } catch {
-        balance = 0;
+        const n = parseFloat(raw as string);
+        balance = isNaN(n) ? 0 : n;
       }
       if (isNaN(balance)) continue;
 

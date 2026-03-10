@@ -38,7 +38,7 @@ export class PrismaBalanceRepository implements IBalanceRepository {
     // ── Tier 1: game-engine live Redis keys ─────────────────────────────────
     const [rawBalance, rawPetValue] = await this.tryRedisRead(username);
 
-    if (rawBalance !== null) {
+    if (rawBalance !== null && rawPetValue !== null) {
       this.logger.debug(
         `[BalanceRepo] Redis hit for ${username}: balance=${rawBalance}`,
       );
@@ -61,12 +61,19 @@ export class PrismaBalanceRepository implements IBalanceRepository {
     if (!user) {
       return null;
     }
+    const petValue = await this.prisma.userInventoryAmp.aggregate({
+      where:{
+        userUsername: username,
+      },
+      _sum:{
+        value:true
+      }
+    })
 
     // Pet-value balance is Redis-only on the hot path.
     // If the key is absent (no inventory yet), we return 0 rather than running
     // a potentially expensive inventory aggregate query on every balance read.
-    const petValueBalance =
-      rawPetValue !== null ? this.parseDecimal(rawPetValue) : 0;
+    const petValueBalance = petValue._sum.value ? this.parseDecimal(petValue._sum.value.toString()) : 0;
 
     return {
       balance: user.balance.toNumber(),
@@ -86,7 +93,7 @@ export class PrismaBalanceRepository implements IBalanceRepository {
     try {
       const keys = [
         RedisKeys.user.balance.user(username),
-        RedisKeys.user.balance.value(username),
+        RedisKeys.user.balance.petValue(username),
       ];
       const [rawBalance, rawPetValue] = await this.redis.mget(keys);
       return [rawBalance ?? null, rawPetValue ?? null];

@@ -8,7 +8,7 @@ import {
 } from '../../application/user/tokens/user.tokens';
 
 // ── Application (use cases) ──────────────────────────────────────────────────
-import { GetBalanceUseCase } from '../../application/user/use-cases/get-balance/get-balance.use-case';
+import { GetBalanceUseCase } from '../../application/user/balance/use-cases/get-balance/get-balance.use-case';
 
 // ── Infrastructure (port implementations) ───────────────────────────────────
 import { PrismaBalanceRepository } from '../../infrastructure/persistance/repositories/user/balance.repository';

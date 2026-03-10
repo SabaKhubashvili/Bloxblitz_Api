@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { BALANCE_CACHE_PORT, BALANCE_REPOSITORY } from "src/application/user/tokens/user.tokens";
-import { GetBalanceUseCase } from "src/application/user/use-cases/get-balance/get-balance.use-case";
+import { GetBalanceUseCase } from "src/application/user/balance/use-cases/get-balance/get-balance.use-case";
 import { BalanceCacheAdapter } from "src/infrastructure/cache/adapters/balance-cache.adapter";
 import { PrismaBalanceRepository } from "src/infrastructure/persistance/repositories/user/balance.repository";
 import { AuthModule } from "src/modules/auth.module";

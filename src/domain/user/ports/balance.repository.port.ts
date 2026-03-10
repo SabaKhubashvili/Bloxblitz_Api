@@ -6,6 +6,10 @@ export interface UserBalanceRecord {
   /** Game (coin) balance — the primary spendable currency. */
   balance: number;
   /** Aggregate value of all available inventory items. */
+  petValueBalance?: number;
+}
+export interface UserPetValueBalanceRecord {
+  /** Aggregate value of all available inventory items. */
   petValueBalance: number;
 }
 

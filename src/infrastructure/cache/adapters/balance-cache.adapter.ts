@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis.service';
 import { RedisKeys } from '../redis.keys';
-import type { IBalanceCachePort } from '../../../application/user/ports/balance-cache.port';
-import type { UserBalanceRecord } from '../../../domain/user/ports/balance.repository.port';
+import type { IBalanceCachePort } from '../../../application/user/balance/ports/balance-cache.port';
+import type {
+  UserBalanceRecord,
+  UserPetValueBalanceRecord,
+} from '../../../domain/user/ports/balance.repository.port';
 
 /**
  * Stores and retrieves the balance API response snapshot using Redis.
@@ -28,9 +31,12 @@ export class BalanceCacheAdapter implements IBalanceCachePort {
       const raw = await this.redis.mainClient.get(key);
       if (!raw) return null;
 
-      const parsed = JSON.parse(raw) as { b: number; p: number };
-
-      if (typeof parsed.b !== 'number' || typeof parsed.p !== 'number') {
+      const parsed = JSON.parse(raw) as number
+      console.log(parsed);
+      
+      if (
+        typeof parsed !== 'number' || !Number.isFinite(parsed) || parsed < 0
+      ) {
         this.logger.warn(
           `[BalanceCache] Malformed cache entry for ${username}, evicting`,
         );
@@ -38,23 +44,75 @@ export class BalanceCacheAdapter implements IBalanceCachePort {
         return null;
       }
 
-      return { balance: parsed.b, petValueBalance: parsed.p };
+      return {
+        balance: parsed,
+      };
     } catch (err) {
       this.logger.warn(`[BalanceCache] get() failed for ${username}`, err);
+      return null;
+    }
+  }
+  async getPetValueBalance(
+    username: string,
+  ): Promise<UserPetValueBalanceRecord | null> {
+    try {
+      const key = RedisKeys.user.balance.petValue(username);
+      const raw = await this.redis.mainClient.get(key);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as number;
+
+      if (typeof parsed !== 'number' || !Number.isFinite(parsed) || parsed < 0) {
+        this.logger.warn(
+          `[BalanceCache] Malformed pet value cache for ${username}, evicting`,
+        );
+        void this.redis.del(key);
+        return null;
+      }
+
+      return {
+        petValueBalance: parsed,
+      };
+    } catch (err) {
+      this.logger.warn(
+        `[BalanceCache] getPetValueBalance() failed for ${username}`,
+        err,
+      );
       return null;
     }
   }
 
   async set(
     username: string,
-    data: UserBalanceRecord,
+    data: Partial<UserBalanceRecord> & Partial<UserPetValueBalanceRecord>,
     ttlSeconds?: number,
   ): Promise<void> {
+    const { balance, petValueBalance } = data;
+    const hasBalance =
+      typeof balance === 'number' && Number.isFinite(balance) && balance >= 0;
+    const hasPetValue =
+      typeof petValueBalance === 'number' &&
+      Number.isFinite(petValueBalance) &&
+      petValueBalance >= 0;
+
+    if (!hasBalance && !hasPetValue) return;
+
+    const setOptions =
+      ttlSeconds != null && ttlSeconds > 0 ? { EX: ttlSeconds } : undefined;
     const key = RedisKeys.user.balance.user(username);
-    const payload = JSON.stringify({ b: data.balance, p: data.petValueBalance });
+    const petValueKey = RedisKeys.user.balance.petValue(username);
 
     try {
-      await this.redis.mainClient.set(key, payload, { EX: ttlSeconds });
+      const pipeline = this.redis.mainClient.multi();
+
+      if (hasBalance) {
+        pipeline.set(key, balance, setOptions);
+      }
+      if (hasPetValue) {
+        pipeline.set(petValueKey, petValueBalance, setOptions);
+      }
+
+      await pipeline.exec();
     } catch (err) {
       this.logger.warn(`[BalanceCache] set() failed for ${username}`, err);
     }
@@ -66,7 +124,10 @@ export class BalanceCacheAdapter implements IBalanceCachePort {
     try {
       await this.redis.del(key);
     } catch (err) {
-      this.logger.warn(`[BalanceCache] invalidate() failed for ${username}`, err);
+      this.logger.warn(
+        `[BalanceCache] invalidate() failed for ${username}`,
+        err,
+      );
     }
   }
 }

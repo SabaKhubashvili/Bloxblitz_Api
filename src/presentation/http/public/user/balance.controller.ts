@@ -10,7 +10,7 @@ import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
 import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';
-import { GetBalanceUseCase } from '../../../../application/user/use-cases/get-balance/get-balance.use-case';
+import { GetBalanceUseCase } from '../../../../application/user/balance/use-cases/get-balance/get-balance.use-case';
 
 /**
  * Exposes a single authenticated endpoint: GET /user/balance
