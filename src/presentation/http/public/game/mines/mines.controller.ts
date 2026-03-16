@@ -8,7 +8,6 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { IsInt, IsNumber, Min, Max } from 'class-validator';
 import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
@@ -17,8 +16,10 @@ import { CreateMinesGameUseCase } from '../../../../../application/game/mines/us
 import { RevealTileUseCase } from '../../../../../application/game/mines/use-cases/reveal-tile.use-case';
 import { CashoutMinesGameUseCase } from '../../../../../application/game/mines/use-cases/cashout-mines-game.use-case';
 import { GetActiveMinesGameUseCase } from '../../../../../application/game/mines/use-cases/get-active-mines-game.use-case';
+import { VerifyMinesGameUseCase } from '../../../../../application/game/mines/use-cases/verify-mines-game.use-case';
 import { CreateMinesHttpDto } from './dto/create-mines-game.dto';
 import { RevealTileHttpDto } from './dto/reveal-mines-tile.dto';
+import { VerifyMinesGameHttpDto } from './dto/verify-mines-game.dto';
 
 
 
@@ -32,16 +33,15 @@ export class MinesController {
     private readonly revealTileUseCase: RevealTileUseCase,
     private readonly cashoutUseCase: CashoutMinesGameUseCase,
     private readonly getActiveGameUseCase: GetActiveMinesGameUseCase,
+    private readonly verifyMinesGameUseCase: VerifyMinesGameUseCase,
   ) {}
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateMinesHttpDto) {
-    console.log(dto);
-    
-    
     const result = await this.createGameUseCase.execute({
       username: user.username,
+      profilePicture: user.profilePicture,
       betAmount: dto.betAmount,
       mineCount: dto.mineCount,
       gridSize: dto.gridSize * dto.gridSize,
@@ -75,6 +75,21 @@ export class MinesController {
   @Get('active')
   async getActive(@CurrentUser() user: JwtPayload) {
     const result = await this.getActiveGameUseCase.execute({ username: user.username });
+
+    if (!result.ok) throw result.error;
+    return result.value;
+  }
+
+  @Post('verify')
+  @HttpCode(HttpStatus.OK)
+  async verify(@Body() dto: VerifyMinesGameHttpDto) {
+    const result = await this.verifyMinesGameUseCase.execute({
+      serverSeed: dto.serverSeed,
+      clientSeed: dto.clientSeed,
+      nonce: dto.nonce,
+      gridSize: dto.gridSize,
+      mines: dto.mines,
+    });
 
     if (!result.ok) throw result.error;
     return result.value;

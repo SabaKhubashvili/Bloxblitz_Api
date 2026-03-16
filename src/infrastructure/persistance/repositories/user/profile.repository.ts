@@ -28,6 +28,9 @@ export class PrismaProfileRepository implements IProfileRepository {
             totalProfit: true,
             totalLoss: true,
             totalWagered: true,
+            totalGamesWon:true,
+            biggestWin:true,
+            totalGamesPlayed:true,
           },
         },
         settings: {
@@ -35,6 +38,7 @@ export class PrismaProfileRepository implements IProfileRepository {
             privateProfile: true,
           },
         },
+        
       },
     });
 
@@ -64,6 +68,30 @@ export class PrismaProfileRepository implements IProfileRepository {
     });
 
     return { privateProfile: result.privateProfile };
+  }
+
+  async getLeaderboardRank(username: string): Promise<number> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { username },
+        select: { totalXP: true },
+      });
+
+      if (!user) return 0;
+
+      const usersAbove = await this.prisma.user.count({
+        where: { totalXP: { gt: user.totalXP } },
+      });
+      
+
+      return usersAbove + 1;
+    } catch (err) {
+      this.logger.warn(
+        `[ProfileRepo] getLeaderboardRank failed for ${username}`,
+        err,
+      );
+      return 0;
+    }
   }
 
   async sumWagerSince(username: string, since: Date): Promise<number> {

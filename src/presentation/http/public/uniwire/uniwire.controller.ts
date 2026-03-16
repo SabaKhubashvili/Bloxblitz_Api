@@ -7,6 +7,7 @@ import {
   UseFilters,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
@@ -20,6 +21,8 @@ import { GetDepositAddressUseCase } from '../../../../application/uniwire/use-ca
 import { CreateDepositInvoiceDto } from './dto/create-deposit-invoice.dto';
 import { CreatePayoutDto } from './dto/create-payout.dto';
 import { GetTransactionConfirmationsDto } from './dto/get-transaction-confirmations.dto';
+import { UniwireAddressNotFoundError } from 'src/domain/uniwire/errors/uniwire.errors';
+import { isSupportedCurrency } from 'src/domain/uniwire/services/uniwire-helpers.service';
 
 /**
  * Uniwire payment endpoints.
@@ -49,33 +52,24 @@ export class UniwireController {
     return result.value;
   }
 
-  @Get('deposit/address')
+  @Get('deposit/address/:currency')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getDepositAddress(@CurrentUser() user: JwtPayload) {
+  async getDepositAddress(@CurrentUser() user: JwtPayload, @Param('currency') currency: string) {
+    const currencyCode = currency.toUpperCase();
+    if (!isSupportedCurrency(currencyCode)) {
+      console.log('Currency not supported');
+      throw new UniwireAddressNotFoundError();
+    }
+    
     const result = await this.getDepositAddressUseCase.execute({
       username: user.username,
+      currency: currencyCode,
     });
     if (!result.ok) throw result.error;
     return result.value;
   }
 
-  @Post('deposit/invoice')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
-  async createDepositInvoice(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: CreateDepositInvoiceDto,
-  ) {
-    const result = await this.createDepositInvoiceUseCase.execute({
-      username: user.username,
-      currency: body.currency,
-      kind: body.kind,
-      passthrough: body.passthrough,
-    });
-    if (!result.ok) throw result.error;
-    return result.value;
-  }
 
   @Post('payout')
   @UseGuards(JwtAuthGuard)

@@ -80,6 +80,7 @@ export class CreateMinesGameUseCase
     const gameResult = MinesGame.create({
       id: gameId,
       username: cmd.username,
+      profilePicture: cmd.profilePicture,
       betAmount: new Money(cmd.betAmount),
       mineCount: cmd.mineCount,
       mineMask,
@@ -90,13 +91,6 @@ export class CreateMinesGameUseCase
     if (!gameResult.ok) return Err(gameResult.error);
 
     await this.minesRepo.save(gameResult.value);
-
-    void this.betPublisher.publishBetPlaced({
-      username: cmd.username,
-      betAmount: cmd.betAmount,
-      gameType: 'MINES',
-      gameId,
-    });
 
     return Ok(MinesGameMapper.toOutputDto(gameResult.value));
   }

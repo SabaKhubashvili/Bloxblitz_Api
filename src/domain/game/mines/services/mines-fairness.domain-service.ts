@@ -3,14 +3,19 @@ import { createHmac } from 'crypto';
 import { MineMask } from '../value-objects/mine-mask.vo';
 
 /**
- * Provably fair mine generation using HMAC-SHA256.
+ * Provably Fair Mines generation
  *
- * Each tile's position is determined by a seeded Fisher-Yates shuffle,
- * where the shuffle randomness is derived from HMAC(serverSeed:clientSeed:nonce, position).
- * This allows any party to independently verify the mine layout after the server seed is revealed.
+ * Algorithm:
+ * - HMAC-SHA256(serverSeed, clientSeed:nonce:cursor)
+ * - Extract 52 bits of entropy from hash
+ * - Use rejection sampling to remove modulo bias
+ * - Deterministic partial Fisher-Yates shuffle
+ *
+ * This allows any player to verify the mine layout after the server seed is revealed.
  */
 @Injectable()
 export class MinesFairnessDomainService {
+
   generateMineMask(
     serverSeed: string,
     clientSeed: string,
@@ -25,12 +30,12 @@ export class MinesFairnessDomainService {
       gridSize,
       mineCount,
     );
+
     return new MineMask(new Set(positions));
   }
 
   /**
-   * Verifies a completed game by reproducing the mine positions from public seed data.
-   * Called after the server seed is revealed at game end.
+   * Reproduces mine layout after server seed reveal.
    */
   verifyGame(
     serverSeed: string,
@@ -39,7 +44,13 @@ export class MinesFairnessDomainService {
     gridSize: number,
     mineCount: number,
   ): number[] {
-    return this.generateMinePositions(serverSeed, clientSeed, nonce, gridSize, mineCount);
+    return this.generateMinePositions(
+      serverSeed,
+      clientSeed,
+      nonce,
+      gridSize,
+      mineCount,
+    );
   }
 
   private generateMinePositions(
@@ -49,22 +60,66 @@ export class MinesFairnessDomainService {
     gridSize: number,
     mineCount: number,
   ): number[] {
-    const tiles = Array.from({ length: gridSize }, (_, i) => i);
-    const combinedSeed = `${serverSeed}:${clientSeed}:${nonce}`;
 
-    // Seeded Fisher-Yates shuffle — only shuffle until we have enough mines
+    const tiles = Array.from({ length: gridSize }, (_, i) => i);
+    let cursor = 0;
+
+    /**
+     * Partial Fisher-Yates shuffle
+     * Only shuffle last N tiles to place mines efficiently
+     */
     for (let i = gridSize - 1; i >= gridSize - mineCount; i--) {
-      const j = this.getRandomIndex(combinedSeed, i, i + 1);
+
+      const j = this.getRandomIndex(
+        serverSeed,
+        clientSeed,
+        nonce,
+        cursor,
+        i + 1,
+      );
+
+      cursor++;
+
       [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
     }
 
     return tiles.slice(gridSize - mineCount);
   }
 
-  private getRandomIndex(seed: string, position: number, max: number): number {
-    const hmac = createHmac('sha256', seed).update(String(position)).digest('hex');
-    // Take 4 bytes (32 bits) from the hash for sufficient entropy
-    const value = parseInt(hmac.slice(0, 8), 16);
-    return value % max;
+  /**
+   * Generates unbiased random index using rejection sampling
+   */
+  private getRandomIndex(
+    serverSeed: string,
+    clientSeed: string,
+    nonce: number,
+    cursor: number,
+    max: number,
+  ): number {
+
+    let round = 0;
+
+    while (true) {
+
+      const message = `${clientSeed}:${nonce}:${cursor}:${round}`;
+
+      const hash = createHmac('sha256', serverSeed)
+        .update(message)
+        .digest('hex');
+
+      /**
+       * Use 52 bits of entropy (casino standard)
+       */
+      const value = parseInt(hash.slice(0, 13), 16);
+
+      const maxRange = Math.pow(2, 52);
+      const limit = maxRange - (maxRange % max);
+
+      if (value < limit) {
+        return value % max;
+      }
+
+      round++;
+    }
   }
 }

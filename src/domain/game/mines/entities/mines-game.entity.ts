@@ -18,6 +18,7 @@ const HOUSE_EDGE = 0.01;
 export interface CreateMinesGameParams {
   id?: string;
   username: string;
+  profilePicture: string;
   betAmount: Money;
   mineCount: number;
   mineMask: MineMask;
@@ -47,6 +48,7 @@ export enum AvailableGridSizes {
 export class MinesGame {
   readonly id: EntityId;
   readonly username: string;
+  readonly profilePicture: string;
   readonly betAmount: Money;
   readonly mineCount: number;
   private readonly mineMask: MineMask;
@@ -59,6 +61,7 @@ export class MinesGame {
     id: EntityId,
     username: string,
     betAmount: Money,
+    profilePicture: string,
     mineCount: number,
     mineMask: MineMask,
     status: GameStatus,
@@ -68,6 +71,7 @@ export class MinesGame {
   ) {
     this.id = id;
     this.username = username;
+    this.profilePicture = profilePicture;
     this.betAmount = betAmount;
     this.mineCount = mineCount;
     this.mineMask = mineMask;
@@ -87,6 +91,7 @@ export class MinesGame {
         new EntityId(params.id),
         params.username,
         params.betAmount,
+        params.profilePicture,
         params.mineCount,
         params.mineMask,
         params.status ?? GameStatus.ACTIVE,

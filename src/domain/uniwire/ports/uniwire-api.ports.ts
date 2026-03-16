@@ -1,8 +1,10 @@
+import { AvailableCryptos } from '@prisma/client';
 import type {
   UniwireExchangeRates,
   UniwireCreatePayoutResponse,
-  UniwireGetCoinAddressResponse,
+  UniwireGetInvoiceResponse,
   UniwireRecentTransaction,
+  UniwireCreateDepositAddressResponse,
 } from '../entities/uniwire.entity';
 
 /**
@@ -20,10 +22,20 @@ export interface IUniwireApiPort {
   getTransactionConfirmations(ids: string[]): Promise<UniwireRecentTransaction[]>;
 
   /** Get coin address and recent transactions for a profile. */
-  getCoinAddress(profileId: string): Promise<UniwireGetCoinAddressResponse>;
+  getInvoiceAddress(profileId: string, currency: AvailableCryptos): Promise<UniwireGetInvoiceResponse>;
 
   /** Create an invoice. */
-  createInvoice(params: CreateInvoiceParams): Promise<CreateInvoiceResult>;
+  createInvoice(params: CreateInvoiceParams): Promise<UniwireGetInvoiceResponse>;
+
+  /** Generate a new deposit address for a currency. Uses profileId from config. */
+  createDepositAddress(currency: AvailableCryptos, passthrough: Record<string, string>): Promise<UniwireCreateDepositAddressResponse>;
+}
+export enum UniwireInvoiceKind {
+  BTC = 'BTC',
+  Ethereum = 'ETH',
+  Litecoin = 'LTC',
+  USDT = 'ETH_USDT',
+  DOGE = 'DOGE',
 }
 
 export interface CreatePayoutParams {
@@ -34,10 +46,11 @@ export interface CreatePayoutParams {
 }
 
 export interface CreateInvoiceParams {
-  profileId: string;
+  profile_id: string;
   currency: string;
-  kind: string;
+  kind: UniwireInvoiceKind;
   passthrough?: Record<string, string>;
+  amount?: number;
 }
 
 export interface CreateInvoiceResult {

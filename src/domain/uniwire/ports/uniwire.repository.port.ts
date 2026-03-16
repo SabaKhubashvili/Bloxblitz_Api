@@ -1,15 +1,10 @@
+import { AvailableCryptos } from "@prisma/client";
+import { UniwireInvoiceKind } from "./uniwire-api.ports";
+
 /**
  * Database record shapes for Uniwire persistence.
  * Implementations live in the infrastructure layer (e.g. PrismaUniwireRepository).
  */
-
-export interface UniwireUserProfileRecord {
-  readonly id: string;
-  readonly username: string;
-  readonly profileId: string;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
-}
 
 export interface UniwirePayoutRecord {
   readonly id: string;
@@ -23,16 +18,13 @@ export interface UniwirePayoutRecord {
 }
 
 export interface UniwireInvoiceRecord {
-  readonly id: string;
-  readonly username: string;
-  readonly invoiceId: string;
+  readonly userUsername: string;
+  readonly currency: AvailableCryptos;
+  readonly kind: UniwireInvoiceKind;
+  readonly address: string;
   readonly profileId: string;
-  readonly currency: string;
-  readonly kind: string;
-  readonly address: string | null;
-  readonly status: string;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
+  readonly invoiceId: string | null;
+  readonly lastUsedAt: Date | null;
 }
 
 /**
@@ -41,10 +33,7 @@ export interface UniwireInvoiceRecord {
  */
 export interface IUniwireRepository {
   /** Find Uniwire profile linked to a user. */
-  findProfileByUsername(username: string): Promise<UniwireUserProfileRecord | null>;
-
-  /** Link a user to a Uniwire profile. */
-  upsertUserProfile(username: string, profileId: string): Promise<UniwireUserProfileRecord>;
+  findInvoiceByUsernameAndCurrency(username: string, currency: string): Promise<UniwireInvoiceRecord | null>;
 
   /** Save a payout record. */
   createPayout(data: Omit<UniwirePayoutRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<UniwirePayoutRecord>;

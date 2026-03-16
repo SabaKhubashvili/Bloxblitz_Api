@@ -35,14 +35,14 @@ export class CreatePayoutUseCase {
       return Err(new UniwirePayoutFailedError('Amount must be positive'));
     }
 
-    const profile = await this.repo.findProfileByUsername(cmd.username);
-    if (!profile) {
+    const profile = await this.repo.findInvoiceByUsernameAndCurrency(cmd.username, cmd.currency);
+    if (!profile) { 
       return Err(new UniwireProfileNotFoundError(cmd.username));
     }
 
     try {
       const result = await this.api.createPayout({
-        profileId: profile.profileId,
+        profileId: profile.address,
         amount: cmd.amount,
         currency: cmd.currency,
         kind: cmd.kind,

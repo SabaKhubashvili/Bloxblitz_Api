@@ -1,32 +1,24 @@
+import { LEVELING_CONFIG } from '../config/leveling.config';
+
 /**
  * Pure domain service — no framework dependencies, no side-effects.
  *
  * XP formula (quadratic scaling):
  *   xpRequiredForLevel(n) = XP_BASE * n + XP_SCALE * n²
- *   where XP_BASE = 100, XP_SCALE = 10
- *
- * Resulting milestones (cumulative XP):
- *   Level 10  →    2 000 XP
- *   Level 25  →   8 750 XP
- *   Level 50  →  30 000 XP
- *   Level 75  →  63 750 XP
- *   Level 100 → 110 000 XP
+ *   Configured in leveling.config.ts (Level 0→1 = 1000 XP)
  *
  * Inverse (level from XP) via quadratic formula:
  *   n = (-XP_BASE + sqrt(XP_BASE² + 4 * XP_SCALE * totalXp)) / (2 * XP_SCALE)
  */
 export class XpCalculationDomainService {
-  private static readonly XP_BASE  = 100;
-  private static readonly XP_SCALE = 10;
-
   /**
    * Minimum cumulative XP needed to reach `level`.
    * Level 0 requires 0 XP.
    */
   static xpRequiredForLevel(level: number): number {
     if (level <= 0) return 0;
-    return XpCalculationDomainService.XP_BASE * level
-      + XpCalculationDomainService.XP_SCALE * level * level;
+    return LEVELING_CONFIG.XP_BASE * level
+      + LEVELING_CONFIG.XP_SCALE * level * level;
   }
 
   /**
@@ -35,8 +27,8 @@ export class XpCalculationDomainService {
    */
   static calculateLevelFromXp(totalXp: number): number {
     if (totalXp <= 0) return 0;
-    const b = XpCalculationDomainService.XP_BASE;
-    const s = XpCalculationDomainService.XP_SCALE;
+    const b = LEVELING_CONFIG.XP_BASE;
+    const s = LEVELING_CONFIG.XP_SCALE;
     const rawLevel = Math.floor((-b + Math.sqrt(b * b + 4 * s * totalXp)) / (2 * s));
     return Math.max(0, Math.min(100, rawLevel));
   }

@@ -59,6 +59,7 @@ model User {
 
   crashBetHistory CrashBet[]        @relation("CrashBets")
   minesBetHistory MinesBetHistory[]
+  diceBetHistory  DiceBet[]
 
   dailySpinHistory DailySpinHistory[] @relation("DailySpinHistory")
   dailySpinState   DailySpinState?    @relation("DailySpinState")
@@ -231,6 +232,7 @@ model XpEvent {
 
 enum XpSource {
   GAME_WIN
+  GAME_LOSE
   DAILY_LOGIN
   REFERRAL_WAGER
   STREAK_BONUS
@@ -583,6 +585,7 @@ model GameHistory {
   minesBetHistory     MinesBetHistory?
   crashBetHistory     CrashBet?
   coinflipGameHistory CoinflipGameHistory?
+  diceBetHistory      DiceBet?
 
   User User @relation(fields: [username], references: [username], onDelete: Cascade)
 
@@ -662,6 +665,35 @@ model MinesBetHistory {
   @@index([gameId])
 }
 
+model DiceBet {
+  id             String   @id @default(uuid())
+  userUsername   String
+  betAmount      Decimal  @db.Decimal(12, 2)
+  chance         Decimal  @db.Decimal(5, 2)
+  rollMode       DiceRollMode
+  rollResult     Decimal  @db.Decimal(5, 2)
+  multiplier     Decimal  @db.Decimal(10, 4)
+  payout         Decimal  @db.Decimal(12, 2)
+  profit         Decimal  @db.Decimal(12, 2)
+  clientSeed     String   @db.VarChar(64)
+  serverSeedHash String   @db.VarChar(64)
+  nonce          Int
+  createdAt      DateTime @default(now())
+
+  user          User          @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  parentHistory GameHistory?  @relation(fields: [gameHistoryId], references: [id], onDelete: Cascade)
+  gameHistoryId String?       @unique
+
+  @@index([userUsername])
+  @@index([createdAt(sort: Desc)])
+  @@index([userUsername, createdAt(sort: Desc)])
+}
+
+enum DiceRollMode {
+  OVER
+  UNDER
+}
+
 model OnlinePlayerFairness {
   id             String   @id @default(uuid())
   gameId         String   @unique
@@ -736,6 +768,8 @@ model UserDepositAddress {
   id           String           @id @default(uuid())
   userUsername String
   coin         AvailableCryptos
+  kind         String
+  profileId    String
   address      String           @unique
   createdAt    DateTime         @default(now())
   lastUsedAt   DateTime         @default(now())
@@ -887,6 +921,7 @@ enum GameType {
   MINES
   COINFLIP
   JACKPOT
+  DICE
 }
 
 enum GameStatus {

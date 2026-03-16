@@ -47,6 +47,12 @@ export class SetProfilePrivacyUseCase
         err,
       ),
     );
+    void this.profileCache.invalidatePublic(command.username).catch((err) =>
+      this.logger.warn(
+        `[SetProfilePrivacy] Cache invalidation failed for ${command.username}`,
+        err,
+      ),
+    );
 
     return Ok({ privateProfile: updated.privateProfile });
   }

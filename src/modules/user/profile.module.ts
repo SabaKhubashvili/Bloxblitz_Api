@@ -21,6 +21,7 @@ import { ProfileController } from '../../presentation/http/public/user/profile.c
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { AuthModule } from '../auth.module';
+import { GetPublicProfileUseCase } from 'src/application/user/profile/use-cases/get-public-profile.use-case';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AuthModule } from '../auth.module';
     JwtAuthGuard,
 
     GetProfileUseCase,
+    GetPublicProfileUseCase,
     SetProfilePrivacyUseCase,
 
     { provide: PROFILE_REPOSITORY, useClass: PrismaProfileRepository },

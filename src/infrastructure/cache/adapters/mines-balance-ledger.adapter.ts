@@ -60,13 +60,12 @@ export class MinesBalanceLedgerAdapter implements IMinesBalanceLedgerPort {
       end
 
       -- 2. Guard: sufficient balance
-      local balanceObjStr = redis.call('GET', balanceKey)
-      if not balanceObjStr then
+      local balanceValue = redis.call('GET', balanceKey)
+      if not balanceValue then
         return {0, 'INSUFFICIENT_BALANCE'}
       end
 
-      local balanceObj = cjson.decode(balanceObjStr)
-      local valueBalance = tonumber(balanceObj['b'])
+      local valueBalance = tonumber(balanceValue)
       if not valueBalance or valueBalance < betAmount then
         return {0, 'INSUFFICIENT_BALANCE'}
       end
@@ -76,9 +75,8 @@ export class MinesBalanceLedgerAdapter implements IMinesBalanceLedgerPort {
 
       -- 4. Deduct bet (JSON read-modify-write; balanceObj already decoded above)
       local newBalanceValue = valueBalance - betAmount
-      balanceObj['b'] = newBalanceValue
       local balanceTtl = redis.call('TTL', balanceKey)
-      redis.call('SET', balanceKey, cjson.encode(balanceObj))
+      redis.call('SET', balanceKey, newBalanceValue)
       if balanceTtl > 0 then
         redis.call('EXPIRE', balanceKey, balanceTtl)
       end
@@ -177,14 +175,12 @@ export class MinesBalanceLedgerAdapter implements IMinesBalanceLedgerPort {
       -- 1. Credit profit (JSON read-modify-write).
       --    If the balance key has been evicted we still must persist the payout
       --    so the dirty-flag flush has a value to write to PostgreSQL.
-      local balObjStr = redis.call('GET', balanceKey)
+      local balanceValue = redis.call('GET', balanceKey)
       local newBalanceValue = profit
-      if balObjStr then
-        local balObj = cjson.decode(balObjStr)
-        newBalanceValue = (tonumber(balObj['b']) or 0) + profit
-        balObj['b'] = newBalanceValue
+      if balanceValue then
+        newBalanceValue = (tonumber(balanceValue) or 0) + profit
         local ttl = redis.call('TTL', balanceKey)
-        redis.call('SET', balanceKey, cjson.encode(balObj))
+        redis.call('SET', balanceKey, newBalanceValue)
         if ttl > 0 then
           redis.call('EXPIRE', balanceKey, ttl)
         end

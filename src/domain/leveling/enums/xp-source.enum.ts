@@ -4,6 +4,7 @@
  */
 export enum XpSource {
   GAME_WIN       = 'GAME_WIN',
+  GAME_LOSE       = 'GAME_LOSE',
   DAILY_LOGIN    = 'DAILY_LOGIN',
   REFERRAL_WAGER = 'REFERRAL_WAGER',
   STREAK_BONUS   = 'STREAK_BONUS',

@@ -23,6 +23,15 @@ import {
   MinesRoundNotFoundError,
 } from '../../domain/game/mines/errors/mines.errors';
 
+// ── Dice errors ─────────────────────────────────────────────────────────────
+import {
+  InsufficientBalanceError as DiceInsufficientBalanceError,
+  UserSeedNotFoundError as DiceUserSeedNotFoundError,
+  InvalidChanceError as DiceInvalidChanceError,
+  InvalidBetAmountError as DiceInvalidBetAmountError,
+  DiceHistoryFetchError,
+} from '../../domain/game/dice/errors/dice.errors';
+
 // ── User errors ───────────────────────────────────────────────────────────────
 import {
   UserNotFoundError,
@@ -67,6 +76,11 @@ import {
   UniwireExchangeRateUnavailableError,
   UniwireApiError,
 } from '../../domain/uniwire/errors/uniwire.errors';
+
+import {
+  ProvablyFairNotFoundError,
+  RotateClientSeedFailedError,
+} from '../../domain/user/errors/provably-fair.errors';
 
 /**
  * Global domain-exception filter.
@@ -119,6 +133,17 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof GameNotActiveError)       return HttpStatus.CONFLICT;
     if (error instanceof MinesRoundNotFoundError)  return HttpStatus.NOT_FOUND;
     if (error instanceof MinesHistoryFetchError)   return HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // ── Dice errors ─────────────────────────────────────────────────────────────
+    if (error instanceof DiceInsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof DiceUserSeedNotFoundError)    return HttpStatus.NOT_FOUND;
+    if (error instanceof DiceHistoryFetchError)       return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (
+      error instanceof DiceInvalidChanceError ||
+      error instanceof DiceInvalidBetAmountError
+    ) {
+      return HttpStatus.BAD_REQUEST;
+    }
     if (
       error instanceof InvalidMineCountError   ||
       error instanceof InvalidTileIndexError   ||
@@ -159,6 +184,10 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof UniwireTransactionNotConfirmedError) return HttpStatus.BAD_REQUEST;
     if (error instanceof UniwireExchangeRateUnavailableError) return HttpStatus.SERVICE_UNAVAILABLE;
     if (error instanceof UniwireApiError)                  return HttpStatus.BAD_GATEWAY;
+
+    // ── Provably Fair errors ───────────────────────────────────────────────────
+    if (error instanceof ProvablyFairNotFoundError)         return HttpStatus.NOT_FOUND;
+    if (error instanceof RotateClientSeedFailedError)       return HttpStatus.BAD_REQUEST;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

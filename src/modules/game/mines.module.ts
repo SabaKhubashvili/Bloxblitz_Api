@@ -11,6 +11,7 @@ import { GetActiveMinesGameUseCase } from '../../application/game/mines/use-case
 // Use cases — history
 import { GetUserMinesHistoryUseCase } from '../../application/game/mines/use-cases/get-user-mines-history.use-case';
 import { GetMinesRoundByIdUseCase } from '../../application/game/mines/use-cases/get-mines-round-by-id.use-case';
+import { VerifyMinesGameUseCase } from '../../application/game/mines/use-cases/verify-mines-game.use-case';
 
 // Domain services
 import { MinesFairnessDomainService } from '../../domain/game/mines/services/mines-fairness.domain-service';
@@ -62,6 +63,7 @@ import { AuthModule } from '../auth.module';
     // Use cases — history
     GetUserMinesHistoryUseCase,
     GetMinesRoundByIdUseCase,
+    VerifyMinesGameUseCase,
 
     // Domain services
     MinesFairnessDomainService,

@@ -3,4 +3,5 @@ export interface CreateMinesGameCommand {
   betAmount: number;
   mineCount: number;
   gridSize: number;
+  profilePicture: string;
 }

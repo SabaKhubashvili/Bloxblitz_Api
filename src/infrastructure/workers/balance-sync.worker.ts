@@ -94,7 +94,9 @@ export class BalanceSyncWorker {
       }
       if (isNaN(balance)) continue;
 
-      updates.push({ username: usernames[i], balance });
+      // Safeguard: ensure balance has at most 2 decimal places
+      const sanitized = Math.round(balance * 100) / 100;
+      updates.push({ username: usernames[i], balance: sanitized });
     }
 
     if (updates.length === 0) return;

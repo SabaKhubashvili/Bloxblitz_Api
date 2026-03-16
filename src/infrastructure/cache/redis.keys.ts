@@ -74,8 +74,14 @@ export const RedisKeys = {
       provablyFair: () => `crash:provablyFair`,
     },
   
+    /* ─────────────── DICE GAME ─────────────── */
+
+    dice: {
+      ledger: (gameId: string) => `ledger:dice:${gameId}`,
+    },
+
     /* ─────────────── MINES GAME ─────────────── */
-  
+
     mines: {
       game: (gameId: string | number) => `mines:game:${gameId}`,
 
@@ -96,7 +102,7 @@ export const RedisKeys = {
 
     cache: {
       userProfile: (username: string | number) => `cache:user:profile:${username}`,
-
+      publicUserProfile: (username: string | number) => `cache:user:publicProfile:${username}`,
       inventory: (username: string | number) => `cache:user:inventory:${username}`,
 
       prices: () => `cache:prices`,

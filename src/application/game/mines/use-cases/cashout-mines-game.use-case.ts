@@ -12,6 +12,7 @@ import {
   MINES_CACHE_PORT,
   MINES_BALANCE_LEDGER,
   MINES_HISTORY_CACHE_PORT,
+  BET_EVENT_PUBLISHER,
 } from '../tokens/mines.tokens';
 import {
   GameNotFoundError,
@@ -21,6 +22,7 @@ import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
+import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 
 @Injectable()
 export class CashoutMinesGameUseCase
@@ -33,6 +35,7 @@ export class CashoutMinesGameUseCase
     @Inject(MINES_CACHE_PORT)         private readonly minesCache: IMinesCachePort,
     @Inject(MINES_BALANCE_LEDGER)     private readonly ledger: IMinesBalanceLedgerPort,
     @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
+    @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly addExperienceUseCase: AddExperienceUseCase,
   ) {}
 
@@ -58,6 +61,8 @@ export class CashoutMinesGameUseCase
     // Remove the active-game pointer so no further actions can be taken.
     await this.minesCache.deleteActiveGame(cmd.username, game.id.value);
 
+ 
+
     // Invalidate history cache so the next history request reflects this round.
     void this.historyCache.invalidate(cmd.username).catch((err) =>
       this.logger.warn(`[Cashout] History cache invalidation failed — user=${cmd.username}`, err),
@@ -65,14 +70,34 @@ export class CashoutMinesGameUseCase
 
     // Grant XP based on wagered amount × the Mines XP rate.
     // Fire-and-forget: a failure here must never roll back a successful cashout.
-    void this.grantXp(cmd.username, game.betAmount.amount, game.id.value);
+    setImmediate(async()=>{
+      await this.grantXp(cmd.username, game.betAmount.amount, game.id.value).then((response)=>{
+        if (response && !response.ok ) {
+          this.logger.warn(
+            `[Cashout] XP grant failed — user=${cmd.username} amount=${game.betAmount.amount} error=${response.error.message}`,
+          );
+        }else{
+          this.betEventPublisher.publishBetPlaced({
+            username: cmd.username,
+            game: 'mines',
+            profilePicture: game.profilePicture,
+            amount: game.betAmount.amount,
+            level: response?.value.currentLevel || 1,
+            multiplier: cashoutResult.value.multiplier,
+            profit: cashoutResult.value.profit.amount,
+            createdAt: Date.now(),
+            type: 'bet',
+          });
+        }
+      });
+    });
 
     return Ok(MinesGameMapper.toCashoutOutputDto(game, cashoutResult.value.profit.amount));
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
-  private grantXp(username: string, betAmount: number, gameId: string): Promise<void> {
+  private async grantXp(username: string, betAmount: number, gameId: string){
     const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
     if (xpAmount <= 0) return Promise.resolve();
 
@@ -94,12 +119,14 @@ export class CashoutMinesGameUseCase
             `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
           );
         }
+        return result
       })
       .catch((err) => {
         this.logger.error(
           `[Cashout] Unexpected XP grant error — user=${username}`,
           err,
         );
+        return null;
       });
   }
 }

@@ -10,7 +10,9 @@ import { UserRole, isValidUserRole } from '../enums/user-role.enum';
 
 export interface JwtPayload {
   sub: string;
+  id: string;
   username: string;
+  profilePicture: string;
   role: UserRole;
 }
 

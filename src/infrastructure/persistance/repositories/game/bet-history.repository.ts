@@ -15,6 +15,7 @@ type GameHistoryRow = Awaited<
   crashBetHistory: { roundId: string; cashoutAt: unknown; autoCashout: unknown; didCashout: boolean } | null;
   coinflipGameHistory: { player1Username: string; player2Username: string; winnerSide: string; player1Side: string } | null;
   seedRotationHistory: { serverSeedHash: string; clientSeed: string; serverSeed: string } | null;
+  diceBetHistory: { betAmount: number; chance: number; rollMode: string; rollResult: number; multiplier: number; payout: number; profit: number; clientSeed: string; serverSeedHash: string; nonce: number } | null;
 };
 
 @Injectable()
@@ -33,7 +34,7 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
     const skip = (page - 1) * limit;
 
     const where: { username: string; gameType?: GameType } = { username };
-    if (gameType && ['MINES', 'CRASH', 'COINFLIP'].includes(gameType)) {
+    if (gameType && ['MINES', 'CRASH', 'COINFLIP', 'DICE'].includes(gameType)) {
       where.gameType = gameType as GameType;
     }
 
@@ -44,6 +45,7 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
           minesBetHistory: true,
           crashBetHistory: true,
           coinflipGameHistory: true,
+          diceBetHistory:true,
           seedRotationHistory: true,
         },
         orderBy: { createdAt: order },
@@ -81,6 +83,7 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
   const mb = row.minesBetHistory;
   const cb = row.crashBetHistory;
   const cfg = row.coinflipGameHistory;
+  const dbh = row.diceBetHistory;
   const srh = row.seedRotationHistory;
 
   let gameData: Record<string, unknown> | null = null;
@@ -115,6 +118,20 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
       player2_username: cfg.player2Username,
       winner_side: cfg.winnerSide,
       player1_side: cfg.player1Side,
+    };
+  } else if (row.gameType === 'DICE' && dbh) {
+    gameData = {
+      bet_amount: Number(dbh.betAmount),
+      chance: Number(dbh.chance),
+      roll_mode: dbh.rollMode as 'OVER' | 'UNDER',
+      roll_result: Number(dbh.rollResult),
+      multiplier: Number(dbh.multiplier),
+      seed_info: srh ? {
+        server_seed_hash: srh.serverSeedHash,
+        client_seed: srh.clientSeed,
+        server_seed: srh.serverSeed,
+        nonce: dbh.nonce,
+      } : { nonce: dbh.nonce, server_seed_hash: dbh.serverSeedHash, client_seed: dbh.clientSeed, server_seed: null },
     };
   }
 

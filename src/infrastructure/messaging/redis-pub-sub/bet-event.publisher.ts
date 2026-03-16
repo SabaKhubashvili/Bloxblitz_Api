@@ -16,7 +16,7 @@ export class BetEventPublisher implements IBetEventPublisherPort {
 
   async publishBetPlaced(event: BetPlacedEvent): Promise<void> {
     const payload = JSON.stringify(event);
-
+    this.logger.log(`Publishing bet placed event: ${payload}`); 
     try {
       await Promise.all([
         this.redis.pubClient.publish(BET_PLACED_CHANNEL, payload),

@@ -16,6 +16,7 @@ interface RawStoredGame {
   id: string;
   username: string;
   betAmount: number;
+  profilePicture: string;
   mineCount: number;
   minePositions: number[];
   gridSize: number;
@@ -40,6 +41,7 @@ function toDomain(raw: RawStoredGame): MinesGame {
   const gameResult = MinesGame.create({
     id: raw.id,
     username: raw.username,
+    profilePicture: raw.profilePicture,
     betAmount: new Money(raw.betAmount),
     mineCount: raw.mineCount,
     mineMask: new MineMask(new Set(raw.minePositions)),
@@ -61,6 +63,7 @@ function toRaw(game: MinesGame): RawStoredGame {
     id: game.id.value,
     username: game.username,
     betAmount: game.betAmount.amount,
+    profilePicture: game.profilePicture,
     mineCount: game.mineCount,
     minePositions: game.getMinePositions(),
     gridSize: game.gridSize,

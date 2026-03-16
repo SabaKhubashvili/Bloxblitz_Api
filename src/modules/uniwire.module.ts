@@ -12,27 +12,23 @@ import { UniwireApiRepository } from '../infrastructure/persistance/repositories
 import { PrismaUniwireRepository } from '../infrastructure/persistance/repositories/uniwire/prisma-uniwire.repository';
 import { PrismaModule } from '../infrastructure/persistance/prisma/prisma.module';
 import { UniwireController } from '../presentation/http/public/uniwire/uniwire.controller';
-import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth.module';
 
 @Module({
-
-  imports: [HttpModule, ConfigModule, PrismaModule, AuthModule ],
+  imports: [ConfigModule, PrismaModule, AuthModule],
   controllers: [UniwireController],
   providers: [
     { provide: UNIWIRE_API_PORT, useClass: UniwireApiRepository },
     { provide: UNIWIRE_REPOSITORY, useClass: PrismaUniwireRepository },
     GetExchangeRatesUseCase,
 
-    
-
     GetTransactionConfirmationsUseCase,
     CreateDepositInvoiceUseCase,
     CreatePayoutUseCase,
     GetDepositAddressUseCase,
-
   ],
   exports: [
+    UNIWIRE_API_PORT,
     GetExchangeRatesUseCase,
     GetTransactionConfirmationsUseCase,
     CreateDepositInvoiceUseCase,
