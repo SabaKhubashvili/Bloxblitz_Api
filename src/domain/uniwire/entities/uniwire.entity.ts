@@ -52,9 +52,11 @@ export interface UniwireInvoiceAmount {
   readonly invoiced: UniwireInvoiceAmountItem;
   readonly paid: UniwireInvoiceAmountItem | null;
 }
+
 export interface UniwireInvoiceResult {
   readonly currency: AvailableCryptos;
   readonly address: string;
+  readonly recentTransactions: UniwireRecentTransaction[];
 }
 
 export interface UniwireGetInvoiceResponse {
@@ -84,4 +86,21 @@ export interface UniwireCreateDepositAddressResponse {
   readonly network: string;
   readonly profileId: string;
   readonly invoiceId?: string;
+}
+
+// ── Callback ──────────────────────────────────────────────────────────────────
+export enum UniwireCallbackStatus {
+  TRANSACTION_PENDING = 'transaction_pending',
+  TRANSACTION_CONFIRMED = 'transaction_confirmed',
+  TRANSACTION_COMPLETED = 'transaction_complete',
+  INVOICE_PENDING = 'invoice_pending',
+  INVOICE_CONFIRMED = 'invoice_confirmed',
+  INVOICE_COMPLETED = 'invoice_complete',
+  PAYOUT_CONFIRMED = 'payout_confirmed',
+  PAYOUT_COMPLETED = 'payout_complete',
+}
+
+export enum UniwireNetwork {
+  TESTNET = 'testnet',
+  MAINNET = 'mainnet',
 }

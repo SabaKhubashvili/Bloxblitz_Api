@@ -124,6 +124,13 @@ export const RedisKeys = {
       ) => `cache:mines:history:${username}:v${version}:p${page}:l${limit}:o${order}`,
 
       minesRound: (gameId: string) => `cache:mines:round:${gameId}`,
+
+      /** Active cases catalog (list endpoint). Invalidate on case CRUD. */
+      casesList: () => `cache:cases:list:active`,
+
+      /** Single case with items (detail endpoint). Keyed by slug. */
+      caseDetail: (slug: string) =>
+        `cache:cases:detail:v3:${encodeURIComponent(slug)}`,
     },
     chat: {
       bans: () => `chat:bans`,

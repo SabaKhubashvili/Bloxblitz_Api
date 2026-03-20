@@ -3,10 +3,12 @@ import type {
   IUniwireRepository,
   UniwirePayoutRecord,
   UniwireInvoiceRecord,
+  UniwireTransactionRecord,
 } from '../../../../domain/uniwire/ports/uniwire.repository.port';
-import { AvailableCryptos, UserDepositAddress } from '@prisma/client';
+import { AvailableCryptos, CryptoTransaction, TransactionStatus, UserDepositAddress } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { getUniwireInvoiceKind } from 'src/domain/uniwire/services/uniwire-helpers.service';
+import { UniwireRecentTransaction } from 'src/domain/uniwire/entities/uniwire.entity';
 
 function toDomain(prisma: UserDepositAddress): UniwireInvoiceRecord {
   return {
@@ -17,6 +19,17 @@ function toDomain(prisma: UserDepositAddress): UniwireInvoiceRecord {
     profileId: prisma.profileId,
     invoiceId: prisma.invoiceId ?? null,
     lastUsedAt: prisma.lastUsedAt ?? null,
+  };
+}
+
+function toRecentTransactionsDomain(prisma: CryptoTransaction): UniwireRecentTransaction {
+  return {
+    coinAmountPaid: prisma.coinAmountPaid.toNumber(),
+    cryptoAmountPaid: prisma.cryptoAmountPaid.toNumber(),
+    confirmations: prisma.confirmations,
+    minConfirmations: prisma.minConfirmations,
+    isFullyConfirmed: prisma.isFullyConfirmed,
+    txid: prisma.txid,
   };
 }
 /**
@@ -43,7 +56,18 @@ export class PrismaUniwireRepository implements IUniwireRepository {
     return record.length > 0 ? toDomain(record[0]) : null;
   }
 
-  
+  async getRecentTransactions(username:string, currency: AvailableCryptos): Promise<UniwireRecentTransaction[]> {
+    const record = await this.prisma.cryptoTransaction.findMany({
+      where: {
+        username: username,
+        currency: currency,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    return record.map(toRecentTransactionsDomain);
+  }
 
   async createPayout(
     _data: Omit<UniwirePayoutRecord, 'id' | 'createdAt' | 'updatedAt'>,
@@ -70,6 +94,33 @@ export class PrismaUniwireRepository implements IUniwireRepository {
       },
     });
     return toDomain(record);
+  }
+
+  async createInvoiceTransactionPending(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+    await this.prisma.cryptoTransaction.create({  
+      data: {
+        invoiceId: data.invoiceId,
+        status: TransactionStatus.PENDING,
+        providerTransactionId: data.providerTransactionId,
+        txid: data.txid,
+        currency: data.currency,
+        network: data.network,
+        usdAmountPaid: data.usdAmountPaid,
+        cryptoAmountPaid: data.cryptoAmountPaid,
+        coinAmountPaid: data.coinAmountPaid,
+      },
+    });
+  }
+  async updateInvoiceTransactionConfirmed(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+    await this.prisma.cryptoTransaction.update({
+      where: { invoiceId: data.invoiceId, providerTransactionId: data.providerTransactionId },
+      data: {
+        status: TransactionStatus.COMPLETED,
+        confirmedAt: new Date(),
+        confirmations: data.confirmations,
+        isFullyConfirmed: data.isFullyConfirmed,
+      },
+    });
   }
 
   async findInvoiceByInvoiceId(_invoiceId: string): Promise<UniwireInvoiceRecord | null> {

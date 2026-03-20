@@ -4,8 +4,8 @@
  */
 export interface BetHistoryRecord {
   id: string;
-  gameType: string;
   username: string;
+  gameType: string;
   status: string;
   betAmount: number;
   profit: number | null;

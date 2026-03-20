@@ -42,11 +42,13 @@ export class GetDepositAddressUseCase {
       query.currency,
     );
     if (invoice) {
+      const recentTransactions = await this.repo.getRecentTransactions(query.username, this.currencyToCrypto(query.currency), 4);
       return {
         ok: true,
         value: {
           currency: this.currencyToCrypto(query.currency),
           address: invoice.address,
+          recentTransactions
         },
       };
     }
@@ -74,6 +76,7 @@ export class GetDepositAddressUseCase {
         currency: this.currencyToCrypto(query.currency),
         address: result.address,
         network: result.network,
+        recentTransactions: []
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

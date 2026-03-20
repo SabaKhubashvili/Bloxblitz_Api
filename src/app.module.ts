@@ -8,6 +8,7 @@ import { PrismaModule } from './infrastructure/persistance/prisma/prisma.module'
 import { WorkersModule } from './infrastructure/workers/workers.module';
 import { MinesModule } from './modules/game/mines.module';
 import { DiceModule } from './modules/game/dice.module';
+import { CaseModule } from './modules/game/case.module';
 import { UserModule } from './modules/user/user.module';
 import { LevelingModule } from './modules/user/statistics/leveling.module';
 import { RakebackModule } from './modules/user/rakeback.module';
@@ -28,6 +29,7 @@ import { JwtModule } from '@nestjs/jwt';
     WorkersModule,
     MinesModule,
     DiceModule,
+    CaseModule,
     UserModule,
     TransactionModule,
     LevelingModule,

@@ -64,6 +64,8 @@ model User {
   dailySpinHistory DailySpinHistory[] @relation("DailySpinHistory")
   dailySpinState   DailySpinState?    @relation("DailySpinState")
 
+  caseOpenHistory CaseOpenHistory[]
+
   @@index([username, rblx_id])
   @@index([totalXP(sort: Desc)])
   @@index([currentLevel(sort: Desc)])
@@ -321,6 +323,7 @@ model pets {
   inGameName        String?
   giveaways         AmpGiveaway[]
   inventory         UserInventoryAmp[]
+  caseItems         CaseItem[]
 
   @@index([name])
   @@index([rarity])
@@ -586,6 +589,7 @@ model GameHistory {
   crashBetHistory     CrashBet?
   coinflipGameHistory CoinflipGameHistory?
   diceBetHistory      DiceBet?
+  caseOpenHistory     CaseOpenHistory?
 
   User User @relation(fields: [username], references: [username], onDelete: Cascade)
 
@@ -726,9 +730,10 @@ model SeedRotationHistory {
   userSeedId       String?
   firstNonce       Int
   lastNonce        Int
-  gameHistory      GameHistory[]
-  userSeed         UserSeed?        @relation(fields: [userSeedId], references: [id])
-  user             User             @relation("SeedRotationHistory", fields: [userUsername], references: [username], onDelete: Cascade)
+  gameHistory       GameHistory[]
+  caseOpenHistory   CaseOpenHistory[]
+  userSeed          UserSeed?        @relation(fields: [userSeedId], references: [id])
+  user              User             @relation("SeedRotationHistory", fields: [userUsername], references: [username], onDelete: Cascade)
 
   @@index([userUsername])
   @@index([userUsername, seedRotatedAt(sort: Desc)])
@@ -922,6 +927,7 @@ enum GameType {
   COINFLIP
   JACKPOT
   DICE
+  CASE
 }
 
 enum GameStatus {
@@ -976,6 +982,13 @@ enum Variant {
   R
 }
 
+/// Case listing / UX grouping (separate from numeric `Case.riskLevel`).
+enum CaseVariant {
+  FEATURED
+  STANDARD
+  HIGH_RISK
+}
+
 enum UserRoles {
   ADMIN
   MODERATOR
@@ -990,6 +1003,88 @@ enum UserRoles {
 enum BotTradeStatus {
   NONE
   WITHDRAW_ACCEPTED
+}
+
+// ─── Cases (loot boxes) ─────────────────────────────────────────────────────────
+
+model Case {
+  id        String      @id @default(uuid())
+  slug      String      @unique
+  name      String
+  imageUrl  String?
+  price     Decimal     @db.Decimal(12, 2)
+  variant   CaseVariant @default(STANDARD)
+  /// Continuous risk 0–100 (e.g. 22 = low; higher = riskier). Map to 4 bands in application logic.
+  riskLevel Decimal     @default(0) @db.Decimal(5, 2)
+  isActive  Boolean     @default(true)
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  items CaseItem[]
+  opens CaseOpenHistory[]
+
+  @@index([isActive, sortOrder])
+  @@index([slug])
+  @@index([variant])
+  @@map("cases")
+}
+
+/// Weighted pool entry: roll maps to cumulative weights using provably fair `normalizedRoll` on CaseOpenHistory.
+model CaseItem {
+  id        String @id @default(uuid())
+  caseId    String
+  petId     Int
+  weight    Int
+  sortOrder Int    @default(0)
+  variant   Variant[] @default([])
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  pet  pets @relation(fields: [petId], references: [id])
+
+  wins CaseOpenHistory[]
+
+  @@index([caseId])
+  @@index([petId])
+  @@map("case_items")
+}
+
+model CaseOpenHistory {
+  id             String  @id @default(uuid())
+  userUsername   String
+  caseId         String
+  wonCaseItemId  String
+  /// Which row when opening multiple cases in one action (0-based).
+  openBatchIndex Int     @default(0)
+
+  pricePaid Decimal @db.Decimal(12, 2)
+
+  // Provably fair (same shape as DiceBet / user seed nonce chain)
+  clientSeed       String  @db.VarChar(64)
+  serverSeedHash   String  @db.VarChar(64)
+  nonce            Int
+  /// Deterministic value in [0, 1) from seeds + nonce; pick item by cumulative weight.
+  normalizedRoll   Decimal @db.Decimal(24, 8)
+  /// Populated after server seed rotation / reveal so users can verify past opens.
+  serverSeed       String? @db.VarChar(128)
+
+  seedRotationHistoryId String?
+  seedRotationHistory   SeedRotationHistory? @relation(fields: [seedRotationHistoryId], references: [id])
+  gameHistoryId         String?              @unique
+  parentHistory         GameHistory?         @relation(fields: [gameHistoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  case    Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  wonItem CaseItem @relation(fields: [wonCaseItemId], references: [id], onDelete: Restrict)
+
+  @@index([userUsername])
+  @@index([caseId])
+  @@index([createdAt(sort: Desc)])
+  @@index([userUsername, createdAt(sort: Desc)])
+  @@index([serverSeedHash])
+  @@map("case_open_history")
 }
 
 // ─── Daily Spin ───────────────────────────────────────────────────────────────

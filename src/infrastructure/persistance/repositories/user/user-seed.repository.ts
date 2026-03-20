@@ -71,4 +71,15 @@ export class UserSeedRepository implements IUserSeedRepository {
       nonce,
     );
   }
+
+  async incrementTotalGamesPlayed(username: string, delta: number): Promise<void> {
+    if (!Number.isFinite(delta) || delta <= 0) return;
+    const rounded = Math.floor(delta);
+    if (rounded <= 0) return;
+
+    await this.prisma.userSeed.update({
+      where: { userUsername: username },
+      data: { totalGamesPlayed: { increment: rounded } },
+    });
+  }
 }

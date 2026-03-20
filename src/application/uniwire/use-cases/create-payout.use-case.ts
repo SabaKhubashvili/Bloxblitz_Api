@@ -48,13 +48,13 @@ export class CreatePayoutUseCase {
         kind: cmd.kind,
       });
 
-      await this.repo.createPayout({
-        username: cmd.username,
-        payoutId: result.payoutId,
-        amount: cmd.amount,
-        currency: cmd.currency,
-        status: result.status,
-      });
+      // await this.repo.createPayout({
+      //   username: cmd.username,
+      //   payoutId: result.payoutId,
+      //   amount: cmd.amount,
+      //   currency: cmd.currency,
+      //   status: result.status,
+      // });
 
       this.logger.log(
         `Payout created — user=${cmd.username} payoutId=${result.payoutId} amount=${cmd.amount}`,

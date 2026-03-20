@@ -134,7 +134,8 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
       } : { nonce: dbh.nonce, server_seed_hash: dbh.serverSeedHash, client_seed: dbh.clientSeed, server_seed: null },
     };
   }
-
+  console.log(row);
+  
   return {
     id: row.id,
     gameType: row.gameType,

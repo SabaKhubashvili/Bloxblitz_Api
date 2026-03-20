@@ -42,6 +42,7 @@ export class GetBetByIdUseCase
         gameType: record.gameType,
         status: record.status,
         betAmount: record.betAmount,
+        username: record.username,
         profit: record.profit,
         multiplier:
           record.multiplier !== null

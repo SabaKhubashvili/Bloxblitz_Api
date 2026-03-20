@@ -58,6 +58,7 @@ import { AuthModule } from './auth.module';
     { provide: KINGUIN_CACHE_PORT, useClass: KinguinCacheAdapter },
   ],
   exports: [
+    KINGUIN_BALANCE_PORT,
     RedeemKinguinCodeUseCase,
     ImportKinguinBatchUseCase,
     GetKinguinBatchesUseCase,

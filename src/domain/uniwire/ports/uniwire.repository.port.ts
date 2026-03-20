@@ -1,5 +1,6 @@
-import { AvailableCryptos } from "@prisma/client";
+import { AvailableCryptos, CryptoTransaction, TransactionStatus } from "@prisma/client";
 import { UniwireInvoiceKind } from "./uniwire-api.ports";
+import { UniwireRecentTransaction } from "../entities/uniwire.entity";
 
 /**
  * Database record shapes for Uniwire persistence.
@@ -35,18 +36,36 @@ export interface IUniwireRepository {
   /** Find Uniwire profile linked to a user. */
   findInvoiceByUsernameAndCurrency(username: string, currency: string): Promise<UniwireInvoiceRecord | null>;
 
-  /** Save a payout record. */
-  createPayout(data: Omit<UniwirePayoutRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<UniwirePayoutRecord>;
 
-  /** Find payout by Uniwire payout id. */
-  findPayoutByPayoutId(payoutId: string): Promise<UniwirePayoutRecord | null>;
+  /** Get recent transactions for a user and currency. */
+  getRecentTransactions(username: string, currency: AvailableCryptos, limit?: number): Promise<UniwireRecentTransaction[]>;
 
   /** Save an invoice record. */
   createInvoice(data: Omit<UniwireInvoiceRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<UniwireInvoiceRecord>;
 
-  /** Find invoice by Uniwire invoice id. */
-  findInvoiceByInvoiceId(invoiceId: string): Promise<UniwireInvoiceRecord | null>;
 
-  /** Update invoice status (e.g. when deposit is confirmed). */
-  updateInvoiceStatus(invoiceId: string, status: string): Promise<void>;
+  /** Create a transaction record for a pending invoice. */
+  createInvoiceTransactionPending(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void>;
+
+  /** Create a transaction record for a confirmed invoice. */
+  updateInvoiceTransactionConfirmed(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void>;
+}
+
+export interface UniwireTransactionRecord {
+  readonly id: string;
+  readonly invoiceId: string;
+  readonly status: TransactionStatus;
+  readonly providerTransactionId: string;
+  readonly txid: string;
+  readonly currency: AvailableCryptos;
+  readonly network: string;
+  readonly usdAmountPaid: number;
+  readonly cryptoAmountPaid: number;
+  readonly coinAmountPaid: number;
+  readonly username: string;
+  readonly minConfirmations: number;
+  readonly confirmations?: number;
+  readonly isFullyConfirmed?: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 }

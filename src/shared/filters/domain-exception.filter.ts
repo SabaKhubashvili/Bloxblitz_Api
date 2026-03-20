@@ -82,6 +82,19 @@ import {
   RotateClientSeedFailedError,
 } from '../../domain/user/errors/provably-fair.errors';
 
+import {
+  CaseNotFoundError,
+  CaseInactiveError,
+  CaseEmptyPoolError,
+  CaseInsufficientBalanceError,
+  CaseUserSeedNotFoundError,
+  CaseInvalidQuantityError,
+  CasePersistenceError,
+  CaseSlugTakenError,
+  CaseUnknownPetsError,
+  CaseInvalidItemsError,
+} from '../../domain/game/case/errors/case.errors';
+
 /**
  * Global domain-exception filter.
  *
@@ -188,6 +201,18 @@ export class DomainExceptionFilter implements ExceptionFilter {
     // ── Provably Fair errors ───────────────────────────────────────────────────
     if (error instanceof ProvablyFairNotFoundError)         return HttpStatus.NOT_FOUND;
     if (error instanceof RotateClientSeedFailedError)       return HttpStatus.BAD_REQUEST;
+
+    // ── Cases ─────────────────────────────────────────────────────────────────
+    if (error instanceof CaseNotFoundError)            return HttpStatus.NOT_FOUND;
+    if (error instanceof CaseInactiveError)            return HttpStatus.FORBIDDEN;
+    if (error instanceof CaseEmptyPoolError)           return HttpStatus.CONFLICT;
+    if (error instanceof CaseInsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof CaseUserSeedNotFoundError)   return HttpStatus.NOT_FOUND;
+    if (error instanceof CaseInvalidQuantityError)     return HttpStatus.BAD_REQUEST;
+    if (error instanceof CasePersistenceError)       return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof CaseSlugTakenError)          return HttpStatus.CONFLICT;
+    if (error instanceof CaseUnknownPetsError)        return HttpStatus.BAD_REQUEST;
+    if (error instanceof CaseInvalidItemsError)       return HttpStatus.BAD_REQUEST;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

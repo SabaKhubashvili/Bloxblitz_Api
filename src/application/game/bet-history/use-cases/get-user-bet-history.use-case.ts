@@ -57,6 +57,7 @@ export class GetUserBetHistoryUseCase
 function toItemOutputDto(record: BetHistoryRecord): BetHistoryItemOutputDto {
   return {
     id: record.id,
+    username: record.username,
     gameType: record.gameType,
     status: record.status,
     betAmount: record.betAmount,

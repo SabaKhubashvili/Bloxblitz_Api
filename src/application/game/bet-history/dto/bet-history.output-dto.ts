@@ -1,5 +1,6 @@
 export interface BetHistoryItemOutputDto {
   id: string;
+  username: string;
   gameType: string;
   status: string;
   betAmount: number;
