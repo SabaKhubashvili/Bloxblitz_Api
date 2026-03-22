@@ -8,7 +8,6 @@ import type { IRakebackBalancePort } from '../ports/rakeback-balance.port';
 import type { ClaimRakebackCommand } from '../dto/claim-rakeback.command';
 import type { ClaimResultOutputDto } from '../dto/rakeback-data.output-dto';
 import {
-  RakebackNotFoundError,
   RakebackClaimInProgressError,
   type RakebackError,
 } from '../../../../domain/rakeback/errors/rakeback.errors';
@@ -39,8 +38,10 @@ export class ClaimRakebackUseCase
     if (!acquired) return Err(new RakebackClaimInProgressError());
 
     try {
-      const rakeback = await this.repo.findByUsername(cmd.username);
-      if (!rakeback) return Err(new RakebackNotFoundError());
+      const rakeback =
+        (await this.repo.findByUsername(cmd.username)) ??
+        (await this.repo.ensureExists(cmd.username));
+      this.logger.log(`Claiming rakeback for user ${cmd.username} of type ${cmd.type}, ${JSON.stringify(rakeback)}`);
 
       const now = this.time.now();
       const balanceBefore = await this.balance.getBalance(cmd.username);

@@ -34,6 +34,7 @@ export class RakebackAccumulationWorker {
           const event = JSON.parse(raw) as {
             username: string;
             betAmount: number;
+            returnedAmount?: number;
             gameType: string;
             gameId: string;
           };
@@ -42,10 +43,15 @@ export class RakebackAccumulationWorker {
           if (await this.redis.exists(idempotencyKey)) continue;
 
           const userLevel = await this.resolveUserLevel(event.username);
+          const returnedAmount =
+            typeof event.returnedAmount === 'number' && Number.isFinite(event.returnedAmount)
+              ? Math.max(0, event.returnedAmount)
+              : 0;
 
           await this.accumulateUseCase.execute({
             username: event.username,
             wagerAmount: event.betAmount,
+            returnedAmount,
             gameType: event.gameType,
             gameId: event.gameId,
             userLevel,

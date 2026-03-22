@@ -11,11 +11,59 @@ import type {
 type GameHistoryRow = Awaited<
   ReturnType<PrismaService['gameHistory']['findMany']>
 >[number] & {
-  minesBetHistory: { gridSize: number; minesCount: number; nonce: number; revealedTiles: number[]; minePositions: number[]; cashoutTile: number | null; minesHit: number | null } | null;
-  crashBetHistory: { roundId: string; cashoutAt: unknown; autoCashout: unknown; didCashout: boolean } | null;
-  coinflipGameHistory: { player1Username: string; player2Username: string; winnerSide: string; player1Side: string } | null;
-  seedRotationHistory: { serverSeedHash: string; clientSeed: string; serverSeed: string } | null;
-  diceBetHistory: { betAmount: number; chance: number; rollMode: string; rollResult: number; multiplier: number; payout: number; profit: number; clientSeed: string; serverSeedHash: string; nonce: number } | null;
+  minesBetHistory: {
+    gridSize: number;
+    minesCount: number;
+    nonce: number;
+    revealedTiles: number[];
+    minePositions: number[];
+    cashoutTile: number | null;
+    minesHit: number | null;
+  } | null;
+  crashBetHistory: {
+    roundId: string;
+    cashoutAt: unknown;
+    autoCashout: unknown;
+    didCashout: boolean;
+  } | null;
+  coinflipGameHistory: {
+    player1Username: string;
+    player2Username: string;
+    winnerSide: string;
+    player1Side: string;
+  } | null;
+  seedRotationHistory: {
+    serverSeedHash: string;
+    clientSeed: string;
+    serverSeed: string;
+  } | null;
+  diceBetHistory: {
+    betAmount: number;
+    chance: number;
+    rollMode: string;
+    rollResult: number;
+    multiplier: number;
+    payout: number;
+    profit: number;
+    clientSeed: string;
+    serverSeedHash: string;
+    nonce: number;
+  } | null;
+  caseOpenHistory: {
+    caseId: string;
+    wonCaseItemId: string;
+    openBatchIndex: number;
+    pricePaid: number;
+    wonItemValue: number;
+    nonce: number;
+    serverSeedHash: string;
+    clientSeed: string;
+    normalizedRoll: number;
+    wonItem: {
+      variant: string[];
+      pet: { id: number; name: string; image: string };
+    };
+  } | null;
 };
 
 @Injectable()
@@ -34,7 +82,10 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
     const skip = (page - 1) * limit;
 
     const where: { username: string; gameType?: GameType } = { username };
-    if (gameType && ['MINES', 'CRASH', 'COINFLIP', 'DICE'].includes(gameType)) {
+    if (
+      gameType &&
+      ['MINES', 'CRASH', 'COINFLIP', 'DICE', 'CASE'].includes(gameType)
+    ) {
       where.gameType = gameType as GameType;
     }
 
@@ -45,7 +96,23 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
           minesBetHistory: true,
           crashBetHistory: true,
           coinflipGameHistory: true,
-          diceBetHistory:true,
+          diceBetHistory: true,
+          caseOpenHistory: {
+            include: {
+              wonItem: {
+                select: {
+                  variant: true,
+                  pet: {
+                    select: {
+                      id: true,
+                      name: true,
+                      image: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           seedRotationHistory: true,
         },
         orderBy: { createdAt: order },
@@ -85,6 +152,7 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
   const cfg = row.coinflipGameHistory;
   const dbh = row.diceBetHistory;
   const srh = row.seedRotationHistory;
+  const coh = row.caseOpenHistory;
 
   let gameData: Record<string, unknown> | null = null;
 
@@ -126,22 +194,51 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
       roll_mode: dbh.rollMode as 'OVER' | 'UNDER',
       roll_result: Number(dbh.rollResult),
       multiplier: Number(dbh.multiplier),
-      seed_info: srh ? {
-        server_seed_hash: srh.serverSeedHash,
-        client_seed: srh.clientSeed,
-        server_seed: srh.serverSeed,
-        nonce: dbh.nonce,
-      } : { nonce: dbh.nonce, server_seed_hash: dbh.serverSeedHash, client_seed: dbh.clientSeed, server_seed: null },
+      seed_info: srh
+        ? {
+            server_seed_hash: srh.serverSeedHash,
+            client_seed: srh.clientSeed,
+            server_seed: srh.serverSeed,
+            nonce: dbh.nonce,
+          }
+        : {
+            nonce: dbh.nonce,
+            server_seed_hash: dbh.serverSeedHash,
+            client_seed: dbh.clientSeed,
+            server_seed: null,
+          },
+    };
+  } else if (row.gameType === 'CASE' && coh) {
+    gameData = {
+      case_id: coh.caseId,
+      won_item: coh.wonItem,
+      won_pet_value: Number(coh.wonItemValue),
+      open_batch_index: coh.openBatchIndex,
+      price_paid: Number(coh.pricePaid),
+      seed_info: srh
+        ? {
+            server_seed_hash: srh.serverSeedHash,
+            client_seed: srh.clientSeed,
+            server_seed: srh.serverSeed,
+            normalized_roll: coh.normalizedRoll,
+            nonce: coh.nonce,
+          }
+        : {
+            nonce: coh.nonce,
+            server_seed_hash: coh.serverSeedHash,
+            client_seed: coh.clientSeed,
+            server_seed: null,
+            normalized_roll: coh.normalizedRoll,
+          },
     };
   }
-  console.log(row);
-  
+
   return {
     id: row.id,
     gameType: row.gameType,
     username: row.username,
     status: row.status,
-    betAmount: Number(row.betAmount),
+    betAmount: row.caseOpenHistory ? Number(row.caseOpenHistory.pricePaid) : Number(row.betAmount),
     profit: row.profit !== null ? Number(row.profit) : null,
     multiplier: row.multiplier !== null ? Number(row.multiplier) : null,
     createdAt: row.createdAt,

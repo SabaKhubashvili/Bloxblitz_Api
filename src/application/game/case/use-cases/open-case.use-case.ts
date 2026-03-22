@@ -195,7 +195,6 @@ export class OpenCaseUseCase
         nonce,
         normalizedRoll,
       });
-
       opens.push({
         openId,
         gameHistoryId,
@@ -212,6 +211,7 @@ export class OpenCaseUseCase
           image: won.pet.image,
           rarity: won.pet.rarity,
           value: wonPetValue,
+          variant: won.variant,
         },
       });
     }

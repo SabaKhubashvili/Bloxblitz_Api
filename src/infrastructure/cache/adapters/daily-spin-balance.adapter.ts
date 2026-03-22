@@ -23,20 +23,30 @@ export class DailySpinBalanceAdapter implements IDailySpinBalancePort {
       local credit     = tonumber(ARGV[1])
       local username   = ARGV[2]
 
+      local function read_coin_balance(str)
+        local ok, decoded = pcall(cjson.decode, str)
+        if ok and type(decoded) == 'table' then
+          return tonumber(decoded['b']) or 0
+        end
+        if ok and type(decoded) == 'number' then
+          return decoded
+        end
+        return tonumber(str) or 0
+      end
+
       local raw    = redis.call('GET', balanceKey)
       local newBal = credit
 
       if raw then
-        local obj = cjson.decode(raw)
-        newBal    = (tonumber(obj['b']) or 0) + credit
-        obj['b']  = newBal
-        local ttl = redis.call('TTL', balanceKey)
-        redis.call('SET', balanceKey, cjson.encode(obj))
+        local base = read_coin_balance(raw)
+        newBal     = base + credit
+        local ttl  = redis.call('TTL', balanceKey)
+        redis.call('SET', balanceKey, newBal)
         if ttl > 0 then
           redis.call('EXPIRE', balanceKey, ttl)
         end
       else
-        redis.call('SET', balanceKey, cjson.encode({b = credit}))
+        redis.call('SET', balanceKey, credit)
       end
 
       redis.call('SADD', 'user:balance:dirty', username)

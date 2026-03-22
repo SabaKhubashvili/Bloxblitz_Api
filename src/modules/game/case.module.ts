@@ -28,9 +28,10 @@ import { CasesController } from '../../presentation/http/public/game/cases/cases
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
+import { ProvablyFairModule } from '../user/provably-fair.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ProvablyFairModule],
   controllers: [CasesController],
   providers: [
     ListCasesUseCase,

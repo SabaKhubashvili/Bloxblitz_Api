@@ -86,13 +86,23 @@ export class BalanceSyncWorker {
       this.logger.log(`Raw balance: ${JSON.stringify(raw)}`);
       let balance: number;
       try {
-        const parsed = JSON.parse(raw as string) as number;
-        balance = parsed ?? 0;
+        const parsed = JSON.parse(raw as string) as unknown;
+        if (typeof parsed === 'number') {
+          balance = parsed;
+        } else if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof (parsed as { b?: unknown }).b === 'number'
+        ) {
+          balance = (parsed as { b: number }).b;
+        } else {
+          balance = Number.NaN;
+        }
       } catch {
         const n = parseFloat(raw as string);
         balance = isNaN(n) ? 0 : n;
       }
-      if (isNaN(balance)) continue;
+      if (typeof balance !== 'number' || isNaN(balance)) continue;
 
       // Safeguard: ensure balance has at most 2 decimal places
       const sanitized = Math.round(balance * 100) / 100;

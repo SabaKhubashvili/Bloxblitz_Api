@@ -19,5 +19,6 @@ import { PROVABLY_FAIR_DB_PORT } from '../../application/user/provably-fair/toke
     PrismaProvablyFairRepository,
     { provide: PROVABLY_FAIR_DB_PORT, useClass: PrismaProvablyFairRepository },
   ],
+  exports: [PrismaProvablyFairRepository, PROVABLY_FAIR_DB_PORT],
 })
 export class ProvablyFairModule {}

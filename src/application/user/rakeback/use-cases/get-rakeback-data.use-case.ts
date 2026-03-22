@@ -20,10 +20,12 @@ export class GetRakebackDataUseCase
   ) {}
 
   async execute(input: { username: string }): Promise<Result<RakebackDataOutputDto, RakebackError>> {
-    const cached = await this.cache.get(input.username);
-    if (cached) return Ok(cached);
+    // const cached = await this.cache.get(input.username);
+    // if (cached) return Ok(cached);
 
-    const rakeback = await this.repo.findByUsername(input.username);
+    const rakeback =
+        (await this.repo.findByUsername(input.username)) ??
+        (await this.repo.ensureExists(input.username));
     if (!rakeback) return Err(new RakebackNotFoundError());
 
     const now = this.time.now();

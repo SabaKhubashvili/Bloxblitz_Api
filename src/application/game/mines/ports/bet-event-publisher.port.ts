@@ -6,7 +6,11 @@ export interface BetPlacedEvent {
   readonly level: number,
   readonly multiplier: number,
   readonly profit: number,
-  readonly createdAt?: number,
+  /** Idempotent rakeback processing (`RakebackAccumulationWorker`). */
+  readonly gameId?: string;
+  /** Cash / credit returned to the player for this round (0 if bust). */
+  readonly returnedAmount?: number;
+  readonly createdAt?: number;
   type?: string;
 }
 

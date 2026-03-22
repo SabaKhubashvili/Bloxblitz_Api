@@ -56,6 +56,7 @@ export class PrismaCaseRepository implements ICaseRepository {
           value: roundPetValue(
             resolvePetValueForCaseItemVariants(i.pet, i.variant),
           ),
+          variant: i.variant.map(String)
         },
       })),
     };
@@ -155,7 +156,7 @@ export class PrismaCaseRepository implements ICaseRepository {
               status: GameStatus.FINISHED,
               betAmount: new Prisma.Decimal(o.pricePaid),
               profit: new Prisma.Decimal(o.wonPetValue - o.pricePaid),
-              multiplier: null,
+              multiplier: new Prisma.Decimal((o.wonPetValue / o.pricePaid).toFixed(4)),
             },
           });
           await tx.caseOpenHistory.create({
@@ -166,6 +167,7 @@ export class PrismaCaseRepository implements ICaseRepository {
               wonCaseItemId: o.wonCaseItemId,
               openBatchIndex: o.openBatchIndex,
               pricePaid: new Prisma.Decimal(o.pricePaid),
+              wonItemValue: new Prisma.Decimal(o.wonPetValue),
               clientSeed: o.clientSeed,
               serverSeedHash: o.serverSeedHash,
               nonce: o.nonce,

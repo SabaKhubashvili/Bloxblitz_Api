@@ -17,13 +17,16 @@ export interface IRakebackRepository {
   /** Creates a default record if none exists and returns it. */
   ensureExists(username: string): Promise<Rakeback>;
 
-  /** Atomic increment of accrued balances. */
-  accumulateRakeback(
-    username: string,
-    daily: number,
-    weekly: number,
-    monthly: number,
-  ): Promise<void>;
+  /**
+   * Loss-based rakeback: updates eligible wager/won, reapplies pool accrual from net-loss deltas,
+   * enforces daily positive accrual cap (UTC). Call only for bets ≥ MIN_RAKEBACK_BET.
+   */
+  applyBetResolutionForRakeback(params: {
+    username: string;
+    userLevel: number;
+    eligibleWagerDelta: number;
+    eligibleWonDelta: number;
+  }): Promise<void>;
 
   /** Saves the mutated aggregate and creates a claim-log entry in one transaction. */
   saveClaim(rakeback: Rakeback, claimLog: ClaimLogData): Promise<void>;

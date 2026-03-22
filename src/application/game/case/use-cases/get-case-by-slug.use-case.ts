@@ -85,6 +85,7 @@ function toItemDto(item: CaseDetailRecord['items'][number]): CaseItemOutputDto {
       image: item.pet.image,
       rarity: item.pet.rarity,
       value: item.pet.value,
+      variant: item.variant,
     },
   };
 }

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "UserRakeback" ADD COLUMN "eligibleWager" DECIMAL(14,2) NOT NULL DEFAULT 0,
+ADD COLUMN "eligibleWon" DECIMAL(14,2) NOT NULL DEFAULT 0,
+ADD COLUMN "rakebackAccrualUtcDay" TEXT,
+ADD COLUMN "rakebackAccrualDayTotal" DECIMAL(14,2) NOT NULL DEFAULT 0;

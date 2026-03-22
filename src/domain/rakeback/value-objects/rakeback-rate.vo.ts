@@ -56,6 +56,23 @@ export class RakebackRates {
     );
   }
 
+  /**
+   * Rakeback pool **amounts** from net loss using the same tier fractions as wager-based accrual.
+   * Tier table unchanged — only the base is `netLoss` instead of wager.
+   */
+  static calculateFromLoss(
+    level: number,
+    netLoss: number,
+  ): { daily: number; weekly: number; monthly: number; total: number } {
+    const nl = Math.max(0, Number.isFinite(netLoss) ? netLoss : 0);
+    const rates = RakebackRates.forLevel(level);
+    const daily = Math.round(nl * rates.daily * 100) / 100;
+    const weekly = Math.round(nl * rates.weekly * 100) / 100;
+    const monthly = Math.round(nl * rates.monthly * 100) / 100;
+    const total = Math.round((daily + weekly + monthly) * 100) / 100;
+    return { daily, weekly, monthly, total };
+  }
+
   static custom(daily: number, weekly: number, monthly: number): RakebackRates {
     if ([daily, weekly, monthly].some((r) => r < 0 || r > 1)) {
       throw new Error('Rakeback rate must be between 0 and 1');

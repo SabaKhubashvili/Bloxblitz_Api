@@ -142,6 +142,12 @@ model UserRakeback {
   id           String  @id @default(uuid())
   userUsername String  @unique
 
+  // ─── Anti-abuse: loss-based rakeback (only bets ≥ MIN_RAKEBACK_BET) ───
+  eligibleWager           Decimal @default(0) @db.Decimal(14, 2)
+  eligibleWon             Decimal @default(0) @db.Decimal(14, 2)
+  rakebackAccrualUtcDay   String? // yyyy-mm-dd UTC; resets daily cap counter
+  rakebackAccrualDayTotal Decimal @default(0) @db.Decimal(14, 2)
+
   // ─── Accrued (unclaimable, accumulates from wagers in real-time) ───
   dailyAccrued   Decimal @default(0) @db.Decimal(12, 2)
   weeklyAccrued  Decimal @default(0) @db.Decimal(12, 2)
@@ -1058,6 +1064,7 @@ model CaseOpenHistory {
   openBatchIndex Int     @default(0)
 
   pricePaid Decimal @db.Decimal(12, 2)
+  wonItemValue Decimal @db.Decimal(12, 2) @default(0)
 
   // Provably fair (same shape as DiceBet / user seed nonce chain)
   clientSeed       String  @db.VarChar(64)

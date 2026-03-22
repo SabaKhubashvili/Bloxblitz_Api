@@ -144,7 +144,7 @@ export class PrismaProvablyFairRepository implements IProvablyFairDbPort {
     };
   }
 
-  private async ensureUserSeedExists(username: string) {
+ async ensureUserSeedExists(username: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: { client_seed: true },

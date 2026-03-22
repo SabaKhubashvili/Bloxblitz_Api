@@ -73,6 +73,28 @@ export class RevealTileUseCase
           this.logger.warn(`[RevealTile] History cache invalidation failed — user=${cmd.username}`, err),
         );
 
+        setImmediate(() => {
+          void this.betEventPublisher.publishBetPlaced({
+            type: 'bet',
+            game: 'mines',
+            gameId: game.id.value,
+            username: cmd.username,
+            profilePicture: game.profilePicture,
+            multiplier: cashoutResult.value.multiplier,
+            amount: game.betAmount.amount,
+            returnedAmount: cashoutResult.value.profit.amount,
+            level: 1,
+            profit: cashoutResult.value.profit.amount,
+            createdAt: Date.now(),
+          });
+          void this.grantMinesXp(
+            cmd.username,
+            game.betAmount.amount,
+            game.id.value,
+            XpSource.GAME_WIN,
+          );
+        });
+
         return Ok(MinesGameMapper.toRevealTileOutputDto(game, false));
       }
     }
@@ -83,24 +105,30 @@ export class RevealTileUseCase
       // Game closed (mine hit / LOST) — clean up pointer and invalidate history.
       await this.minesRepo.deleteActiveGame(cmd.username);
       
-      setImmediate(async()=>{
-        await this.grantXp(cmd.username, game.betAmount.amount, game.id.value).then((response)=>{
-          if (response && !response.ok ) {
+      setImmediate(() => {
+        void this.betEventPublisher.publishBetPlaced({
+          type: 'bet',
+          game: 'mines',
+          gameId: game.id.value,
+          username: cmd.username,
+          profilePicture: game.profilePicture,
+          multiplier: 0,
+          amount: game.betAmount.amount,
+          returnedAmount: 0,
+          level: 1,
+          profit: -game.betAmount.amount,
+          createdAt: Date.now(),
+        });
+        void this.grantMinesXp(
+          cmd.username,
+          game.betAmount.amount,
+          game.id.value,
+          XpSource.GAME_LOSE,
+        ).then((response) => {
+          if (response && !response.ok) {
             this.logger.warn(
-              `[Cashout] XP grant failed — user=${cmd.username} amount=${game.betAmount.amount} error=${response.error.message}`,
+              `[RevealTile] XP grant failed — user=${cmd.username} amount=${game.betAmount.amount} error=${response.error.message}`,
             );
-          }else{
-            this.betEventPublisher.publishBetPlaced({
-              type: 'bet',
-              game: 'mines',
-              username: cmd.username,
-              profilePicture: game.profilePicture,
-              multiplier: 0,
-              amount: game.betAmount.amount,
-              level: response?.value.currentLevel || 1,
-              profit: - game.betAmount.amount,
-              createdAt: Date.now(),
-            });
           }
         });
       });
@@ -111,15 +139,20 @@ export class RevealTileUseCase
 
     return Ok(MinesGameMapper.toRevealTileOutputDto(game, revealResult.value.isMine));
   }
-  private async grantXp(username: string, betAmount: number, gameId: string){
+  private grantMinesXp(
+    username: string,
+    betAmount: number,
+    gameId: string,
+    source: XpSource,
+  ) {
     const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-    if (xpAmount <= 0) return Promise.resolve();
+    if (xpAmount <= 0) return Promise.resolve(null);
 
     return this.addExperienceUseCase
       .execute({
         username,
-        amount:      xpAmount,
-        source:      XpSource.GAME_LOSE,
+        amount: xpAmount,
+        source,
         referenceId: gameId,
       })
       .then((result) => {

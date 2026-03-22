@@ -24,9 +24,10 @@ import { DiceController } from '../../presentation/http/public/game/dice/dice.co
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
+import { ProvablyFairModule } from '../user/provably-fair.module';
 
 @Module({
-  imports: [AuthModule, LevelingModule],
+  imports: [AuthModule, LevelingModule, ProvablyFairModule],
   controllers: [DiceController],
   providers: [
     RollDiceUseCase,

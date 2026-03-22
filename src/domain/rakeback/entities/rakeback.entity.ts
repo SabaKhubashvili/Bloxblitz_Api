@@ -168,6 +168,7 @@ export class Rakeback {
   // ── Claim dispatch ───────────────────────────────────────────────────────
 
   claim(type: RakebackType, now: Date): Result<ClaimResult, RakebackError> {
+    console.log(`Claiming rakeback for user ${this.username} of type ${type}, ${JSON.stringify(this)}`);
     switch (type) {
       case RakebackType.DAILY:
         return this.claimDaily(now);
@@ -228,6 +229,7 @@ export class Rakeback {
   private getDailyInfo(now: Date): RakebackTypeInfo {
     const unlocked = ClaimWindowPolicy.isDailyUnlocked(this.dailyUnlocksAt, now);
     const total = round2(this.dailyAccrued + this.dailyClaimable);
+    console.log(`Getting daily info for user ${this.username}, ${JSON.stringify(this)}`);
 
     let previewAmount = 0;
     let previewStreak = this.dailyStreak;

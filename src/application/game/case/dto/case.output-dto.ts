@@ -1,3 +1,5 @@
+import { Variant } from "@prisma/client";
+
 export interface CasePetOutputDto {
   id: number;
   name: string;
@@ -5,6 +7,7 @@ export interface CasePetOutputDto {
   rarity: string;
   /** Pet value credited on case win (from `pets` column chosen by item `variant`). */
   value: number;
+  variant: string[];
 }
 
 export interface CaseItemOutputDto {

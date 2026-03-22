@@ -4,6 +4,7 @@ import { UserSeed } from '../../../../domain/user/entities/user-seed.entity';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../../cache/redis.service';
 import { RedisKeys } from '../../../cache/redis.keys';
+import { PrismaProvablyFairRepository } from './prisma-provably-fair.repository';
 
 /** TTL for user seed cache (1 hour). Invalidation happens on client/server seed updates. */
 const USER_SEED_CACHE_TTL_SECONDS = 3600;
@@ -19,6 +20,7 @@ export class UserSeedRepository implements IUserSeedRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly ProvablyFairRepository: PrismaProvablyFairRepository,
   ) {}
 
   async findByusername(username: string): Promise<UserSeed | null> {
@@ -46,9 +48,12 @@ export class UserSeedRepository implements IUserSeedRepository {
     }
 
     // 2. Cache miss — read from DB
-    const record = await this.prisma.userSeed.findUnique({
+    let record = await this.prisma.userSeed.findUnique({
       where: { userUsername: username },
     });
+    if (!record) {
+      record = await this.ProvablyFairRepository.ensureUserSeedExists(username);
+    };
     if (!record) return null;
 
     // 3. Populate cache for future reads

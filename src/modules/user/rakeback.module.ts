@@ -34,10 +34,12 @@ import { RakebackController } from '../../presentation/http/public/rakeback/rake
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
+import { PrismaModule } from '../../infrastructure/persistance/prisma/prisma.module';
 
 @Module({
   imports: [
     AuthModule,
+    PrismaModule,
   ],
   controllers: [RakebackController],
   providers: [

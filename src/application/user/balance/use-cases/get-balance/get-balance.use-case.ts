@@ -132,9 +132,14 @@ export class GetBalanceUseCase
     fromCache: boolean,
   ): GetBalanceOutputDto {
     return {
-      balance,
-      petValueBalance,
+      balance: this.toTwoDecimalNumber(balance),
+      petValueBalance: this.toTwoDecimalNumber(petValueBalance),
       currency: 'COIN',
     };
+  }
+
+  /** Avoid IEEE-754 noise in JSON (e.g. 24.229999999999997 → 24.23). */
+  private toTwoDecimalNumber(value: number): number {
+    return Number.parseFloat(value.toFixed(2));
   }
 }

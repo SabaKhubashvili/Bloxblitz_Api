@@ -132,24 +132,21 @@ export class RollDiceUseCase implements IUseCase<
         `mode=${cmd.rollMode} won=${won} profit=${roundedProfit}`,
     );
 
-    setImmediate(async () => {
-      await this.grantXp(cmd.username, cmd.betAmount, betId).then(
-        (response) => {
-          if (response?.ok && response.value) {
-            this.betPublisher.publishBetPlaced({
-              username: cmd.username,
-              game: 'dice',
-              profilePicture: cmd.profilePicture ?? '',
-              amount: cmd.betAmount,
-              level: response.value.currentLevel,
-              multiplier: roundedMultiplier,
-              profit: roundedProfit,
-              createdAt: Date.now(),
-              type: 'bet',
-            });
-          }
-        },
-      );
+    setImmediate(() => {
+      void this.betPublisher.publishBetPlaced({
+        username: cmd.username,
+        game: 'dice',
+        gameId: betId,
+        profilePicture: cmd.profilePicture ?? '',
+        amount: cmd.betAmount,
+        returnedAmount: won ? Math.round(cmd.betAmount * roundedMultiplier * 100) / 100 : 0,
+        level: 1,
+        multiplier: roundedMultiplier,
+        profit: roundedProfit,
+        createdAt: Date.now(),
+        type: 'bet',
+      });
+      void this.grantXp(cmd.username, cmd.betAmount, betId);
     });
 
     return Ok({
