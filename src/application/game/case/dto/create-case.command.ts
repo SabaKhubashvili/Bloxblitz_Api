@@ -1,4 +1,7 @@
-import type { CaseVariantCreate } from '../../../../domain/game/case/ports/case.repository.port';
+import type {
+  CaseCatalogCategoryCreate,
+  CaseVariantCreate,
+} from '../../../../domain/game/case/ports/case.repository.port';
 
 export interface CreateCaseItemCommand {
   petId: number;
@@ -15,6 +18,7 @@ export interface CreateCaseCommand {
   imageUrl: string | null;
   price: number;
   variant: CaseVariantCreate;
+  catalogCategory?: CaseCatalogCategoryCreate;
   riskLevel: number;
   isActive: boolean;
   sortOrder: number;

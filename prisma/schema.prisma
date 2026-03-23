@@ -995,6 +995,12 @@ enum CaseVariant {
   HIGH_RISK
 }
 
+/// Product catalog split (e.g. Adopt Me vs Murder Mystery 2 cases).
+enum CaseCatalogCategory {
+  AMP
+  MM2
+}
+
 enum UserRoles {
   ADMIN
   MODERATOR
@@ -1020,6 +1026,7 @@ model Case {
   imageUrl  String?
   price     Decimal     @db.Decimal(12, 2)
   variant   CaseVariant @default(STANDARD)
+  catalogCategory CaseCatalogCategory @default(AMP)
   /// Continuous risk 0–100 (e.g. 22 = low; higher = riskier). Map to 4 bands in application logic.
   riskLevel Decimal     @default(0) @db.Decimal(5, 2)
   isActive  Boolean     @default(true)
@@ -1033,6 +1040,7 @@ model Case {
   @@index([isActive, sortOrder])
   @@index([slug])
   @@index([variant])
+  @@index([catalogCategory])
   @@map("cases")
 }
 

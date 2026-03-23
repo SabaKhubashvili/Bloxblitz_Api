@@ -1,4 +1,4 @@
-import { CaseVariant, Variant } from '@prisma/client';
+import { CaseCatalogCategory, CaseVariant, Variant } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -49,6 +49,10 @@ export class CreateCaseHttpDto {
 
   @IsEnum(CaseVariant)
   variant!: CaseVariant;
+
+  @IsOptional()
+  @IsEnum(CaseCatalogCategory)
+  catalogCategory?: CaseCatalogCategory;
 
   @IsNumber()
   @Min(0)

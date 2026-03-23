@@ -1,5 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CaseVariant, GameStatus, GameType, Prisma, Variant } from '@prisma/client';
+import {
+  CaseCatalogCategory,
+  CaseVariant,
+  GameStatus,
+  GameType,
+  Prisma,
+  Variant,
+} from '@prisma/client';
 import { resolvePetValueForCaseItemVariants } from '../../../../domain/game/case/services/case-item-pet-value';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
@@ -104,6 +111,9 @@ export class PrismaCaseRepository implements ICaseRepository {
         const variant = input.variant as CaseVariant;
 
         try {
+          const catalogCategory =
+            (input.catalogCategory as CaseCatalogCategory | undefined) ??
+            CaseCatalogCategory.AMP;
           const created = await tx.case.create({
             data: {
               slug: input.slug,
@@ -111,6 +121,7 @@ export class PrismaCaseRepository implements ICaseRepository {
               imageUrl: input.imageUrl,
               price: new Prisma.Decimal(input.price),
               variant,
+              catalogCategory,
               riskLevel: new Prisma.Decimal(input.riskLevel),
               isActive: input.isActive,
               sortOrder: input.sortOrder,
@@ -199,6 +210,10 @@ function mapVariant(v: CaseVariant): string {
   }
 }
 
+function mapCatalogCategory(c: CaseCatalogCategory): 'amp' | 'mm2' {
+  return c === CaseCatalogCategory.MM2 ? 'mm2' : 'amp';
+}
+
 function toListEntry(row: {
   id: string;
   slug: string;
@@ -206,6 +221,7 @@ function toListEntry(row: {
   imageUrl: string | null;
   price: Prisma.Decimal;
   variant: CaseVariant;
+  catalogCategory: CaseCatalogCategory;
   riskLevel: Prisma.Decimal;
   isActive: boolean;
   sortOrder: number;
@@ -217,6 +233,7 @@ function toListEntry(row: {
     imageUrl: row.imageUrl,
     price: row.price.toNumber(),
     variant: mapVariant(row.variant),
+    catalogCategory: mapCatalogCategory(row.catalogCategory),
     riskLevel: row.riskLevel.toNumber(),
     isActive: row.isActive,
     sortOrder: row.sortOrder,

@@ -25,6 +25,8 @@ export interface CaseListEntry {
   imageUrl: string | null;
   price: number;
   variant: string;
+  /** AMP vs MM2 catalog (`CaseCatalogCategory`). */
+  catalogCategory: 'amp' | 'mm2';
   riskLevel: number;
   isActive: boolean;
   sortOrder: number;
@@ -65,6 +67,9 @@ export interface CaseOpenWrite {
 /** Matches Prisma `CaseVariant` enum values. */
 export type CaseVariantCreate = 'FEATURED' | 'STANDARD' | 'HIGH_RISK';
 
+/** Matches Prisma `CaseCatalogCategory` enum values. */
+export type CaseCatalogCategoryCreate = 'AMP' | 'MM2';
+
 export interface CreateCaseItemInput {
   petId: number;
   weight: number;
@@ -79,6 +84,7 @@ export interface CreateCaseWithItemsInput {
   imageUrl: string | null;
   price: number;
   variant: CaseVariantCreate;
+  catalogCategory?: CaseCatalogCategoryCreate;
   riskLevel: number;
   isActive: boolean;
   sortOrder: number;

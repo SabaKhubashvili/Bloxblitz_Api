@@ -65,6 +65,7 @@ export function toCaseDetailDto(row: CaseDetailRecord): CaseDetailOutputDto {
     imageUrl: row.imageUrl,
     price: row.price,
     variant: row.variant,
+    category: row.catalogCategory,
     riskLevel: row.riskLevel,
     sortOrder: row.sortOrder,
     isActive: row.isActive,

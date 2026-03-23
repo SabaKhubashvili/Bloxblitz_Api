@@ -5,6 +5,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   UseFilters,
   HttpCode,
@@ -19,25 +20,22 @@ import { Roles } from '../../../../../shared/decorators/roles.decorator';
 import { UserRole } from '../../../../../shared/enums/user-role.enum';
 import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
 import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter';
-import {
-  ListCasesUseCase,
-  toCaseSummaryDto,
-} from '../../../../../application/game/case/use-cases/list-cases.use-case';
+import { ListCasesUseCase } from '../../../../../application/game/case/use-cases/list-cases.use-case';
 import {
   GetCaseBySlugUseCase,
   toCaseDetailDto,
 } from '../../../../../application/game/case/use-cases/get-case-by-slug.use-case';
 import { GetCaseMetadataUseCase } from '../../../../../application/game/case/use-cases/get-case-metadata.use-case';
-import type { ICaseListCachePort } from '../../../../../domain/game/case/ports/case-list-cache.port';
 import type { ICaseDetailCachePort } from '../../../../../domain/game/case/ports/case-detail-cache.port';
-import {
-  CASE_LIST_CACHE,
-  CASE_DETAIL_CACHE,
-} from '../../../../../application/game/case/tokens/case.tokens';
+import { CASE_DETAIL_CACHE } from '../../../../../application/game/case/tokens/case.tokens';
 import { OpenCaseUseCase } from '../../../../../application/game/case/use-cases/open-case.use-case';
 import { CreateCaseUseCase } from '../../../../../application/game/case/use-cases/create-case.use-case';
 import { OpenCaseHttpDto } from './dto/open-case.dto';
 import { CreateCaseHttpDto } from './dto/create-case.http-dto';
+import {
+  ListCasesQueryDto,
+  toCaseListQueryFilter,
+} from './dto/list-cases-query.dto';
 
 const CASE_SLUG_MAX_LEN = 160;
 
@@ -63,32 +61,22 @@ export class CasesController {
     private readonly getCaseMetadataUseCase: GetCaseMetadataUseCase,
     private readonly openCaseUseCase: OpenCaseUseCase,
     private readonly createCaseUseCase: CreateCaseUseCase,
-    @Inject(CASE_LIST_CACHE)
-    private readonly caseListCache: ICaseListCachePort,
     @Inject(CASE_DETAIL_CACHE)
     private readonly caseDetailCache: ICaseDetailCachePort,
   ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async list() {
-    try {
-      const cached = await this.caseListCache.get();
-      if (cached !== null) {
-        return cached.map(toCaseSummaryDto);
-      }
-    } catch (err) {
-      this.logger.warn('[Cases] list cache read failed, using DB', err);
-    }
-
-    const result = await this.listCasesUseCase.execute();
+  async list(@Query() query: ListCasesQueryDto) {
+    const filters = toCaseListQueryFilter(query);
+    const result = await this.listCasesUseCase.execute(filters);
     if (!result.ok) throw result.error;
     return result.value;
   }
 
   @Post('admin')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.OWNER)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER)
   @HttpCode(HttpStatus.CREATED)
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCaseHttpDto) {
     const result = await this.createCaseUseCase.execute({
@@ -98,6 +86,7 @@ export class CasesController {
       imageUrl: dto.imageUrl ?? null,
       price: dto.price,
       variant: dto.variant,
+      catalogCategory: dto.catalogCategory,
       riskLevel: dto.riskLevel,
       isActive: dto.isActive,
       sortOrder: dto.sortOrder,

@@ -12,7 +12,17 @@ export class CaseListCacheAdapter implements ICaseListCachePort {
 
   async get(): Promise<CaseListEntry[] | null> {
     try {
-      return await this.redis.get<CaseListEntry[]>(RedisKeys.cache.casesList());
+      const raw = await this.redis.get<CaseListEntry[]>(
+        RedisKeys.cache.casesList(),
+      );
+      if (raw === null) return null;
+      return raw.map((e) => ({
+        ...e,
+        catalogCategory:
+          e.catalogCategory === 'mm2' || e.catalogCategory === 'amp'
+            ? e.catalogCategory
+            : 'amp',
+      }));
     } catch (err) {
       this.logger.warn('[CaseListCache] get failed', err);
       return null;

@@ -44,6 +44,7 @@ export class CreateCaseUseCase
         imageUrl: cmd.imageUrl,
         price: cmd.price,
         variant: cmd.variant,
+        catalogCategory: cmd.catalogCategory,
         riskLevel: cmd.riskLevel,
         isActive: cmd.isActive,
         sortOrder: cmd.sortOrder,

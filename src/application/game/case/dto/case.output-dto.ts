@@ -27,6 +27,8 @@ export interface CaseSummaryOutputDto {
   imageUrl: string | null;
   price: number;
   variant: string;
+  /** AMP vs MM2 (`CaseCatalogCategory`). */
+  category: 'amp' | 'mm2';
   riskLevel: number;
   sortOrder: number;
 }

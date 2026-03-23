@@ -3,6 +3,8 @@ import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { ICaseRepository } from '../../../../domain/game/case/ports/case.repository.port';
 import type { ICaseListCachePort } from '../../../../domain/game/case/ports/case-list-cache.port';
+import { filterCaseListEntries } from '../../../../domain/game/case/services/case-list-query.policy';
+import type { CaseListQueryFilter } from '../../../../domain/game/case/services/case-list-query.policy';
 import { CasePersistenceError } from '../../../../domain/game/case/errors/case.errors';
 import { CASE_REPOSITORY, CASE_LIST_CACHE } from '../tokens/case.tokens';
 import type { CaseSummaryOutputDto } from '../dto/case.output-dto';
@@ -10,7 +12,11 @@ import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 
 @Injectable()
 export class ListCasesUseCase
-  implements IUseCase<void, Result<CaseSummaryOutputDto[], CasePersistenceError>>
+  implements
+    IUseCase<
+      CaseListQueryFilter,
+      Result<CaseSummaryOutputDto[], CasePersistenceError>
+    >
 {
   private readonly logger = new Logger(ListCasesUseCase.name);
 
@@ -21,22 +27,32 @@ export class ListCasesUseCase
     private readonly listCache: ICaseListCachePort,
   ) {}
 
-  async execute(): Promise<Result<CaseSummaryOutputDto[], CasePersistenceError>> {
-    let rows: Awaited<ReturnType<ICaseRepository['findAllActive']>>;
+  async execute(
+    filters: CaseListQueryFilter = {},
+  ): Promise<Result<CaseSummaryOutputDto[], CasePersistenceError>> {
+    let rows: Awaited<ReturnType<ICaseRepository['findAllActive']>> | null = null;
+
     try {
-      rows = await this.caseRepo.findAllActive();
+      rows = await this.listCache.get();
     } catch (err) {
-      this.logger.error('[Cases] findAllActive failed', err);
-      return Err(new CasePersistenceError());
+      this.logger.warn('[Cases] list cache read failed, using DB', err);
     }
 
-    const dtoList = rows.map(toCaseSummaryDto);
+    if (rows === null) {
+      try {
+        rows = await this.caseRepo.findAllActive();
+      } catch (err) {
+        this.logger.error('[Cases] findAllActive failed', err);
+        return Err(new CasePersistenceError());
+      }
 
-    void this.listCache
-      .set(rows, CASE_PUBLIC_READ_CACHE_TTL_SECONDS)
-      .catch((e) => this.logger.warn('[Cases] list cache write failed', e));
+      void this.listCache
+        .set(rows, CASE_PUBLIC_READ_CACHE_TTL_SECONDS)
+        .catch((e) => this.logger.warn('[Cases] list cache write failed', e));
+    }
 
-    return Ok(dtoList);
+    const filtered = filterCaseListEntries(rows, filters);
+    return Ok(filtered.map(toCaseSummaryDto));
   }
 }
 
@@ -47,6 +63,7 @@ export function toCaseSummaryDto(row: {
   imageUrl: string | null;
   price: number;
   variant: string;
+  catalogCategory: 'amp' | 'mm2';
   riskLevel: number;
   sortOrder: number;
 }): CaseSummaryOutputDto {
@@ -57,6 +74,7 @@ export function toCaseSummaryDto(row: {
     imageUrl: row.imageUrl,
     price: row.price,
     variant: row.variant,
+    category: row.catalogCategory,
     riskLevel: row.riskLevel,
     sortOrder: row.sortOrder,
   };
