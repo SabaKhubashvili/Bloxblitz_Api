@@ -13,9 +13,11 @@ function buildRakebackQueuePayload(event: BetPlacedEvent): string | null {
   const gameId = event.gameId;
   const betAmount = event.amount;
   const gameType = event.game;
+  const isLost = event.returnedAmount === 0;
   if (!gameId || gameId.length === 0) return null;
   if (!Number.isFinite(betAmount) || betAmount <= 0) return null;
   if (!gameType) return null;
+  if (!isLost) return null;
   const returnedAmount =
     typeof event.returnedAmount === 'number' && Number.isFinite(event.returnedAmount)
       ? Math.max(0, event.returnedAmount)

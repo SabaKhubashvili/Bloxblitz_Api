@@ -19,7 +19,7 @@ import { TransactionModule } from './modules/user/transaction.module';
 import { KinguinModule } from './modules/kinguin.module';
 import { UniwireModule } from './modules/uniwire.module';
 import { ProvablyFairModule } from './modules/user/provably-fair.module';
-import { JwtModule } from '@nestjs/jwt';
+import { RaceModule } from './modules/race.module';
 
 @Module({
   imports: [
@@ -41,6 +41,7 @@ import { JwtModule } from '@nestjs/jwt';
     UniwireModule,
     
     ProvablyFairModule,
+    RaceModule,
   ],
   controllers: [AppController],
 })

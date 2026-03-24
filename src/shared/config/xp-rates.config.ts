@@ -18,6 +18,7 @@ import { LEVELING_CONFIG } from '../../domain/leveling/config/leveling.config';
  *   COINFLIP: 5  → ~227  (pure luck; fastest rounds)
  *   CRASH:    7.5→ ~341  (timing skill; medium risk)
  *   MINES:   10  → ~455  (most decisions; high risk)
+ *   CASE:   5.5 → ~250  (single-click loot open; between coinflip and dice)
  */
 
 const SCALE = LEVELING_CONFIG.GAME_RATE_SCALE_FACTOR;
@@ -56,6 +57,11 @@ export const GAME_XP_RATES = {
     rationale:
       'Instant roll-based game; similar engagement to coinflip with single decision per round.',
   },
+  CASE: {
+    xpPerCoin: Math.round(5.5 * SCALE),
+    rationale:
+      'One action per open (weighted roll); engagement between coinflip and dice.',
+  },
 } as const satisfies Record<string, GameXpRate>;
 
 /** Convenience accessor — avoids magic strings at call sites. */
@@ -64,3 +70,4 @@ export const DICE_XP_RATE   = GAME_XP_RATES.DICE.xpPerCoin;
 export const CRASH_XP_RATE  = GAME_XP_RATES.CRASH.xpPerCoin;
 export const COINFLIP_XP_RATE = GAME_XP_RATES.COINFLIP.xpPerCoin;
 export const JACKPOT_XP_RATE  = GAME_XP_RATES.JACKPOT.xpPerCoin;
+export const CASE_XP_RATE     = GAME_XP_RATES.CASE.xpPerCoin;

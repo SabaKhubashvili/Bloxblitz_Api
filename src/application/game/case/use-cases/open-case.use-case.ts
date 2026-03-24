@@ -22,7 +22,15 @@ import {
   CasePersistenceError,
   type CaseError,
 } from '../../../../domain/game/case/errors/case.errors';
-import { CASE_DETAIL_CACHE, CASE_REPOSITORY } from '../tokens/case.tokens';
+import {
+  CASE_BET_EVENT_PUBLISHER,
+  CASE_DETAIL_CACHE,
+  CASE_REPOSITORY,
+} from '../tokens/case.tokens';
+import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publisher.port';
+import { CASE_XP_RATE } from '../../../../shared/config/xp-rates.config';
+import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
+import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
 import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 import { USER_SEED_REPOSITORY } from '../../dice/tokens/dice.tokens';
 import { DICE_BALANCE_LEDGER } from '../../dice/tokens/dice.tokens';
@@ -55,7 +63,10 @@ export class OpenCaseUseCase
     private readonly seedRepo: IUserSeedRepository,
     @Inject(DICE_BALANCE_LEDGER)
     private readonly ledger: IDiceBalanceLedgerPort,
+    @Inject(CASE_BET_EVENT_PUBLISHER)
+    private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly fairness: CaseFairnessDomainService,
+    private readonly addExperienceUseCase: AddExperienceUseCase,
   ) {}
 
   async execute(cmd: OpenCaseCommand): Promise<Result<OpenCaseOutputDto, CaseError>> {
@@ -218,34 +229,101 @@ export class OpenCaseUseCase
 
     const loopMs = msSince(tLoop);
 
-    const responseMs = msSince(tExec);
+    const tSave = performance.now();
+    try {
+      await this.caseRepo.saveOpens(writes);
+    } catch (err) {
+      this.logger.error(
+        `[Cases] saveOpens FAILED user=${cmd.username} slug=${cmd.slug} opens=${writes.length} — balance already moved; reconcile manually`,
+        err,
+      );
+      return Err(new CasePersistenceError());
+    }
+    const saveOpensMs = msSince(tSave);
+
     this.logger.log(
-      `[Cases] opened qty=${cmd.quantity} user=${cmd.username} slug=${cmd.slug} | perf response=${responseMs}ms detailCache=${detailCacheMs}ms detailDb=${detailDbMs}ms cacheHit=${detailFromCache} seed=${seedMs}ms loop=${loopMs}ms placeBetSum=${accPlaceBetMs}ms settleSum=${accSettleMs}ms saveOpens=deferred`,
+      `[Cases] saveOpens ok user=${cmd.username} slug=${cmd.slug} opens=${writes.length} ms=${saveOpensMs}`,
     );
 
-    const repo = this.caseRepo;
-    const logger = this.logger;
-    const { username, slug } = cmd;
+    const responseMs = msSince(tExec);
+    this.logger.log(
+      `[Cases] opened qty=${cmd.quantity} user=${cmd.username} slug=${cmd.slug} | perf response=${responseMs}ms detailCache=${detailCacheMs}ms detailDb=${detailDbMs}ms cacheHit=${detailFromCache} seed=${seedMs}ms loop=${loopMs}ms placeBetSum=${accPlaceBetMs}ms settleSum=${accSettleMs}ms saveOpens=${saveOpensMs}ms`,
+    );
+
+    const { username, profilePicture } = cmd;
     setImmediate(() => {
-      const tSave = performance.now();
-      void repo
-        .saveOpens(writes)
-        .then(() => {
-          logger.log(
-            `[Cases] saveOpens async ok user=${username} slug=${slug} opens=${writes.length} ms=${msSince(tSave)}`,
-          );
-        })
-        .catch((err: unknown) => {
-          logger.error(
-            `[Cases] saveOpens async FAILED user=${username} slug=${slug} opens=${writes.length} ms=${msSince(tSave)} — balance already moved; reconcile manually`,
-            err,
-          );
+      for (const w of writes) {
+        const profit = roundMoney(w.wonPetValue - w.pricePaid);
+        const multiplier =
+          w.pricePaid > 0
+            ? Number((w.wonPetValue / w.pricePaid).toFixed(4))
+            : 0;
+        const ts = Date.now();
+
+        void this.betEventPublisher.publishBetPlaced({
+          type: 'bet',
+          game: 'case',
+          gameId: w.id,
+          username,
+          userId: username,
+          caseId: w.caseId,
+          profilePicture: profilePicture ?? '',
+          amount: w.pricePaid,
+          returnedAmount: w.wonPetValue,
+          payout: w.wonPetValue,
+          level: 1,
+          multiplier,
+          profit,
+          result: profit >= 0 ? 'win' : 'loss',
+          createdAt: ts,
         });
+
+        const xpSource = profit >= 0 ? XpSource.GAME_WIN : XpSource.GAME_LOSE;
+        void this.grantCaseXp(username, w.pricePaid, w.id, xpSource);
+      }
     });
 
     return Ok({
       case: { id: detail.id, slug: detail.slug, name: detail.name },
       opens,
     });
+  }
+
+  private grantCaseXp(
+    username: string,
+    pricePaid: number,
+    openId: string,
+    source: XpSource,
+  ) {
+    const xpAmount = Math.floor(pricePaid * CASE_XP_RATE);
+    if (xpAmount <= 0) return Promise.resolve(null);
+
+    return this.addExperienceUseCase
+      .execute({
+        username,
+        amount: xpAmount,
+        source,
+        referenceId: openId,
+      })
+      .then((result) => {
+        if (!result.ok) {
+          this.logger.warn(
+            `[Cases] XP grant failed — user=${username} amount=${xpAmount} error=${result.error.message}`,
+          );
+        } else {
+          this.logger.debug(
+            `[Cases] XP granted — user=${username} xp=${xpAmount} ` +
+              `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
+          );
+        }
+        return result;
+      })
+      .catch((err) => {
+        this.logger.error(
+          `[Cases] Unexpected XP grant error — user=${username}`,
+          err,
+        );
+        return null;
+      });
   }
 }

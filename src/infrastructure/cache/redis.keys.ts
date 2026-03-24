@@ -128,6 +128,16 @@ export const RedisKeys = {
       /** Active cases catalog (list endpoint). Invalidate on case CRUD. */
       casesList: () => `cache:cases:list:active`,
 
+      /**
+       * Bumped (INCR) with `casesList` invalidation so all filtered list keys
+       * rotate without SCAN. Value is a small integer; no TTL.
+       */
+      casesListFilterEpoch: () => `cache:cases:list:flt:epoch`,
+
+      /** Filtered catalog snapshot: epoch + sha256(canonical filter). */
+      casesListFiltered: (epoch: number, filterHashHex: string) =>
+        `cache:cases:list:flt:v${epoch}:h${filterHashHex}`,
+
       /** Single case with items (detail endpoint). Keyed by slug. */
       caseDetail: (slug: string) =>
         `cache:cases:detail:v3:${encodeURIComponent(slug)}`,
@@ -157,6 +167,13 @@ export const RedisKeys = {
       },
     },
   
+    /* ─────────────── RATE LIMIT (sliding-ish window via fixed TTL) ─────────────── */
+
+    rateLimit: {
+      /** Fingerprint = short hash of client IP (never store raw IP in key). */
+      casesList: (fingerprint: string) => `rl:cases:list:${fingerprint}`,
+    },
+
     /* ─────────────── QUEUES ─────────────── */
     queue: {
       rakebackWagers: () => `queue:rakeback:wagers`,
@@ -174,5 +191,13 @@ export const RedisKeys = {
       userRank: (username: string) => `leveling:userRank:${username}`,
       leaderboard: (limit: number, offset: number) => `leveling:leaderboard:${limit}:${offset}`,
       distribution: () => `leveling:distribution`,
+    },
+
+    /* ─────────────── RACE (wagering leaderboard) ─────────────── */
+    race: {
+      current: () => `race:current`,
+      top10: (raceId: string) => `race:${raceId}:top10`,
+      userRank: (raceId: string, userId: string) =>
+        `race:${raceId}:rank:${userId}`,
     },
   } as const;

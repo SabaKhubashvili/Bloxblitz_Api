@@ -3,6 +3,7 @@ import { RedisService } from '../redis.service';
 import { RedisKeys } from '../redis.keys';
 import type { ICaseListCachePort } from '../../../domain/game/case/ports/case-list-cache.port';
 import type { CaseListEntry } from '../../../domain/game/case/ports/case.repository.port';
+import { normalizeCaseListEntries } from '../case-list-entries-normalize';
 
 @Injectable()
 export class CaseListCacheAdapter implements ICaseListCachePort {
@@ -16,13 +17,7 @@ export class CaseListCacheAdapter implements ICaseListCachePort {
         RedisKeys.cache.casesList(),
       );
       if (raw === null) return null;
-      return raw.map((e) => ({
-        ...e,
-        catalogCategory:
-          e.catalogCategory === 'mm2' || e.catalogCategory === 'amp'
-            ? e.catalogCategory
-            : 'amp',
-      }));
+      return normalizeCaseListEntries(raw);
     } catch (err) {
       this.logger.warn('[CaseListCache] get failed', err);
       return null;
@@ -40,6 +35,7 @@ export class CaseListCacheAdapter implements ICaseListCachePort {
   async invalidate(): Promise<void> {
     try {
       await this.redis.del(RedisKeys.cache.casesList());
+      await this.redis.incr(RedisKeys.cache.casesListFilterEpoch());
     } catch (err) {
       this.logger.warn('[CaseListCache] invalidate failed', err);
     }

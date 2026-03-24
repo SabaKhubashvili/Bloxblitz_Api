@@ -64,6 +64,8 @@ model User {
   dailySpinHistory DailySpinHistory[] @relation("DailySpinHistory")
   dailySpinState   DailySpinState?    @relation("DailySpinState")
 
+  raceParticipants RaceParticipant[]
+
   caseOpenHistory CaseOpenHistory[]
 
   @@index([username, rblx_id])
@@ -1132,4 +1134,57 @@ model DailySpinState {
 
   @@index([userUsername])
   @@index([nextSpinAt])
+}
+
+// ─── Wagering race (leaderboard) ─────────────────────────────────────────────
+
+enum RaceStatus {
+  ACTIVE
+  FINISHED
+}
+
+model Race {
+  id             String     @id @default(uuid())
+  startTime      DateTime
+  endTime        DateTime
+  status         RaceStatus @default(ACTIVE)
+  /// Optional denormalized total of `RaceReward.rewardAmount` for the race (1–10).
+  totalPrizePool Decimal?   @db.Decimal(14, 2)
+
+  participants RaceParticipant[]
+  rewards      RaceReward[]
+
+  @@index([status, endTime(sort: Desc)])
+  @@index([status, startTime(sort: Desc)])
+}
+
+model RaceParticipant {
+  id            String   @id @default(uuid())
+  raceId        String
+  userId        String
+  wageredAmount Decimal  @default(0) @db.Decimal(14, 2)
+  /// Tie-break: earlier `updatedAt` wins when `wageredAmount` ties. Managed in application layer (not @updatedAt).
+  updatedAt     DateTime @default(now())
+  /// Populated when the race finishes — avoids recounting for historical rank.
+  finalRank     Int?
+
+  race Race @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, userId])
+  @@index([raceId, wageredAmount(sort: Desc), updatedAt(sort: Asc)])
+  @@index([userId])
+}
+
+/// Prize schedule for positions 1–10 (same rows used for active display and finished history).
+model RaceReward {
+  id           String  @id @default(uuid())
+  raceId       String
+  position     Int
+  rewardAmount Decimal @db.Decimal(14, 2)
+
+  race Race @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, position])
+  @@index([raceId])
 }

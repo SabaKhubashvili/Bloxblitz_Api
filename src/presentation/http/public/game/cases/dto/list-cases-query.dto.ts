@@ -24,12 +24,18 @@ export class ListCasesQueryDto {
   maxPrice?: number;
 
   @IsOptional()
-  @IsIn(['low', 'medium', 'high', 'critical'])
-  riskMin?: 'low' | 'medium' | 'high' | 'critical';
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  riskMin?: number;
 
   @IsOptional()
-  @IsIn(['low', 'medium', 'high', 'critical'])
-  riskMax?: 'low' | 'medium' | 'high' | 'critical';
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  riskMax?: number;
 
   @IsOptional()
   @IsIn(['price'])
@@ -62,8 +68,15 @@ export function toCaseListQueryFilter(dto: ListCasesQueryDto): CaseListQueryFilt
   if (minP !== undefined) out.minPrice = minP;
   if (maxP !== undefined) out.maxPrice = maxP;
 
-  if (dto.riskMin !== undefined) out.riskMin = dto.riskMin;
-  if (dto.riskMax !== undefined) out.riskMax = dto.riskMax;
+  let rMin = dto.riskMin;
+  let rMax = dto.riskMax;
+  if (rMin !== undefined && rMax !== undefined && rMin > rMax) {
+    const t = rMin;
+    rMin = rMax;
+    rMax = t;
+  }
+  if (rMin !== undefined) out.riskMin = rMin;
+  if (rMax !== undefined) out.riskMax = rMax;
 
   if (dto.search !== undefined) {
     const s = dto.search.trim();

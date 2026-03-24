@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 
+import { LevelingModule } from '../user/statistics/leveling.module';
+import { BetEventPublisher } from '../../infrastructure/messaging/redis-pub-sub/bet-event.publisher';
+
 import { ListCasesUseCase } from '../../application/game/case/use-cases/list-cases.use-case';
 import { GetCaseBySlugUseCase } from '../../application/game/case/use-cases/get-case-by-slug.use-case';
 import { GetCaseMetadataUseCase } from '../../application/game/case/use-cases/get-case-metadata.use-case';
@@ -10,6 +13,7 @@ import { CaseMetadataDomainService } from '../../domain/game/case/services/case-
 
 import { PrismaCaseRepository } from '../../infrastructure/persistance/repositories/game/case.repository';
 import { CaseListCacheAdapter } from '../../infrastructure/cache/adapters/case-list-cache.adapter';
+import { CaseListFilteredReadAdapter } from '../../infrastructure/cache/adapters/case-list-filtered-read.adapter';
 import { CaseDetailCacheAdapter } from '../../infrastructure/cache/adapters/case-detail-cache.adapter';
 import { UserSeedRepository } from '../../infrastructure/persistance/repositories/user/user-seed.repository';
 import { DiceBalanceLedgerAdapter } from '../../infrastructure/cache/adapters/dice-balance-ledger.adapter';
@@ -17,7 +21,9 @@ import { DiceBalanceLedgerAdapter } from '../../infrastructure/cache/adapters/di
 import {
   CASE_REPOSITORY,
   CASE_LIST_CACHE,
+  CASE_LIST_FILTERED_READ,
   CASE_DETAIL_CACHE,
+  CASE_BET_EVENT_PUBLISHER,
 } from '../../application/game/case/tokens/case.tokens';
 import {
   USER_SEED_REPOSITORY,
@@ -25,13 +31,14 @@ import {
 } from '../../application/game/dice/tokens/dice.tokens';
 
 import { CasesController } from '../../presentation/http/public/game/cases/cases.controller';
+import { CasesListRateLimitGuard } from '../../presentation/http/public/game/cases/guards/cases-list-rate-limit.guard';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
 import { ProvablyFairModule } from '../user/provably-fair.module';
 
 @Module({
-  imports: [AuthModule, ProvablyFairModule],
+  imports: [AuthModule, ProvablyFairModule, LevelingModule],
   controllers: [CasesController],
   providers: [
     ListCasesUseCase,
@@ -43,11 +50,17 @@ import { ProvablyFairModule } from '../user/provably-fair.module';
     CaseFairnessDomainService,
     JwtAuthGuard,
     RolesGuard,
+    CasesListRateLimitGuard,
     { provide: CASE_REPOSITORY, useClass: PrismaCaseRepository },
     { provide: CASE_LIST_CACHE, useClass: CaseListCacheAdapter },
+    {
+      provide: CASE_LIST_FILTERED_READ,
+      useClass: CaseListFilteredReadAdapter,
+    },
     { provide: CASE_DETAIL_CACHE, useClass: CaseDetailCacheAdapter },
     { provide: USER_SEED_REPOSITORY, useClass: UserSeedRepository },
     { provide: DICE_BALANCE_LEDGER, useClass: DiceBalanceLedgerAdapter },
+    { provide: CASE_BET_EVENT_PUBLISHER, useClass: BetEventPublisher },
   ],
   exports: [CASE_LIST_CACHE, ListCasesUseCase, GetCaseBySlugUseCase, OpenCaseUseCase],
 })

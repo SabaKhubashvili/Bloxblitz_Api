@@ -1,3 +1,4 @@
+import type { CaseListQueryFilter } from '../services/case-list-query.policy';
 
 export interface CasePetSnapshot {
   id: number;
@@ -92,7 +93,8 @@ export interface CreateCaseWithItemsInput {
 }
 
 export interface ICaseRepository {
-  findAllActive(): Promise<CaseListEntry[]>;
+  /** Active cases; applies filters and ordering in the database. */
+  findAllActive(filters?: CaseListQueryFilter): Promise<CaseListEntry[]>;
   /** Includes inactive cases; caller decides NotFound vs inactive. */
   findBySlugWithItems(slug: string): Promise<CaseDetailRecord | null>;
   /** Lightweight case row + item count for public metadata (no pets/items payload). */

@@ -3,10 +3,17 @@ import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { ICaseRepository } from '../../../../domain/game/case/ports/case.repository.port';
 import type { ICaseListCachePort } from '../../../../domain/game/case/ports/case-list-cache.port';
-import { filterCaseListEntries } from '../../../../domain/game/case/services/case-list-query.policy';
-import type { CaseListQueryFilter } from '../../../../domain/game/case/services/case-list-query.policy';
+import type { ICaseListFilteredReadPort } from '../../../../domain/game/case/ports/case-list-filtered-read.port';
+import {
+  isCaseListQueryUnfiltered,
+  type CaseListQueryFilter,
+} from '../../../../domain/game/case/services/case-list-query.policy';
 import { CasePersistenceError } from '../../../../domain/game/case/errors/case.errors';
-import { CASE_REPOSITORY, CASE_LIST_CACHE } from '../tokens/case.tokens';
+import {
+  CASE_REPOSITORY,
+  CASE_LIST_CACHE,
+  CASE_LIST_FILTERED_READ,
+} from '../tokens/case.tokens';
 import type { CaseSummaryOutputDto } from '../dto/case.output-dto';
 import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 
@@ -25,12 +32,27 @@ export class ListCasesUseCase
     private readonly caseRepo: ICaseRepository,
     @Inject(CASE_LIST_CACHE)
     private readonly listCache: ICaseListCachePort,
+    @Inject(CASE_LIST_FILTERED_READ)
+    private readonly filteredRead: ICaseListFilteredReadPort,
   ) {}
 
   async execute(
     filters: CaseListQueryFilter = {},
   ): Promise<Result<CaseSummaryOutputDto[], CasePersistenceError>> {
-    let rows: Awaited<ReturnType<ICaseRepository['findAllActive']>> | null = null;
+    if (!isCaseListQueryUnfiltered(filters)) {
+      try {
+        const rows = await this.filteredRead.load(filters, () =>
+          this.caseRepo.findAllActive(filters),
+        );
+        return Ok(rows.map(toCaseSummaryDto));
+      } catch (err) {
+        this.logger.error('[Cases] findAllActive (filtered) failed', err);
+        return Err(new CasePersistenceError());
+      }
+    }
+
+    let rows: Awaited<ReturnType<ICaseRepository['findAllActive']>> | null =
+      null;
 
     try {
       rows = await this.listCache.get();
@@ -40,7 +62,7 @@ export class ListCasesUseCase
 
     if (rows === null) {
       try {
-        rows = await this.caseRepo.findAllActive();
+        rows = await this.caseRepo.findAllActive({});
       } catch (err) {
         this.logger.error('[Cases] findAllActive failed', err);
         return Err(new CasePersistenceError());
@@ -51,8 +73,7 @@ export class ListCasesUseCase
         .catch((e) => this.logger.warn('[Cases] list cache write failed', e));
     }
 
-    const filtered = filterCaseListEntries(rows, filters);
-    return Ok(filtered.map(toCaseSummaryDto));
+    return Ok(rows.map(toCaseSummaryDto));
   }
 }
 

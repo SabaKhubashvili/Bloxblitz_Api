@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { resolvePetValueForCaseItemVariants } from '../../../../domain/game/case/services/case-item-pet-value';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { CaseListQueryFilter } from '../../../../domain/game/case/services/case-list-query.policy';
 import type {
   ICaseRepository,
   CaseListEntry,
@@ -28,10 +29,57 @@ export class PrismaCaseRepository implements ICaseRepository {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllActive(): Promise<CaseListEntry[]> {
+  async findAllActive(
+    filters: CaseListQueryFilter = {},
+  ): Promise<CaseListEntry[]> {
+    const where: Prisma.CaseWhereInput = { isActive: true };
+
+    const priceCond: Prisma.DecimalFilter = {};
+    if (filters.minPrice !== undefined) {
+      priceCond.gte = new Prisma.Decimal(filters.minPrice);
+    }
+    if (filters.maxPrice !== undefined) {
+      priceCond.lte = new Prisma.Decimal(filters.maxPrice);
+    }
+    if (Object.keys(priceCond).length > 0) {
+      where.price = priceCond;
+    }
+
+    const riskCond: Prisma.DecimalFilter = {};
+    if (filters.riskMin !== undefined) {
+      riskCond.gte = new Prisma.Decimal(filters.riskMin);
+    }
+    if (filters.riskMax !== undefined) {
+      riskCond.lte = new Prisma.Decimal(filters.riskMax);
+    }
+    if (Object.keys(riskCond).length > 0) {
+      where.riskLevel = riskCond;
+    }
+
+    if (filters.category === 'amp') {
+      where.catalogCategory = CaseCatalogCategory.AMP;
+    } else if (filters.category === 'mm2') {
+      where.catalogCategory = CaseCatalogCategory.MM2;
+    }
+
+    if (filters.search !== undefined && filters.search.trim().length > 0) {
+      where.name = {
+        contains: filters.search.trim(),
+        mode: 'insensitive',
+      };
+    }
+
+    const orderBy: Prisma.CaseOrderByWithRelationInput[] =
+      filters.sortBy === 'price'
+        ? [
+            { price: filters.order === 'desc' ? 'desc' : 'asc' },
+            { name: 'asc' },
+          ]
+        : [{ sortOrder: 'asc' }, { name: 'asc' }];
+
     const rows = await this.prisma.case.findMany({
-      where: { isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      where,
+      orderBy,
     });
     return rows.map(toListEntry);
   }

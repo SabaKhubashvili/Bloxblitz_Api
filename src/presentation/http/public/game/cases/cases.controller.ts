@@ -36,6 +36,7 @@ import {
   ListCasesQueryDto,
   toCaseListQueryFilter,
 } from './dto/list-cases-query.dto';
+import { CasesListRateLimitGuard } from './guards/cases-list-rate-limit.guard';
 
 const CASE_SLUG_MAX_LEN = 160;
 
@@ -66,6 +67,7 @@ export class CasesController {
   ) {}
 
   @Get()
+  @UseGuards(CasesListRateLimitGuard)
   @HttpCode(HttpStatus.OK)
   async list(@Query() query: ListCasesQueryDto) {
     const filters = toCaseListQueryFilter(query);
@@ -151,6 +153,7 @@ export class CasesController {
   ) {
     const result = await this.openCaseUseCase.execute({
       username: user.username,
+      profilePicture: user.profilePicture,
       slug: assertValidCaseSlugParam(decodeURIComponent(slug)),
       quantity: dto.quantity ?? 1,
     });

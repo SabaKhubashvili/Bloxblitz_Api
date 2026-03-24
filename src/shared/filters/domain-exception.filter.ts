@@ -95,6 +95,14 @@ import {
   CaseInvalidItemsError,
 } from '../../domain/game/case/errors/case.errors';
 
+import {
+  RaceNotFoundError,
+  RaceNotActiveError,
+  RaceAlreadyFinishedError,
+  InvalidRaceWagerError,
+  InvalidRaceRewardsError,
+} from '../../domain/race/errors/race.errors';
+
 /**
  * Global domain-exception filter.
  *
@@ -213,6 +221,13 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof CaseSlugTakenError)          return HttpStatus.CONFLICT;
     if (error instanceof CaseUnknownPetsError)        return HttpStatus.BAD_REQUEST;
     if (error instanceof CaseInvalidItemsError)       return HttpStatus.BAD_REQUEST;
+
+    // ── Race ────────────────────────────────────────────────────────────────────
+    if (error instanceof RaceNotFoundError)          return HttpStatus.NOT_FOUND;
+    if (error instanceof RaceNotActiveError)         return HttpStatus.CONFLICT;
+    if (error instanceof RaceAlreadyFinishedError)   return HttpStatus.CONFLICT;
+    if (error instanceof InvalidRaceWagerError)      return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidRaceRewardsError)    return HttpStatus.BAD_REQUEST;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;
