@@ -18,7 +18,7 @@ export class UpdateUserWagerInRaceUseCase {
    */
   async execute(params: {
     raceId: string;
-    userId: string;
+    userUsername: string;
     amount: string;
   }): Promise<void> {
     let delta: Prisma.Decimal;
@@ -31,11 +31,15 @@ export class UpdateUserWagerInRaceUseCase {
       throw new InvalidRaceWagerError();
     }
 
-    await this.raceRepository.incrementWager(
+    const participant = await this.raceRepository.incrementWager(
       params.raceId,
-      params.userId,
+      params.userUsername,
       params.amount.trim(),
     );
-    await this.raceCache.invalidateAfterWager(params.raceId, params.userId);
+    await this.raceCache.refreshAfterWager(
+      params.raceId,
+      params.userUsername,
+      participant,
+    );
   }
 }

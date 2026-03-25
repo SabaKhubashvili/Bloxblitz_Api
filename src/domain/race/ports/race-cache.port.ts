@@ -1,5 +1,8 @@
-import type { RaceRecord } from './race.repository.port';
-import type { RaceLeaderboardEntry } from './race.repository.port';
+import type {
+  RaceLeaderboardEntry,
+  RaceParticipantAfterIncrement,
+  RaceRecord,
+} from './race.repository.port';
 
 /** Cached shape for `race:current` (no leaderboard rows). */
 export interface CurrentRaceCachePayload {
@@ -32,8 +35,15 @@ export interface IRaceCachePort {
   ): Promise<void>;
   deleteUserRank(raceId: string, userId: string): Promise<void>;
 
-  /** After a wager mutation: drop leaderboard + this user’s rank snapshot. */
-  invalidateAfterWager(raceId: string, userId: string): Promise<void>;
+  /**
+   * After a credited race wager: clear this user’s rank snapshot and merge
+   * their new totals into cached top-10 when present (avoids nuking `race:current`).
+   */
+  refreshAfterWager(
+    raceId: string,
+    userUsername: string,
+    participant: RaceParticipantAfterIncrement,
+  ): Promise<void>;
 
   /** After a race completes: clear current race + that race’s hot keys. */
   invalidateAfterFinish(raceId: string): Promise<void>;

@@ -1161,7 +1161,7 @@ model Race {
 model RaceParticipant {
   id            String   @id @default(uuid())
   raceId        String
-  userId        String
+  userUsername  String
   wageredAmount Decimal  @default(0) @db.Decimal(14, 2)
   /// Tie-break: earlier `updatedAt` wins when `wageredAmount` ties. Managed in application layer (not @updatedAt).
   updatedAt     DateTime @default(now())
@@ -1169,11 +1169,11 @@ model RaceParticipant {
   finalRank     Int?
 
   race Race @relation(fields: [raceId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
 
-  @@unique([raceId, userId])
+  @@unique([raceId, userUsername])
   @@index([raceId, wageredAmount(sort: Desc), updatedAt(sort: Asc)])
-  @@index([userId])
+  @@index([userUsername])
 }
 
 /// Prize schedule for positions 1–10 (same rows used for active display and finished history).

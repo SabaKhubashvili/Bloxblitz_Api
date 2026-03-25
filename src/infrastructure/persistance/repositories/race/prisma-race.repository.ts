@@ -12,6 +12,7 @@ import type {
   CreateRaceInput,
   IRaceRepository,
   RaceLeaderboardEntry,
+  RaceParticipantAfterIncrement,
   RaceParticipantSnapshot,
   RaceRecord,
   RaceRewardRecord,
@@ -40,7 +41,7 @@ function toRaceRecord(row: {
 
 type RankedRow = {
   raceId: string;
-  userId: string;
+  userUsername: string;
   wageredAmount: Prisma.Decimal;
   updatedAt: Date;
   username: string;
@@ -120,8 +121,8 @@ export class PrismaRaceRepository implements IRaceRepository {
       },
     });
     return rows.map((r, i) => ({
+      userId: r.user.id,
       position: i + 1,
-      userId: r.userId,
       username: r.user.username,
       profilePicture: r.user.profile_picture,
       wageredAmount: decStr(r.wageredAmount),
@@ -140,7 +141,7 @@ export class PrismaRaceRepository implements IRaceRepository {
       SELECT * FROM (
         SELECT
           p."raceId",
-          p."userId",
+          p."userUsername",
           p."wageredAmount",
           p."updatedAt",
           u."username",
@@ -150,7 +151,7 @@ export class PrismaRaceRepository implements IRaceRepository {
             ORDER BY p."wageredAmount" DESC, p."updatedAt" ASC
           ))::int AS position
         FROM "RaceParticipant" p
-        INNER JOIN "User" u ON u."id" = p."userId"
+        INNER JOIN "User" u ON u."username" = p."userUsername"
         WHERE p."raceId" IN (${Prisma.join(raceIds)})
       ) sub
       WHERE sub.position <= ${limit}
@@ -161,7 +162,6 @@ export class PrismaRaceRepository implements IRaceRepository {
       const list = out.get(r.raceId) ?? [];
       list.push({
         position: r.position,
-        userId: r.userId,
         username: r.username,
         profilePicture: r.profilePicture,
         wageredAmount: decStr(r.wageredAmount),
@@ -175,9 +175,9 @@ export class PrismaRaceRepository implements IRaceRepository {
 
   async incrementWager(
     raceId: string,
-    userId: string,
+    userUsername: string,
     delta: string,
-  ): Promise<void> {
+  ): Promise<RaceParticipantAfterIncrement> {
     const race = await this.prisma.race.findUnique({
       where: { id: raceId },
       select: { status: true },
@@ -194,13 +194,13 @@ export class PrismaRaceRepository implements IRaceRepository {
       throw new InvalidRaceWagerError();
     }
 
-    await this.prisma.raceParticipant.upsert({
+    const row = await this.prisma.raceParticipant.upsert({
       where: {
-        raceId_userId: { raceId, userId },
+        raceId_userUsername: { raceId, userUsername },
       },
       create: {
         raceId,
-        userId,
+        userUsername,
         wageredAmount: d,
         updatedAt: new Date(),
       },
@@ -208,19 +208,32 @@ export class PrismaRaceRepository implements IRaceRepository {
         wageredAmount: { increment: d },
         updatedAt: new Date(),
       },
+      include: {
+        user: {
+          select: { id: true, username: true, profile_picture: true },
+        },
+      },
     });
+
+    return {
+      userId: row.user.id,
+      username: row.userUsername,
+      profilePicture: row.user.profile_picture,
+      wageredAmount: decStr(row.wageredAmount),
+      updatedAt: row.updatedAt,
+    };
   }
 
   async getParticipant(
     raceId: string,
-    userId: string,
+    userUsername: string,
   ): Promise<RaceParticipantSnapshot | null> {
     const row = await this.prisma.raceParticipant.findUnique({
-      where: { raceId_userId: { raceId, userId } },
+      where: { raceId_userUsername: { raceId, userUsername } },
     });
     if (!row) return null;
     return {
-      userId: row.userId,
+      username: row.userUsername,
       wageredAmount: decStr(row.wageredAmount),
       updatedAt: row.updatedAt,
       finalRank: row.finalRank,
@@ -306,6 +319,19 @@ export class PrismaRaceRepository implements IRaceRepository {
       take: limit,
     });
     return rows.map(toRaceRecord);
+  }
+
+  async findRaceOverlappingTimeRange(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<RaceRecord | null> {
+    const row = await this.prisma.race.findFirst({
+      where: {
+        startTime: { lt: endTime },
+        endTime: { gt: startTime },
+      },
+    });
+    return row ? toRaceRecord(row) : null;
   }
 
   async createRaceWithRewards(input: CreateRaceInput): Promise<string> {

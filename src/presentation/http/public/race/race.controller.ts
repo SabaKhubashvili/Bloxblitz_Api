@@ -46,8 +46,8 @@ export class RaceController {
   @HttpCode(HttpStatus.OK)
   async getCurrent(@Req() req: Request) {
     const user = req['user'] as JwtPayload | undefined;
-    const userId = user?.id ?? null;
-    return this.getCurrentRace.execute(userId);
+    const userUsername = user?.username ?? null;
+    return this.getCurrentRace.execute(userUsername);
   }
 
   @Get('previous')
@@ -63,7 +63,7 @@ export class RaceController {
     @CurrentUser() user: JwtPayload,
     @Body() body: WagerOnActiveRaceHttpDto,
   ) {
-    await this.updateWagerOnActiveRace.execute(user.id, body.amount);
+    await this.updateWagerOnActiveRace.execute(user.username, body.amount);
   }
 
   @Post(':raceId/finish')

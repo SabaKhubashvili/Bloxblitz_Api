@@ -101,6 +101,8 @@ import {
   RaceAlreadyFinishedError,
   InvalidRaceWagerError,
   InvalidRaceRewardsError,
+  InvalidRaceTimeRangeError,
+  RaceTimeOverlapError,
 } from '../../domain/race/errors/race.errors';
 
 /**
@@ -228,6 +230,8 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof RaceAlreadyFinishedError)   return HttpStatus.CONFLICT;
     if (error instanceof InvalidRaceWagerError)      return HttpStatus.BAD_REQUEST;
     if (error instanceof InvalidRaceRewardsError)    return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidRaceTimeRangeError)  return HttpStatus.BAD_REQUEST;
+    if (error instanceof RaceTimeOverlapError)       return HttpStatus.CONFLICT;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

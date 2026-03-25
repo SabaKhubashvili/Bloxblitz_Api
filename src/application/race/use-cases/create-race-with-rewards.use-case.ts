@@ -4,7 +4,11 @@ import type {
   IRaceRepository,
 } from '../../../domain/race/ports/race.repository.port';
 import type { IRaceCachePort } from '../../../domain/race/ports/race-cache.port';
-import { InvalidRaceRewardsError } from '../../../domain/race/errors/race.errors';
+import {
+  InvalidRaceRewardsError,
+  InvalidRaceTimeRangeError,
+  RaceTimeOverlapError,
+} from '../../../domain/race/errors/race.errors';
 import { RACE_CACHE, RACE_REPOSITORY } from '../tokens/race.tokens';
 
 @Injectable()
@@ -24,6 +28,18 @@ export class CreateRaceWithRewardsUseCase {
         throw new InvalidRaceRewardsError();
       }
       seen.add(r.position);
+    }
+
+    if (input.startTime >= input.endTime) {
+      throw new InvalidRaceTimeRangeError();
+    }
+
+    const overlapping = await this.raceRepository.findRaceOverlappingTimeRange(
+      input.startTime,
+      input.endTime,
+    );
+    if (overlapping) {
+      throw new RaceTimeOverlapError();
     }
 
     const raceId = await this.raceRepository.createRaceWithRewards(input);

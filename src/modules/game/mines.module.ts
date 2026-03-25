@@ -47,12 +47,14 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
 import { ProvablyFairModule } from '../user/provably-fair.module';
+import { RaceModule } from '../race.module';
 
 @Module({
   imports: [
     AuthModule,
     LevelingModule,
     ProvablyFairModule,
+    RaceModule,
   ],
   controllers: [MinesController, MinesHistoryController],
   providers: [

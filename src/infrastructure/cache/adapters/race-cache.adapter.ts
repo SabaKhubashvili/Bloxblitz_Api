@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { RedisArgument } from 'redis';
 import { RedisService } from '../redis.service';
 import { RedisKeys } from '../redis.keys';
@@ -8,6 +9,7 @@ import type {
 } from '../../../domain/race/ports/race-cache.port';
 import type {
   RaceLeaderboardEntry,
+  RaceParticipantAfterIncrement,
   RaceRecord,
 } from '../../../domain/race/ports/race.repository.port';
 import { RaceStatus } from '../../../domain/race/enums/race-status.enum';
@@ -20,6 +22,17 @@ type SerializedCurrentRace = {
   };
   rewards: Array<{ position: number; rewardAmount: string }>;
 };
+
+function compareLeaderboardRows(
+  a: RaceLeaderboardEntry,
+  b: RaceLeaderboardEntry,
+): number {
+  const wa = new Prisma.Decimal(a.wageredAmount);
+  const wb = new Prisma.Decimal(b.wageredAmount);
+  const cmp = wb.cmp(wa);
+  if (cmp !== 0) return cmp;
+  return a.updatedAt.getTime() - b.updatedAt.getTime();
+}
 
 @Injectable()
 export class RaceCacheAdapter implements IRaceCachePort {
@@ -161,10 +174,50 @@ export class RaceCacheAdapter implements IRaceCachePort {
     }
   }
 
-  async invalidateAfterWager(raceId: string, userId: string): Promise<void> {
-    await this.deleteTop10(raceId);
-    await this.deleteUserRank(raceId, userId);
-    await this.deleteCurrentRace();
+  async refreshAfterWager(
+    raceId: string,
+    userUsername: string,
+    participant: RaceParticipantAfterIncrement,
+  ): Promise<void> {
+    await this.deleteUserRank(raceId, userUsername);
+    try {
+      const cached = await this.getTop10(raceId);
+      if (cached === null) return;
+      const merged = this.mergeTop10WithParticipant(cached, participant);
+      await this.setTop10(raceId, merged, RACE_CACHE_TTL.top10Sec);
+    } catch (e) {
+      this.logger.warn(
+        `[RaceCache] refreshAfterWager merge failed raceId=${raceId}`,
+        e,
+      );
+    }
+  }
+
+  private mergeTop10WithParticipant(
+    current: RaceLeaderboardEntry[],
+    p: RaceParticipantAfterIncrement,
+  ): RaceLeaderboardEntry[] {
+    const byUser = new Map<string, RaceLeaderboardEntry>();
+    for (const row of current) {
+      byUser.set(row.username, {
+        userId: row.userId,
+        position: row.position,
+        username: row.username,
+        profilePicture: row.profilePicture,
+        wageredAmount: row.wageredAmount,
+        updatedAt: row.updatedAt,
+      });
+    }
+    byUser.set(p.username, {
+      userId: p.userId,
+      position: 0,
+      username: p.username,
+      profilePicture: p.profilePicture,
+      wageredAmount: p.wageredAmount,
+      updatedAt: p.updatedAt,
+    });
+    const sorted = [...byUser.values()].sort(compareLeaderboardRows).slice(0, 10);
+    return sorted.map((r, i) => ({ ...r, position: i + 1 }));
   }
 
   async invalidateAfterFinish(raceId: string): Promise<void> {

@@ -12,6 +12,9 @@ import { GetLeaderboardUseCase } from '../application/race/use-cases/get-leaderb
 import { GetUserRankUseCase } from '../application/race/use-cases/get-user-rank.use-case';
 import { UpdateUserWagerInRaceUseCase } from '../application/race/use-cases/update-user-wager-in-race.use-case';
 import { UpdateWagerOnActiveRaceUseCase } from '../application/race/use-cases/update-wager-on-active-race.use-case';
+import { IncrementRaceWagerUseCase } from '../application/race/use-cases/increment-race-wager.use-case';
+import { RaceWagerSignalsService } from '../application/race/services/race-wager-signals.service';
+import { RaceLeaderboardRefreshWorker } from '../infrastructure/workers/race-leaderboard-refresh.worker';
 import { FinishRaceUseCase } from '../application/race/use-cases/finish-race.use-case';
 import { CreateRaceWithRewardsUseCase } from '../application/race/use-cases/create-race-with-rewards.use-case';
 
@@ -36,7 +39,10 @@ import { RolesGuard } from '../shared/guards/roles.guard';
     GetLeaderboardUseCase,
     GetUserRankUseCase,
     UpdateUserWagerInRaceUseCase,
+    RaceWagerSignalsService,
+    IncrementRaceWagerUseCase,
     UpdateWagerOnActiveRaceUseCase,
+    RaceLeaderboardRefreshWorker,
     FinishRaceUseCase,
     CreateRaceWithRewardsUseCase,
   ],
@@ -46,6 +52,7 @@ import { RolesGuard } from '../shared/guards/roles.guard';
     GetLeaderboardUseCase,
     GetUserRankUseCase,
     UpdateUserWagerInRaceUseCase,
+    IncrementRaceWagerUseCase,
     FinishRaceUseCase,
   ],
 })

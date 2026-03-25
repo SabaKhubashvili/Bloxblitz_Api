@@ -25,6 +25,7 @@ import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-exper
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { DICE_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { sha256HashServerSeed } from '../../../../domain/shared/provably-fair-hash';
+import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 
 const HOUSE_EDGE_PERCENT = 1;
 const MIN_CHANCE = 2;
@@ -49,6 +50,7 @@ export class RollDiceUseCase implements IUseCase<
     private readonly betPublisher: IBetEventPublisherPort,
     private readonly fairnessService: DiceFairnessDomainService,
     private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly incrementRaceWager: IncrementRaceWagerUseCase,
   ) {}
 
   async execute(
@@ -70,6 +72,12 @@ export class RollDiceUseCase implements IUseCase<
     if (!betResult.success) {
       return Err(new InsufficientBalanceError());
     }
+
+    void this.incrementRaceWager.executeBestEffort({
+      username: cmd.username,
+      grossBetAmount: cmd.betAmount,
+      source: 'dice',
+    });
 
     const nonce = betResult.nonce!;
 

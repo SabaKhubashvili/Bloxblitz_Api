@@ -199,5 +199,8 @@ export const RedisKeys = {
       top10: (raceId: string) => `race:${raceId}:top10`,
       userRank: (raceId: string, userId: string) =>
         `race:${raceId}:rank:${userId}`,
+      wagerVelocity: (username: string) => `race:wager:vel:${username}`,
+      minesQuickStreak: (username: string) =>
+        `race:wager:minesQuick:${username}`,
     },
   } as const;

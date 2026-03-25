@@ -15,8 +15,9 @@ export interface RaceRewardRecord {
 }
 
 export interface RaceLeaderboardEntry {
+  /** Database user id (UUID). Omitted on legacy cached leaderboard rows until refresh. */
+  userId?: string;
   position: number;
-  userId: string;
   username: string;
   profilePicture: string;
   wageredAmount: string;
@@ -24,10 +25,19 @@ export interface RaceLeaderboardEntry {
 }
 
 export interface RaceParticipantSnapshot {
-  userId: string;
+  username: string;
   wageredAmount: string;
   updatedAt: Date;
   finalRank: number | null;
+}
+
+/** Row returned after incrementing wager (for cache merge). */
+export interface RaceParticipantAfterIncrement {
+  userId: string;
+  username: string;
+  profilePicture: string;
+  wageredAmount: string;
+  updatedAt: Date;
 }
 
 export interface CreateRaceRewardInput {
@@ -58,9 +68,9 @@ export interface IRaceRepository {
   ): Promise<Map<string, RaceLeaderboardEntry[]>>;
   incrementWager(
     raceId: string,
-    userId: string,
+    userUsername: string,
     delta: string,
-  ): Promise<void>;
+  ): Promise<RaceParticipantAfterIncrement>;
   getParticipant(
     raceId: string,
     userId: string,
@@ -75,5 +85,10 @@ export interface IRaceRepository {
     offset: number,
     limit: number,
   ): Promise<RaceRecord[]>;
+  /** Any race whose interval overlaps [startTime, endTime] (touching endpoints do not count as overlap). */
+  findRaceOverlappingTimeRange(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<RaceRecord | null>;
   createRaceWithRewards(input: CreateRaceInput): Promise<string>;
 }

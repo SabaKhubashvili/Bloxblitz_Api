@@ -23,6 +23,7 @@ import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-exper
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
+import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 
 @Injectable()
 export class CashoutMinesGameUseCase
@@ -37,6 +38,7 @@ export class CashoutMinesGameUseCase
     @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
     @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly incrementRaceWager: IncrementRaceWagerUseCase,
   ) {}
 
   async execute(cmd: CashoutMinesGameCommand): Promise<Result<CashoutOutputDto, MinesError>> {
@@ -61,7 +63,9 @@ export class CashoutMinesGameUseCase
     // Remove the active-game pointer so no further actions can be taken.
     await this.minesCache.deleteActiveGame(cmd.username, game.id.value);
 
- 
+    if (game.revealedTiles.size === 1) {
+      this.incrementRaceWager.notifyMinesSingleTileCashout(cmd.username);
+    }
 
     // Invalidate history cache so the next history request reflects this round.
     void this.historyCache.invalidate(cmd.username).catch((err) =>

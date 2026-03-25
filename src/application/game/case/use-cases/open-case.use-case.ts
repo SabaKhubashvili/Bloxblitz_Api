@@ -35,6 +35,7 @@ import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 import { USER_SEED_REPOSITORY } from '../../dice/tokens/dice.tokens';
 import { DICE_BALANCE_LEDGER } from '../../dice/tokens/dice.tokens';
 import type { OpenCaseCommand } from '../dto/open-case.command';
+import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 import type { OpenCaseOutputDto, CaseOpenSingleOutputDto } from '../dto/case.output-dto';
 
 const MIN_QTY = 1;
@@ -67,6 +68,7 @@ export class OpenCaseUseCase
     private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly fairness: CaseFairnessDomainService,
     private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly incrementRaceWager: IncrementRaceWagerUseCase,
   ) {}
 
   async execute(cmd: OpenCaseCommand): Promise<Result<OpenCaseOutputDto, CaseError>> {
@@ -151,6 +153,12 @@ export class OpenCaseUseCase
         );
         return Err(new CaseInsufficientBalanceError());
       }
+
+      void this.incrementRaceWager.executeBestEffort({
+        username: cmd.username,
+        grossBetAmount: price,
+        source: 'case',
+      });
 
       // `placeBet` atomically deducts the case price and INCRs Redis `user:nonce:{user}`.
       const nonce = bet.nonce!;

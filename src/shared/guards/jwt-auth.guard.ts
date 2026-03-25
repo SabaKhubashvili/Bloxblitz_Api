@@ -35,6 +35,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
+      
 
       if (!isValidUserRole(payload.role)) {
         throw new UnauthorizedException('Token contains an invalid role');
@@ -43,6 +44,7 @@ export class JwtAuthGuard implements CanActivate {
       request['user'] = payload;
       return true;
     } catch (error) {
+      console.log(error);
       if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid or expired token');
     }

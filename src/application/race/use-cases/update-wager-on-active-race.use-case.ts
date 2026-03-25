@@ -1,25 +1,23 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { RaceNotFoundError } from '../../../domain/race/errors/race.errors';
-import type { IRaceRepository } from '../../../domain/race/ports/race.repository.port';
-import { RACE_REPOSITORY } from '../tokens/race.tokens';
-import { UpdateUserWagerInRaceUseCase } from './update-user-wager-in-race.use-case';
+import { Injectable } from '@nestjs/common';
+import { InvalidRaceWagerError } from '../../../domain/race/errors/race.errors';
+import { IncrementRaceWagerUseCase } from './increment-race-wager.use-case';
 
 @Injectable()
 export class UpdateWagerOnActiveRaceUseCase {
-  constructor(
-    @Inject(RACE_REPOSITORY) private readonly raceRepository: IRaceRepository,
-    private readonly updateUserWagerInRace: UpdateUserWagerInRaceUseCase,
-  ) {}
+  constructor(private readonly incrementRaceWager: IncrementRaceWagerUseCase) {}
 
-  async execute(userId: string, amount: string): Promise<void> {
-    const race = await this.raceRepository.findActiveRace();
-    if (!race) {
-      throw new RaceNotFoundError('No active race');
+  async execute(userUsername: string, amount: string): Promise<void> {
+    const gross = parseFloat(amount.trim());
+    if (!Number.isFinite(gross) || gross <= 0) {
+      throw new InvalidRaceWagerError('Invalid decimal amount');
     }
-    await this.updateUserWagerInRace.execute({
-      raceId: race.id,
-      userId,
-      amount,
-    });
+    await this.incrementRaceWager.execute(
+      {
+        username: userUsername,
+        grossBetAmount: gross,
+        source: 'manual',
+      },
+      { ifNoActiveRace: 'throw', creditMode: 'explicit' },
+    );
   }
 }

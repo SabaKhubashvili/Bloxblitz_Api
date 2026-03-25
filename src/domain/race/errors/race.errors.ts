@@ -34,3 +34,19 @@ export class InvalidRaceRewardsError extends DomainError {
     super(message);
   }
 }
+
+export class InvalidRaceTimeRangeError extends DomainError {
+  readonly code = 'INVALID_RACE_TIME_RANGE';
+  constructor(message = 'endTime must be after startTime') {
+    super(message);
+  }
+}
+
+export class RaceTimeOverlapError extends DomainError {
+  readonly code = 'RACE_TIME_OVERLAP';
+  constructor(
+    message = 'Race time range overlaps an existing race; choose a range entirely before or after all existing races',
+  ) {
+    super(message);
+  }
+}

@@ -23,6 +23,7 @@ import {
   MinesError,
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
+import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 
 @Injectable()
 export class CreateMinesGameUseCase
@@ -34,6 +35,7 @@ export class CreateMinesGameUseCase
     @Inject(USER_SEED_REPOSITORY)  private readonly seedRepo: IUserSeedRepository,
     @Inject(BET_EVENT_PUBLISHER)   private readonly betPublisher: IBetEventPublisherPort,
     private readonly fairnessService: MinesFairnessDomainService,
+    private readonly incrementRaceWager: IncrementRaceWagerUseCase,
   ) {}
 
   async execute(
@@ -91,6 +93,12 @@ export class CreateMinesGameUseCase
     if (!gameResult.ok) return Err(gameResult.error);
 
     await this.minesRepo.save(gameResult.value);
+
+    void this.incrementRaceWager.executeBestEffort({
+      username: cmd.username,
+      grossBetAmount: cmd.betAmount,
+      source: 'mines',
+    });
 
     return Ok(MinesGameMapper.toOutputDto(gameResult.value));
   }
