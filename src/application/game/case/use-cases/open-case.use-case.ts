@@ -238,20 +238,23 @@ export class OpenCaseUseCase
     const loopMs = msSince(tLoop);
 
     const tSave = performance.now();
-    try {
-      await this.caseRepo.saveOpens(writes);
-    } catch (err) {
-      this.logger.error(
-        `[Cases] saveOpens FAILED user=${cmd.username} slug=${cmd.slug} opens=${writes.length} — balance already moved; reconcile manually`,
-        err,
-      );
-      return Err(new CasePersistenceError());
-    }
+    setImmediate(() => {
+      const tPersist = performance.now();
+      void this.caseRepo
+        .saveOpens(writes)
+        .then(() => {
+          this.logger.log(
+            `[Cases] saveOpens ok user=${cmd.username} slug=${cmd.slug} opens=${writes.length} ms=${msSince(tPersist)}`,
+          );
+        })
+        .catch((err) => {
+          this.logger.error(
+            `[Cases] saveOpens FAILED user=${cmd.username} slug=${cmd.slug} opens=${writes.length} — balance already moved; reconcile manually`,
+            err,
+          );
+        });
+    });
     const saveOpensMs = msSince(tSave);
-
-    this.logger.log(
-      `[Cases] saveOpens ok user=${cmd.username} slug=${cmd.slug} opens=${writes.length} ms=${saveOpensMs}`,
-    );
 
     const responseMs = msSince(tExec);
     this.logger.log(
