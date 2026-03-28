@@ -28,7 +28,12 @@ import { ProvablyFairModule } from '../user/provably-fair.module';
 import { RaceModule } from '../race.module';
 
 @Module({
-  imports: [AuthModule, LevelingModule, ProvablyFairModule, RaceModule],
+  imports: [
+    AuthModule,
+    LevelingModule,
+    ProvablyFairModule,
+    RaceModule,
+  ],
   controllers: [DiceController],
   providers: [
     RollDiceUseCase,

@@ -50,13 +50,23 @@ export class CashoutMinesGameUseCase
 
     // Credit winnings FIRST — if this throws the game remains active so the
     // user can retry.  Only after a successful credit do we close the game.
+    const grossPayout = Math.round(cashoutResult.value.profit.amount * 100) / 100;
+    if (grossPayout < 0.01) {
+      this.logger.warn(
+        `[Cashout] negligible payout — user=${cmd.username} game=${game.id.value} gross=${grossPayout}`,
+      );
+    }
+
+    this.logger.log(
+      `[Cashout] settle user=${cmd.username} game=${game.id.value} stake=${game.betAmount.amount} grossPayout=${grossPayout} mult=${cashoutResult.value.multiplier}`,
+    );
+
     await this.ledger.settlePayout({
       username: cmd.username,
       gameId: game.id.value,
-      profit: cashoutResult.value.profit.amount,
+      profit: grossPayout,
       reason: 'CASHOUT',
     });
-
     // Persist the WON status to Redis (and fire-and-forget to PostgreSQL).
     await this.minesRepo.update(game);
 

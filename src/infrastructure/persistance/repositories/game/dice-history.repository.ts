@@ -13,7 +13,9 @@ import type {
 export class PrismaDiceHistoryRepository implements IDiceHistoryRepository {
   private readonly logger = new Logger(PrismaDiceHistoryRepository.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {}
 
   async findPageByUsername(
     username: string,

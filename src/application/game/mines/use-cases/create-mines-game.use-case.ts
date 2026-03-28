@@ -24,6 +24,7 @@ import {
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
+import { GameType } from '@prisma/client';
 
 @Injectable()
 export class CreateMinesGameUseCase

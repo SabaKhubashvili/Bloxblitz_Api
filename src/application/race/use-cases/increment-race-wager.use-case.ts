@@ -13,7 +13,12 @@ import {
 import { RaceWagerSignalsService } from '../services/race-wager-signals.service';
 import { UpdateUserWagerInRaceUseCase } from './update-user-wager-in-race.use-case';
 
-export type RaceWagerGameSource = 'mines' | 'dice' | 'case' | 'manual';
+export type RaceWagerGameSource =
+  | 'mines'
+  | 'dice'
+  | 'case'
+  | 'crash'
+  | 'manual';
 
 export type IncrementRaceWagerOptions = {
   /** When `'throw'`, missing active race surfaces `RaceNotFoundError`. */

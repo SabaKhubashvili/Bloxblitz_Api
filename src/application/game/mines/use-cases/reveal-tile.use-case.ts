@@ -24,7 +24,6 @@ import { MINES_XP_RATE } from 'src/shared/config/xp-rates.config';
 import { XpSource } from 'src/domain/leveling/enums/xp-source.enum';
 import { AddExperienceUseCase } from 'src/application/user/leveling/use-cases/add-experience.use-case';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
-
 @Injectable()
 export class RevealTileUseCase
   implements IUseCase<RevealTileCommand, Result<RevealTileOutputDto, MinesError>>
@@ -59,10 +58,12 @@ export class RevealTileUseCase
       if (cashoutResult.ok) {
         // Credit winnings FIRST — if this throws the game remains active and
         // the auto-cashout will be retried on the client's next request.
+        const autoGross =
+          Math.round(cashoutResult.value.profit.amount * 100) / 100;
         await this.ledger.settlePayout({
           username: cmd.username,
           gameId: game.id.value,
-          profit: cashoutResult.value.profit.amount,
+          profit: autoGross,
           reason: 'AUTO_WIN',
         });
         await this.minesRepo.update(game);
@@ -104,7 +105,8 @@ export class RevealTileUseCase
     if (game.status !== GameStatus.ACTIVE) {
       // Game closed (mine hit / LOST) — clean up pointer and invalidate history.
       await this.minesRepo.deleteActiveGame(cmd.username);
-      
+
+
       setImmediate(() => {
         void this.betEventPublisher.publishBetPlaced({
           type: 'bet',
