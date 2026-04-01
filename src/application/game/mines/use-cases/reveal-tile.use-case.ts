@@ -13,10 +13,13 @@ import {
   MINES_BALANCE_LEDGER,
   MINES_HISTORY_CACHE_PORT,
   BET_EVENT_PUBLISHER,
+  MINES_SYSTEM_STATE_PROVIDER,
 } from '../tokens/mines.tokens';
+import type { MinesSystemStateProvider } from '../../../../domain/game/mines/ports/mines-system-state.provider.port';
 import {
   GameNotFoundError,
   MinesError,
+  MinesPausedError,
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { GameStatus } from '../../../../domain/game/mines/value-objects/game-status.vo';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
@@ -24,6 +27,7 @@ import { MINES_XP_RATE } from 'src/shared/config/xp-rates.config';
 import { XpSource } from 'src/domain/leveling/enums/xp-source.enum';
 import { AddExperienceUseCase } from 'src/application/user/leveling/use-cases/add-experience.use-case';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
+import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 @Injectable()
 export class RevealTileUseCase
   implements IUseCase<RevealTileCommand, Result<RevealTileOutputDto, MinesError>>
@@ -36,12 +40,27 @@ export class RevealTileUseCase
     @Inject(MINES_BALANCE_LEDGER)     private readonly ledger: IMinesBalanceLedgerPort,
     @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
     @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
+    @Inject(MINES_SYSTEM_STATE_PROVIDER)
+    private readonly minesSystemState: MinesSystemStateProvider,
     private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly minesModeration: MinesModerationRedisService,
   ) {}
 
   async execute(
     cmd: RevealTileCommand,
   ): Promise<Result<RevealTileOutputDto, MinesError>> {
+    if (await this.minesSystemState.isPaused()) {
+      this.logger.warn(
+        {
+          event: 'mines.blocked.gameplay',
+          action: 'reveal_tile',
+          username: cmd.username,
+        },
+        'Reveal rejected — Mines paused',
+      );
+      return Err(new MinesPausedError());
+    }
+
     const game = await this.minesRepo.findActiveByusername(cmd.username);
     if (!game) return Err(new GameNotFoundError());
 
@@ -68,6 +87,11 @@ export class RevealTileUseCase
         });
         await this.minesRepo.update(game);
         await this.minesCache.deleteActiveGame(cmd.username, game.id.value);
+
+        void this.minesModeration.recordCompletedGame(
+          cmd.username,
+          game.id.value,
+        );
 
         // Game closed (AUTO_WIN) — invalidate history cache.
         void this.historyCache.invalidate(cmd.username).catch((err) =>
@@ -106,6 +130,10 @@ export class RevealTileUseCase
       // Game closed (mine hit / LOST) — clean up pointer and invalidate history.
       await this.minesRepo.deleteActiveGame(cmd.username);
 
+      void this.minesModeration.recordCompletedGame(
+        cmd.username,
+        game.id.value,
+      );
 
       setImmediate(() => {
         void this.betEventPublisher.publishBetPlaced({

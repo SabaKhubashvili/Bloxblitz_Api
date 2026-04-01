@@ -1,4 +1,7 @@
 export enum RaceStatus {
+  SCHEDULED = 'SCHEDULED',
   ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
   FINISHED = 'FINISHED',
+  CANCELLED = 'CANCELLED',
 }

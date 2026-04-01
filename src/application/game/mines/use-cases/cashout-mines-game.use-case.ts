@@ -13,10 +13,13 @@ import {
   MINES_BALANCE_LEDGER,
   MINES_HISTORY_CACHE_PORT,
   BET_EVENT_PUBLISHER,
+  MINES_SYSTEM_STATE_PROVIDER,
 } from '../tokens/mines.tokens';
+import type { MinesSystemStateProvider } from '../../../../domain/game/mines/ports/mines-system-state.provider.port';
 import {
   GameNotFoundError,
   MinesError,
+  MinesPausedError,
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
@@ -24,6 +27,7 @@ import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
+import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 
 @Injectable()
 export class CashoutMinesGameUseCase
@@ -37,11 +41,26 @@ export class CashoutMinesGameUseCase
     @Inject(MINES_BALANCE_LEDGER)     private readonly ledger: IMinesBalanceLedgerPort,
     @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
     @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
+    @Inject(MINES_SYSTEM_STATE_PROVIDER)
+    private readonly minesSystemState: MinesSystemStateProvider,
     private readonly addExperienceUseCase: AddExperienceUseCase,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
+    private readonly minesModeration: MinesModerationRedisService,
   ) {}
 
   async execute(cmd: CashoutMinesGameCommand): Promise<Result<CashoutOutputDto, MinesError>> {
+    if (await this.minesSystemState.isPaused()) {
+      this.logger.warn(
+        {
+          event: 'mines.blocked.gameplay',
+          action: 'cashout',
+          username: cmd.username,
+        },
+        'Cashout rejected — Mines paused',
+      );
+      return Err(new MinesPausedError());
+    }
+
     const game = await this.minesRepo.findActiveByusername(cmd.username);
     if (!game) return Err(new GameNotFoundError());
 
@@ -72,6 +91,8 @@ export class CashoutMinesGameUseCase
 
     // Remove the active-game pointer so no further actions can be taken.
     await this.minesCache.deleteActiveGame(cmd.username, game.id.value);
+
+    void this.minesModeration.recordCompletedGame(cmd.username, game.id.value);
 
     if (game.revealedTiles.size === 1) {
       this.incrementRaceWager.notifyMinesSingleTileCashout(cmd.username);

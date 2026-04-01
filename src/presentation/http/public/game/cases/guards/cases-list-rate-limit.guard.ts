@@ -42,7 +42,7 @@ export class CasesListRateLimitGuard implements CanActivate {
     }
     if (n > CASES_LIST_RL_MAX) {
       throw new HttpException(
-        'Too many catalog requests; try again shortly.',
+        'Too many cases list requests; try again shortly.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

@@ -45,7 +45,8 @@ export class XpCalculationDomainService {
    * - nextLevelXp    : XP needed to cross from currentLevel to currentLevel + 1
    * - progress       : fraction in [0, 1]
    *
-   * At level 100 (max), all values reflect a completed bar (progress = 1).
+   * At level 100 (max), progress stays full; `currentLevelXp` is XP beyond the
+   * level-100 floor so totals keep growing in the UI while level remains capped.
    */
   static xpProgressInLevel(
     totalXp: number,
@@ -55,13 +56,16 @@ export class XpCalculationDomainService {
     nextLevelXp: number;
     progress: number;
   } {
-    if (currentLevel >= 100) {
-      const floor = XpCalculationDomainService.xpRequiredForLevel(100);
-      return { currentLevelXp: floor, nextLevelXp: floor, progress: 1 };
+    const level = Math.min(Math.max(0, Math.floor(currentLevel)), 100);
+
+    if (level >= 100) {
+      const floor100 = XpCalculationDomainService.xpRequiredForLevel(100);
+      const overflow = Math.max(0, totalXp - floor100);
+      return { currentLevelXp: overflow, nextLevelXp: 0, progress: 1 };
     }
 
-    const currentFloor   = XpCalculationDomainService.xpRequiredForLevel(currentLevel);
-    const nextFloor      = XpCalculationDomainService.xpRequiredForLevel(currentLevel + 1);
+    const currentFloor   = XpCalculationDomainService.xpRequiredForLevel(level);
+    const nextFloor      = XpCalculationDomainService.xpRequiredForLevel(level + 1);
     const nextLevelXp    = nextFloor - currentFloor;
     // Clamp XP within [0, nextLevelXp] so stale/inflated totalXp never
     // produces a negative gap or an XP value larger than the tier window.

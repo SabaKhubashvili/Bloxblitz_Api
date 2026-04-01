@@ -12,6 +12,8 @@ export interface RawGameState {
   nonce: number;
   revealedTiles: number[];
   status: string;
+  /** Optional until first full save; matches Redis `mines:config` field. */
+  houseEdge?: number;
 }
 
 /**

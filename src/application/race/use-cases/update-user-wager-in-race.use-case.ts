@@ -4,12 +4,14 @@ import type { IRaceRepository } from '../../../domain/race/ports/race.repository
 import type { IRaceCachePort } from '../../../domain/race/ports/race-cache.port';
 import { InvalidRaceWagerError } from '../../../domain/race/errors/race.errors';
 import { RACE_REPOSITORY, RACE_CACHE } from '../tokens/race.tokens';
+import { RaceLeaderboardZsetService } from '../../../infrastructure/cache/race-leaderboard-zset.service';
 
 @Injectable()
 export class UpdateUserWagerInRaceUseCase {
   constructor(
     @Inject(RACE_REPOSITORY) private readonly raceRepository: IRaceRepository,
     @Inject(RACE_CACHE) private readonly raceCache: IRaceCachePort,
+    private readonly leaderboardZset: RaceLeaderboardZsetService,
   ) {}
 
   /**
@@ -36,6 +38,14 @@ export class UpdateUserWagerInRaceUseCase {
       params.userUsername,
       params.amount.trim(),
     );
+    const deltaNum = parseFloat(params.amount.trim());
+    if (Number.isFinite(deltaNum) && deltaNum > 0) {
+      await this.leaderboardZset.incrementWagered(
+        params.raceId,
+        params.userUsername,
+        deltaNum,
+      );
+    }
     await this.raceCache.refreshAfterWager(
       params.raceId,
       params.userUsername,

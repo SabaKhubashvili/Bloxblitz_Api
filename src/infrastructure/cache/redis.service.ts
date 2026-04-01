@@ -748,6 +748,21 @@ import {
     async zrem(key: string, ...members: string[]): Promise<number> {
       return this.mainClient.zRem(key, members);
     }
+
+    async zcard(key: string): Promise<number> {
+      return this.mainClient.zCard(key);
+    }
+
+    /**
+     * Remove sorted-set members with scores in [min, max] (Redis inclusive bounds).
+     */
+    async zremrangebyscore(
+      key: string,
+      min: number | string,
+      max: number | string,
+    ): Promise<number> {
+      return this.mainClient.zRemRangeByScore(key, min, max);
+    }
   
     /* ---------------- PATTERN MATCHING ---------------- */
   

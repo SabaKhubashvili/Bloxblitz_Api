@@ -22,12 +22,19 @@ export class CreateRaceWithRewardsUseCase {
     if (!input.rewards.length) {
       throw new InvalidRaceRewardsError('At least one reward tier is required');
     }
+    const sorted = [...input.rewards].sort((a, b) => a.position - b.position);
     const seen = new Set<number>();
-    for (const r of input.rewards) {
+    for (let i = 0; i < sorted.length; i++) {
+      const r = sorted[i]!;
       if (r.position < 1 || r.position > 10 || seen.has(r.position)) {
         throw new InvalidRaceRewardsError();
       }
       seen.add(r.position);
+      if (r.position !== i + 1) {
+        throw new InvalidRaceRewardsError(
+          'Positions must be sequential from 1 with no gaps',
+        );
+      }
     }
 
     if (input.startTime >= input.endTime) {

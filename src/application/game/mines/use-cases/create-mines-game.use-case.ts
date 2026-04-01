@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import { Money } from '../../../../domain/shared/value-objects/money.vo';
@@ -11,37 +11,106 @@ import type { MinesGameOutputDto } from '../dto/mines-game.output-dto';
 import type { IMinesBalanceLedgerPort } from '../ports/mines-balance-ledger.port';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 import {
+  MINES_CONFIG_PORT,
   MINES_GAME_REPOSITORY,
   MINES_BALANCE_LEDGER,
   BET_EVENT_PUBLISHER,
   USER_SEED_REPOSITORY,
+  MINES_SYSTEM_STATE_PROVIDER,
 } from '../tokens/mines.tokens';
+import type { MinesSystemStateProvider } from '../../../../domain/game/mines/ports/mines-system-state.provider.port';
+import type { IMinesConfigPort } from '../ports/mines-config.port';
 import {
   InsufficientBalanceError,
   UserSeedNotFoundError,
   ActiveGameExistsError,
   MinesError,
+  MinesInvalidBetAmountError,
+  MinesBetBelowMinimumError,
+  MinesBetAboveMaximumError,
+  MinesPlayerBannedError,
+  MinesBetAboveModerationCapError,
+  MinesHourlyGameLimitExceededError,
+  NewGamesDisabledError,
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
-import { GameType } from '@prisma/client';
+import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 
 @Injectable()
 export class CreateMinesGameUseCase
   implements IUseCase<CreateMinesGameCommand, Result<MinesGameOutputDto, MinesError>>
 {
+  private readonly logger = new Logger(CreateMinesGameUseCase.name);
+
   constructor(
+    @Inject(MINES_CONFIG_PORT)     private readonly minesConfig: IMinesConfigPort,
     @Inject(MINES_GAME_REPOSITORY) private readonly minesRepo: IMinesGameRepository,
     @Inject(MINES_BALANCE_LEDGER)  private readonly ledger: IMinesBalanceLedgerPort,
     @Inject(USER_SEED_REPOSITORY)  private readonly seedRepo: IUserSeedRepository,
     @Inject(BET_EVENT_PUBLISHER)   private readonly betPublisher: IBetEventPublisherPort,
+    @Inject(MINES_SYSTEM_STATE_PROVIDER)
+    private readonly minesSystemState: MinesSystemStateProvider,
     private readonly fairnessService: MinesFairnessDomainService,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
+    private readonly minesModeration: MinesModerationRedisService,
   ) {}
 
   async execute(
     cmd: CreateMinesGameCommand,
   ): Promise<Result<MinesGameOutputDto, MinesError>> {
+    if (await this.minesSystemState.isNewGamesDisabled()) {
+      this.logger.warn(
+        {
+          event: 'mines.blocked.create_game',
+          reason: 'new_games_disabled',
+          username: cmd.username,
+        },
+        'Create game rejected — new games disabled or paused',
+      );
+      return Err(new NewGamesDisabledError());
+    }
+
+    const config = await this.minesConfig.getConfig();
+
+    const bet = cmd.betAmount;
+    if (!Number.isFinite(bet) || bet <= 0) {
+      return Err(new MinesInvalidBetAmountError());
+    }
+    if (bet < config.minBet) {
+      return Err(new MinesBetBelowMinimumError(config.minBet));
+    }
+    if (bet > config.maxBet) {
+      return Err(new MinesBetAboveMaximumError(config.maxBet));
+    }
+
+    const moderation = await this.minesModeration.getSnapshot(cmd.username);
+    if (moderation?.status === 'BANNED') {
+      return Err(new MinesPlayerBannedError());
+    }
+    if (moderation?.status === 'LIMITED') {
+      if (
+        moderation.maxBetAmount != null &&
+        bet > moderation.maxBetAmount
+      ) {
+        return Err(new MinesBetAboveModerationCapError(moderation.maxBetAmount));
+      }
+      if (
+        moderation.maxGamesPerHour != null &&
+        moderation.maxGamesPerHour > 0
+      ) {
+        const completed =
+          await this.minesModeration.countCompletionsInRollingHour(
+            cmd.username,
+          );
+        if (completed >= moderation.maxGamesPerHour) {
+          return Err(
+            new MinesHourlyGameLimitExceededError(moderation.maxGamesPerHour),
+          );
+        }
+      }
+    }
+
     const seed = await this.seedRepo.findByusername(cmd.username);
     if (!seed) return Err(new UserSeedNotFoundError());
 
@@ -60,6 +129,7 @@ export class CreateMinesGameUseCase
         betAmount: cmd.betAmount,
         mineCount: cmd.mineCount,
         gridSize: cmd.gridSize,
+        houseEdge: config.houseEdge,
         revealedTiles: [],
         status: 'ACTIVE',
       },
@@ -89,6 +159,7 @@ export class CreateMinesGameUseCase
       mineMask,
       nonce,
       gridSize: cmd.gridSize,
+      houseEdge: config.houseEdge,
     });
 
     if (!gameResult.ok) return Err(gameResult.error);

@@ -78,6 +78,12 @@ export const RedisKeys = {
 
     dice: {
       ledger: (gameId: string) => `ledger:dice:${gameId}`,
+
+      /** Admin moderation hash — `dice:control:{username}` (written by admin-api). */
+      playerControl: (username: string) => `dice:control:${username}`,
+
+      /** Global kill switch — `1` = betting disabled (written by admin-api). */
+      bettingDisabled: () => 'dice:betting:disabled',
     },
 
     /* ─────────────── MINES GAME ─────────────── */
@@ -91,6 +97,16 @@ export const RedisKeys = {
 
       bet: (gameId: string | number, username: string | number) =>
         `mines:bet:${gameId}:${username}`,
+
+      /** Admin moderation hash — same pattern as admin-api (`mines:control:{username}`). */
+      playerControl: (username: string) => `mines:control:${username}`,
+
+      /** Rolling window (1h) of completed game ids for hourly cap enforcement. */
+      rollingHourCompletions: (username: string) =>
+        `mines:rollhr:mines:${username}`,
+
+      /** Global Mines ops mode — JSON written by admin-api, read by game API. */
+      systemState: () => `mines:system:state`,
     },
     /* ─────────────── JACKPOT GAME ─────────────── */
   
@@ -197,6 +213,7 @@ export const RedisKeys = {
     race: {
       current: () => `race:current`,
       top10: (raceId: string) => `race:${raceId}:top10`,
+      leaderboard: (raceId: string) => `race:${raceId}:leaderboard`,
       userRank: (raceId: string, userId: string) =>
         `race:${raceId}:rank:${userId}`,
       wagerVelocity: (username: string) => `race:wager:vel:${username}`,

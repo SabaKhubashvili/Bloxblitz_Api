@@ -6,6 +6,8 @@ export interface RaceRecord {
   endTime: Date;
   status: RaceStatus;
   totalPrizePool: string | null;
+  trackingPaused: boolean;
+  raceWindow: string | null;
 }
 
 export interface RaceRewardRecord {
@@ -91,4 +93,8 @@ export interface IRaceRepository {
     endTime: Date,
   ): Promise<RaceRecord | null>;
   createRaceWithRewards(input: CreateRaceInput): Promise<string>;
+  /** Activates scheduled races whose start time has passed (idempotent). */
+  promoteDueScheduledRaces(now: Date): Promise<number>;
+  /** Live races (active or paused) that have reached `endTime`. */
+  findExpiredLiveRaceIds(now: Date): Promise<string[]>;
 }

@@ -3,13 +3,14 @@ import { Transform } from 'class-transformer';
 
 export class RollDiceHttpDto {
   @IsNumber()
-  @Min(0.1)
+  @Min(0.01)
   @Transform(({ value }) => (typeof value === 'string' ? parseFloat(value) : value))
   betAmount: number;
 
+  /** Bounds enforced in RollDiceUseCase from Redis `dice:config` (minChance / maxChance). */
   @IsNumber()
-  @Min(2)
-  @Max(98)
+  @Min(0.01)
+  @Max(99.99)
   @Transform(({ value }) => (typeof value === 'string' ? parseFloat(value) : value))
   chance: number;
 

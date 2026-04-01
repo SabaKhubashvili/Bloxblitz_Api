@@ -19,6 +19,8 @@ type SerializedCurrentRace = {
   race: Omit<RaceRecord, 'startTime' | 'endTime'> & {
     startTime: string;
     endTime: string;
+    trackingPaused?: boolean;
+    raceWindow?: string | null;
   };
   rewards: Array<{ position: number; rewardAmount: string }>;
 };
@@ -53,6 +55,8 @@ export class RaceCacheAdapter implements IRaceCachePort {
           totalPrizePool: raw.race.totalPrizePool,
           startTime: new Date(raw.race.startTime),
           endTime: new Date(raw.race.endTime),
+          trackingPaused: raw.race.trackingPaused ?? false,
+          raceWindow: raw.race.raceWindow ?? null,
         },
         rewards: raw.rewards,
       };
@@ -74,6 +78,8 @@ export class RaceCacheAdapter implements IRaceCachePort {
           totalPrizePool: payload.race.totalPrizePool,
           startTime: payload.race.startTime.toISOString(),
           endTime: payload.race.endTime.toISOString(),
+          trackingPaused: payload.race.trackingPaused,
+          raceWindow: payload.race.raceWindow,
         },
         rewards: payload.rewards,
       };
@@ -223,6 +229,14 @@ export class RaceCacheAdapter implements IRaceCachePort {
   async invalidateAfterFinish(raceId: string): Promise<void> {
     await this.deleteCurrentRace();
     await this.deleteTop10(raceId);
+    try {
+      await this.redis.del(RedisKeys.race.leaderboard(raceId));
+    } catch (e) {
+      this.logger.warn(
+        `[RaceCache] delete leaderboard failed raceId=${raceId}`,
+        e,
+      );
+    }
     const pattern = `race:${raceId}:rank:*`;
     let cursor: RedisArgument = '0';
     try {

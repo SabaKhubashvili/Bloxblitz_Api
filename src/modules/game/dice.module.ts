@@ -13,11 +13,15 @@ import { UserSeedRepository } from '../../infrastructure/persistance/repositorie
 import { BetEventPublisher } from '../../infrastructure/messaging/redis-pub-sub/bet-event.publisher';
 
 import {
+  DICE_CONFIG_PORT,
   DICE_BALANCE_LEDGER,
   DICE_HISTORY_REPOSITORY,
   USER_SEED_REPOSITORY,
   DICE_BET_EVENT_PUBLISHER,
 } from '../../application/game/dice/tokens/dice.tokens';
+import { DiceConfigRedisAdapter } from '../../infrastructure/cache/adapters/dice-config.redis.adapter';
+import { DiceModerationRedisService } from '../../infrastructure/cache/dice-moderation.redis.service';
+import { DiceBettingDisabledRedisService } from '../../infrastructure/cache/dice-betting-disabled.redis.service';
 
 import { DiceController } from '../../presentation/http/public/game/dice/dice.controller';
 
@@ -38,12 +42,15 @@ import { RaceModule } from '../race.module';
   providers: [
     RollDiceUseCase,
     GetDiceHistoryUseCase,
+    DiceModerationRedisService,
+    DiceBettingDisabledRedisService,
 
     DiceFairnessDomainService,
 
     JwtAuthGuard,
     RolesGuard,
 
+    { provide: DICE_CONFIG_PORT, useClass: DiceConfigRedisAdapter },
     { provide: DICE_BALANCE_LEDGER, useClass: DiceBalanceLedgerAdapter },
     { provide: DICE_HISTORY_REPOSITORY, useClass: PrismaDiceHistoryRepository },
     { provide: USER_SEED_REPOSITORY, useClass: UserSeedRepository },

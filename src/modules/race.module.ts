@@ -15,6 +15,8 @@ import { UpdateWagerOnActiveRaceUseCase } from '../application/race/use-cases/up
 import { IncrementRaceWagerUseCase } from '../application/race/use-cases/increment-race-wager.use-case';
 import { RaceWagerSignalsService } from '../application/race/services/race-wager-signals.service';
 import { RaceLeaderboardRefreshWorker } from '../infrastructure/workers/race-leaderboard-refresh.worker';
+import { RaceLifecycleWorker } from '../infrastructure/workers/race-lifecycle.worker';
+import { RaceLeaderboardZsetService } from '../infrastructure/cache/race-leaderboard-zset.service';
 import { FinishRaceUseCase } from '../application/race/use-cases/finish-race.use-case';
 import { CreateRaceWithRewardsUseCase } from '../application/race/use-cases/create-race-with-rewards.use-case';
 
@@ -38,11 +40,13 @@ import { RolesGuard } from '../shared/guards/roles.guard';
     GetPreviousRacesUseCase,
     GetLeaderboardUseCase,
     GetUserRankUseCase,
+    RaceLeaderboardZsetService,
     UpdateUserWagerInRaceUseCase,
     RaceWagerSignalsService,
     IncrementRaceWagerUseCase,
     UpdateWagerOnActiveRaceUseCase,
     RaceLeaderboardRefreshWorker,
+    RaceLifecycleWorker,
     FinishRaceUseCase,
     CreateRaceWithRewardsUseCase,
   ],

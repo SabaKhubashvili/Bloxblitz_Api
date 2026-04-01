@@ -29,6 +29,8 @@ function toRaceRecord(row: {
   endTime: Date;
   status: PrismaRaceStatus;
   totalPrizePool: Prisma.Decimal | null;
+  trackingPaused: boolean;
+  raceWindow: string | null;
 }): RaceRecord {
   return {
     id: row.id,
@@ -36,6 +38,8 @@ function toRaceRecord(row: {
     endTime: row.endTime,
     status: row.status as RaceStatus,
     totalPrizePool: row.totalPrizePool ? decStr(row.totalPrizePool) : null,
+    trackingPaused: row.trackingPaused,
+    raceWindow: row.raceWindow,
   };
 }
 
@@ -49,13 +53,29 @@ type RankedRow = {
   position: number;
 };
 
+const LIVE_STATUSES: PrismaRaceStatus[] = [
+  PrismaRaceStatus.ACTIVE,
+  PrismaRaceStatus.PAUSED,
+];
+
+const OVERLAP_STATUSES: PrismaRaceStatus[] = [
+  PrismaRaceStatus.SCHEDULED,
+  PrismaRaceStatus.ACTIVE,
+  PrismaRaceStatus.PAUSED,
+];
+
 @Injectable()
 export class PrismaRaceRepository implements IRaceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findActiveRace(): Promise<RaceRecord | null> {
+    const now = new Date();
     const row = await this.prisma.race.findFirst({
-      where: { status: PrismaRaceStatus.ACTIVE },
+      where: {
+        status: { in: LIVE_STATUSES },
+        startTime: { lte: now },
+        endTime: { gt: now },
+      },
       orderBy: { startTime: 'desc' },
     });
     return row ? toRaceRecord(row) : null;
@@ -180,12 +200,15 @@ export class PrismaRaceRepository implements IRaceRepository {
   ): Promise<RaceParticipantAfterIncrement> {
     const race = await this.prisma.race.findUnique({
       where: { id: raceId },
-      select: { status: true },
+      select: { status: true, trackingPaused: true },
     });
     if (!race) {
       throw new RaceNotFoundError();
     }
-    if (race.status !== PrismaRaceStatus.ACTIVE) {
+    if (
+      race.status !== PrismaRaceStatus.ACTIVE ||
+      race.trackingPaused
+    ) {
       throw new RaceNotActiveError();
     }
 
@@ -272,7 +295,10 @@ export class PrismaRaceRepository implements IRaceRepository {
       if (!race) {
         throw new RaceNotFoundError();
       }
-      if (race.status !== PrismaRaceStatus.ACTIVE) {
+      if (
+        race.status !== PrismaRaceStatus.ACTIVE &&
+        race.status !== PrismaRaceStatus.PAUSED
+      ) {
         throw new RaceAlreadyFinishedError();
       }
 
@@ -301,6 +327,7 @@ export class PrismaRaceRepository implements IRaceRepository {
         where: { id: raceId },
         data: {
           status: PrismaRaceStatus.FINISHED,
+          trackingPaused: false,
           totalPrizePool:
             sumRewards._sum.rewardAmount ?? new Prisma.Decimal(0),
         },
@@ -313,7 +340,11 @@ export class PrismaRaceRepository implements IRaceRepository {
     limit: number,
   ): Promise<RaceRecord[]> {
     const rows = await this.prisma.race.findMany({
-      where: { status: PrismaRaceStatus.FINISHED },
+      where: {
+        status: {
+          in: [PrismaRaceStatus.FINISHED, PrismaRaceStatus.CANCELLED],
+        },
+      },
       orderBy: { endTime: 'desc' },
       skip: offset,
       take: limit,
@@ -327,6 +358,7 @@ export class PrismaRaceRepository implements IRaceRepository {
   ): Promise<RaceRecord | null> {
     const row = await this.prisma.race.findFirst({
       where: {
+        status: { in: OVERLAP_STATUSES },
         startTime: { lt: endTime },
         endTime: { gt: startTime },
       },
@@ -345,17 +377,54 @@ export class PrismaRaceRepository implements IRaceRepository {
       total = total.plus(r.rewardAmount);
     }
 
+    const status =
+      input.startTime.getTime() > Date.now()
+        ? PrismaRaceStatus.SCHEDULED
+        : PrismaRaceStatus.ACTIVE;
+
     await this.prisma.race.create({
       data: {
         id,
         startTime: input.startTime,
         endTime: input.endTime,
-        status: PrismaRaceStatus.ACTIVE,
+        status,
+        trackingPaused: false,
         totalPrizePool: total,
         rewards: { create: rewards },
       },
     });
 
     return id;
+  }
+
+  async promoteDueScheduledRaces(now: Date): Promise<number> {
+    const due = await this.prisma.race.findMany({
+      where: {
+        status: PrismaRaceStatus.SCHEDULED,
+        startTime: { lte: now },
+        endTime: { gt: now },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+    let n = 0;
+    for (const r of due) {
+      await this.prisma.race.update({
+        where: { id: r.id },
+        data: { status: PrismaRaceStatus.ACTIVE },
+      });
+      n += 1;
+    }
+    return n;
+  }
+
+  async findExpiredLiveRaceIds(now: Date): Promise<string[]> {
+    const rows = await this.prisma.race.findMany({
+      where: {
+        status: { in: LIVE_STATUSES },
+        endTime: { lte: now },
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
   }
 }

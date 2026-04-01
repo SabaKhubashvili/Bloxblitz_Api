@@ -12,9 +12,6 @@ import {
   MinesError,
 } from '../errors/mines.errors';
 
-/** House edge applied to all multiplier calculations (1%). */
-const HOUSE_EDGE = 0.01;
-
 export interface CreateMinesGameParams {
   id?: string;
   username: string;
@@ -24,6 +21,8 @@ export interface CreateMinesGameParams {
   mineMask: MineMask;
   nonce: number;
   gridSize: number;
+  /** House edge as a percentage (0–100), same as admin `mines:config`. */
+  houseEdge: number;
   revealedTiles?: Set<number>;
   status?: GameStatus;
 }
@@ -56,6 +55,7 @@ export class MinesGame {
   private _revealedTiles: Set<number>;
   readonly nonce: number;
   readonly gridSize: number;
+  private readonly houseEdge: number;
 
   private constructor(
     id: EntityId,
@@ -68,6 +68,7 @@ export class MinesGame {
     revealedTiles: Set<number>,
     nonce: number,
     gridSize: number,
+    houseEdge: number,
   ) {
     this.id = id;
     this.username = username;
@@ -79,6 +80,7 @@ export class MinesGame {
     this._revealedTiles = new Set(revealedTiles);
     this.nonce = nonce;
     this.gridSize = gridSize;
+    this.houseEdge = houseEdge;
   }
 
   static create(params: CreateMinesGameParams): Result<MinesGame, MinesError> {
@@ -98,12 +100,18 @@ export class MinesGame {
         params.revealedTiles ?? new Set<number>(),
         params.nonce,
         params.gridSize,
+        params.houseEdge,
       ),
     );
   }
 
   get status(): GameStatus {
     return this._status;
+  }
+
+  /** Admin-config style house edge percentage (0–100). */
+  get houseEdgePercent(): number {
+    return this.houseEdge;
   }
 
   get revealedTiles(): ReadonlySet<number> {
@@ -139,10 +147,10 @@ export class MinesGame {
   /**
    * Computes the current payout multiplier.
    *
-   * Formula: M = ∏(i=0 to r-1) [(n-i) / (n-m-i)] × (1 - houseEdge)
+   * Formula: M = ∏(i=0 to r-1) [(n-i) / (n-m-i)] × (1 - houseEdge/100)
    * where n = gridSize, m = mineCount, r = safe tiles revealed so far.
    *
-   * This is equivalent to 1 / P(surviving all r reveals) × (1 - houseEdge).
+   * houseEdge is stored as an admin-config percentage (same as Redis `mines:config`).
    */
   calculateMultiplier(): number {
     const n = this.gridSize;
@@ -156,7 +164,8 @@ export class MinesGame {
       multiplier *= (n - i) / (n - m - i);
     }
 
-    return Math.round(multiplier * (1 - HOUSE_EDGE) * 10_000) / 10_000;
+    const edgeFactor = 1 - this.houseEdge / 100;
+    return Math.round(multiplier * edgeFactor * 10_000) / 10_000;
   }
 
   getMinePositions(): number[] {

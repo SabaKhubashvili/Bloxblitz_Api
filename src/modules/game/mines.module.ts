@@ -1,4 +1,4 @@
-  import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { LevelingModule } from '../user/statistics/leveling.module';
 
@@ -29,6 +29,7 @@ import { MinesHistoryCacheAdapter } from '../../infrastructure/cache/adapters/mi
 
 // Tokens
 import {
+  MINES_CONFIG_PORT,
   MINES_GAME_REPOSITORY,
   MINES_CACHE_PORT,
   MINES_BALANCE_LEDGER,
@@ -36,7 +37,11 @@ import {
   USER_SEED_REPOSITORY,
   MINES_HISTORY_REPOSITORY,
   MINES_HISTORY_CACHE_PORT,
+  MINES_SYSTEM_STATE_PROVIDER,
 } from '../../application/game/mines/tokens/mines.tokens';
+import { MinesConfigRedisAdapter } from '../../infrastructure/cache/adapters/mines-config.redis.adapter';
+import { MinesModerationRedisService } from '../../infrastructure/cache/mines-moderation.redis.service';
+import { MinesSystemStateRedisAdapter } from '../../infrastructure/cache/adapters/mines-system-state.redis.adapter';
 
 // Presentation
 import { MinesController } from '../../presentation/http/public/game/mines/mines.controller';
@@ -68,6 +73,7 @@ import { RaceModule } from '../race.module';
     GetUserMinesHistoryUseCase,
     GetMinesRoundByIdUseCase,
     VerifyMinesGameUseCase,
+    MinesModerationRedisService,
 
     // Domain services
     MinesFairnessDomainService,
@@ -77,6 +83,11 @@ import { RaceModule } from '../race.module';
     RolesGuard,
 
     // Port bindings — game flow
+    { provide: MINES_CONFIG_PORT,       useClass: MinesConfigRedisAdapter },
+    {
+      provide: MINES_SYSTEM_STATE_PROVIDER,
+      useClass: MinesSystemStateRedisAdapter,
+    },
     { provide: MINES_GAME_REPOSITORY, useClass: MinesGameRepository },
     { provide: MINES_CACHE_PORT,      useClass: MinesGameStateCacheAdapter },
     { provide: MINES_BALANCE_LEDGER,  useClass: MinesBalanceLedgerAdapter },

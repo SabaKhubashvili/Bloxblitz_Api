@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { RaceStatus } from '../../../domain/race/enums/race-status.enum';
 import {
   RaceNotActiveError,
   RaceNotFoundError,
@@ -77,6 +78,10 @@ export class IncrementRaceWagerUseCase {
       if (options?.ifNoActiveRace === 'throw') {
         throw new RaceNotActiveError('Race has not started yet');
       }
+      return;
+    }
+
+    if (race.status === RaceStatus.PAUSED || race.trackingPaused) {
       return;
     }
 

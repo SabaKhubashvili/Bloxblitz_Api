@@ -65,6 +65,27 @@ export class InsufficientBalanceError extends MinesError {
   }
 }
 
+export class MinesInvalidBetAmountError extends MinesError {
+  readonly code = 'MINES_INVALID_BET_AMOUNT';
+  constructor() {
+    super('Bet amount must be a finite positive number');
+  }
+}
+
+export class MinesBetBelowMinimumError extends MinesError {
+  readonly code = 'MINES_BET_BELOW_MINIMUM';
+  constructor(minBet: number) {
+    super(`Bet is below the minimum allowed (${minBet})`);
+  }
+}
+
+export class MinesBetAboveMaximumError extends MinesError {
+  readonly code = 'MINES_BET_ABOVE_MAXIMUM';
+  constructor(maxBet: number) {
+    super(`Bet exceeds the maximum allowed (${maxBet})`);
+  }
+}
+
 export class MinesHistoryFetchError extends MinesError {
   readonly code = 'MINES_HISTORY_FETCH_FAILED';
   constructor() {
@@ -78,3 +99,48 @@ export class MinesRoundNotFoundError extends MinesError {
     super(`Mines round '${gameId}' not found`);
   }
 }
+
+export class MinesPlayerBannedError extends MinesError {
+  readonly code = 'MINES_PLAYER_BANNED';
+  constructor() {
+    super('You are restricted from playing Mines');
+  }
+}
+
+export class MinesBetAboveModerationCapError extends MinesError {
+  readonly code = 'MINES_BET_ABOVE_MODERATION_CAP';
+  constructor(cap: number) {
+    super(`Bet exceeds your current Mines wager limit (${cap})`);
+  }
+}
+
+export class MinesHourlyGameLimitExceededError extends MinesError {
+  readonly code = 'MINES_HOURLY_GAME_LIMIT_EXCEEDED';
+  constructor(limit: number) {
+    super(
+      `You have reached your hourly Mines game limit (${limit} completed games)`,
+    );
+  }
+}
+
+/** New games are not allowed (admin: NEW_GAMES_DISABLED or PAUSED). */
+export class NewGamesDisabledError extends MinesError {
+  readonly code = 'NEW_GAMES_DISABLED';
+  constructor() {
+    super('Mines is not accepting new games at this time');
+  }
+}
+
+/** Gameplay actions are frozen (admin: PAUSED). */
+export class MinesPausedError extends MinesError {
+  readonly code = 'MINES_PAUSED';
+  constructor() {
+    super('Mines gameplay is temporarily paused');
+  }
+}
+
+/** @deprecated Use {@link NewGamesDisabledError} */
+export class MinesNewGamesDisabledError extends NewGamesDisabledError {}
+
+/** @deprecated Use {@link MinesPausedError} */
+export class MinesGameplayPausedError extends MinesPausedError {}

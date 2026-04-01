@@ -8,6 +8,7 @@ import { RedisService } from '../../../cache/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisKeys } from '../../../cache/redis.keys';
 import { GameStatus as PrismaGameStatus, GameType } from '@prisma/client';
+import { MINES_CONFIG_DEFAULTS } from '../../../../domain/game/mines/mines-config';
 
 const activeGameKey = RedisKeys.mines.activeGame;
 const gameKey = (gameId: string) => RedisKeys.mines.game(gameId);
@@ -23,6 +24,16 @@ interface RawStoredGame {
   nonce: number;
   revealedTiles: number[];
   status: string;
+  /** Percentage 0–100; absent on legacy keys — use defaults. */
+  houseEdge?: number;
+}
+
+function resolveHouseEdgePercent(raw: RawStoredGame): number {
+  const h = Number(raw.houseEdge);
+  if (Number.isFinite(h) && h >= 0 && h <= 100) {
+    return h;
+  }
+  return MINES_CONFIG_DEFAULTS.houseEdge;
 }
 
 function toDomainStatus(status: string): GameStatus {
@@ -47,6 +58,7 @@ function toDomain(raw: RawStoredGame): MinesGame {
     mineMask: new MineMask(new Set(raw.minePositions)),
     nonce: raw.nonce,
     gridSize: raw.gridSize,
+    houseEdge: resolveHouseEdgePercent(raw),
     revealedTiles: new Set(raw.revealedTiles),
     status: toDomainStatus(raw.status),
   });
@@ -70,6 +82,7 @@ function toRaw(game: MinesGame): RawStoredGame {
     nonce: game.nonce,
     revealedTiles: Array.from(game.revealedTiles),
     status: game.status,
+    houseEdge: game.houseEdgePercent,
   };
 }
 

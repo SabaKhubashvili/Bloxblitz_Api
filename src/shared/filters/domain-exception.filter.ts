@@ -21,6 +21,14 @@ import {
   InsufficientBalanceError,
   MinesHistoryFetchError,
   MinesRoundNotFoundError,
+  MinesInvalidBetAmountError,
+  MinesBetBelowMinimumError,
+  MinesBetAboveMaximumError,
+  MinesPlayerBannedError,
+  MinesBetAboveModerationCapError,
+  MinesHourlyGameLimitExceededError,
+  NewGamesDisabledError,
+  MinesPausedError,
 } from '../../domain/game/mines/errors/mines.errors';
 
 // ── Dice errors ─────────────────────────────────────────────────────────────
@@ -28,8 +36,15 @@ import {
   InsufficientBalanceError as DiceInsufficientBalanceError,
   UserSeedNotFoundError as DiceUserSeedNotFoundError,
   InvalidChanceError as DiceInvalidChanceError,
-  InvalidBetAmountError as DiceInvalidBetAmountError,
+  InvalidBetAmountError,
+  DiceInvalidBetAmountError,
+  DiceBetBelowMinimumError,
+  DiceBetAboveMaximumError,
+  DiceMultiplierExceedsCapError,
   DiceHistoryFetchError,
+  DicePlayerBannedError,
+  DiceBetAboveModerationCapError,
+  DiceBettingDisabledError,
 } from '../../domain/game/dice/errors/dice.errors';
 
 // ── User errors ───────────────────────────────────────────────────────────────
@@ -156,14 +171,24 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof GameNotActiveError)       return HttpStatus.CONFLICT;
     if (error instanceof MinesRoundNotFoundError)  return HttpStatus.NOT_FOUND;
     if (error instanceof MinesHistoryFetchError)   return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof MinesPlayerBannedError)   return HttpStatus.FORBIDDEN;
+    if (error instanceof NewGamesDisabledError) return HttpStatus.FORBIDDEN;
+    if (error instanceof MinesPausedError)       return HttpStatus.LOCKED;
 
     // ── Dice errors ─────────────────────────────────────────────────────────────
     if (error instanceof DiceInsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
     if (error instanceof DiceUserSeedNotFoundError)    return HttpStatus.NOT_FOUND;
     if (error instanceof DiceHistoryFetchError)       return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof DicePlayerBannedError)        return HttpStatus.FORBIDDEN;
+    if (error instanceof DiceBettingDisabledError)    return HttpStatus.FORBIDDEN;
     if (
       error instanceof DiceInvalidChanceError ||
-      error instanceof DiceInvalidBetAmountError
+      error instanceof InvalidBetAmountError ||
+      error instanceof DiceInvalidBetAmountError ||
+      error instanceof DiceBetBelowMinimumError ||
+      error instanceof DiceBetAboveMaximumError ||
+      error instanceof DiceMultiplierExceedsCapError ||
+      error instanceof DiceBetAboveModerationCapError
     ) {
       return HttpStatus.BAD_REQUEST;
     }
@@ -171,7 +196,12 @@ export class DomainExceptionFilter implements ExceptionFilter {
       error instanceof InvalidMineCountError   ||
       error instanceof InvalidTileIndexError   ||
       error instanceof TileAlreadyRevealedError ||
-      error instanceof NoTilesRevealedError
+      error instanceof NoTilesRevealedError     ||
+      error instanceof MinesInvalidBetAmountError ||
+      error instanceof MinesBetBelowMinimumError ||
+      error instanceof MinesBetAboveMaximumError ||
+      error instanceof MinesBetAboveModerationCapError ||
+      error instanceof MinesHourlyGameLimitExceededError
     ) {
       return HttpStatus.BAD_REQUEST;
     }

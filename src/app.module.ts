@@ -20,12 +20,14 @@ import { KinguinModule } from './modules/kinguin.module';
 import { UniwireModule } from './modules/uniwire.module';
 import { ProvablyFairModule } from './modules/user/provably-fair.module';
 import { RaceModule } from './modules/race.module';
+import { UserTrackingModule } from './infrastructure/user-tracking/user-tracking.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
+    UserTrackingModule,
     WorkersModule,
     MinesModule,
     DiceModule,
