@@ -28,6 +28,8 @@ import { XpSource } from 'src/domain/leveling/enums/xp-source.enum';
 import { AddExperienceUseCase } from 'src/application/user/leveling/use-cases/add-experience.use-case';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
+
+/** Reveal responses include `nextRevealMultiplier` (next gem payout mult) on the output DTO. */
 @Injectable()
 export class RevealTileUseCase
   implements IUseCase<RevealTileCommand, Result<RevealTileOutputDto, MinesError>>

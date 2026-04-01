@@ -17,6 +17,7 @@ export class MinesGameMapper {
       status: game.status,
       revealedTiles: Array.from(game.revealedTiles).sort((a, b) => a - b),
       multiplier: game.calculateMultiplier(),
+      nextRevealMultiplier: game.calculateNextRevealMultiplier(),
       nonce: game.nonce,
       minePositions: isOver ? game.getMinePositions() : undefined,
     };

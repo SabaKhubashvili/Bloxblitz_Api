@@ -168,6 +168,29 @@ export class MinesGame {
     return Math.round(multiplier * edgeFactor * 10_000) / 10_000;
   }
 
+  /**
+   * Multiplier after one additional safe reveal, if the game is still active and
+   * at least one unseen safe tile remains. Otherwise `null`.
+   */
+  calculateNextRevealMultiplier(): number | null {
+    if (this._status !== GameStatus.ACTIVE) return null;
+
+    const n = this.gridSize;
+    const m = this.mineCount;
+    const r = this._revealedTiles.size;
+    const safeTotal = n - m;
+
+    if (r >= safeTotal) return null;
+
+    let mult = 1;
+    for (let i = 0; i < r + 1; i++) {
+      mult *= (n - i) / (n - m - i);
+    }
+
+    const edgeFactor = 1 - this.houseEdge / 100;
+    return Math.round(mult * edgeFactor * 10_000) / 10_000;
+  }
+
   getMinePositions(): number[] {
     return this.mineMask.toArray();
   }
