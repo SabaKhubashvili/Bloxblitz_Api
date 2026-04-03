@@ -5,4 +5,6 @@ export interface AddExperienceCommand {
   readonly amount:       number;
   readonly source:       XpSource;
   readonly referenceId?: string;
+  /** When set (e.g. games), used to grant reward-case keys from wagering. */
+  readonly wagerCoins?: number;
 }

@@ -108,6 +108,7 @@ import {
   CaseSlugTakenError,
   CaseUnknownPetsError,
   CaseInvalidItemsError,
+  CaseCooldownError,
 } from '../../domain/game/case/errors/case.errors';
 
 import {
@@ -253,6 +254,7 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof CaseSlugTakenError)          return HttpStatus.CONFLICT;
     if (error instanceof CaseUnknownPetsError)        return HttpStatus.BAD_REQUEST;
     if (error instanceof CaseInvalidItemsError)       return HttpStatus.BAD_REQUEST;
+    if (error instanceof CaseCooldownError)           return HttpStatus.TOO_MANY_REQUESTS;
 
     // ── Race ────────────────────────────────────────────────────────────────────
     if (error instanceof RaceNotFoundError)          return HttpStatus.NOT_FOUND;

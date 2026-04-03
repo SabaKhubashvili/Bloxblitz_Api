@@ -20,8 +20,11 @@ import {
   CaseUserSeedNotFoundError,
   CaseInvalidQuantityError,
   CasePersistenceError,
+  CaseCooldownError,
   type CaseError,
 } from '../../../../domain/game/case/errors/case.errors';
+import { RedisService } from '../../../../infrastructure/cache/redis.service';
+import { RedisKeys } from '../../../../infrastructure/cache/redis.keys';
 import {
   CASE_BET_EVENT_PUBLISHER,
   CASE_DETAIL_CACHE,
@@ -39,7 +42,8 @@ import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-rac
 import type { OpenCaseOutputDto, CaseOpenSingleOutputDto } from '../dto/case.output-dto';
 
 const MIN_QTY = 1;
-const MAX_QTY = 5;
+const MAX_QTY = 1;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
@@ -69,6 +73,7 @@ export class OpenCaseUseCase
     private readonly fairness: CaseFairnessDomainService,
     private readonly addExperienceUseCase: AddExperienceUseCase,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
+    private readonly redis: RedisService,
   ) {}
 
   async execute(cmd: OpenCaseCommand): Promise<Result<OpenCaseOutputDto, CaseError>> {
@@ -78,6 +83,25 @@ export class OpenCaseUseCase
       cmd.quantity > MAX_QTY
     ) {
       return Err(new CaseInvalidQuantityError());
+    }
+
+    // ── Global 24-hour cooldown check ─────────────────────────────────────────
+    try {
+      const lastOpenMs = await this.redis.get<string>(
+        RedisKeys.case.cooldown(cmd.username),
+      );
+      if (lastOpenMs) {
+        const openedAt = Number(lastOpenMs);
+        const cooldownEndsAt = new Date(openedAt + COOLDOWN_MS);
+        if (cooldownEndsAt.getTime() > Date.now()) {
+          return Err(new CaseCooldownError(cooldownEndsAt));
+        }
+      }
+    } catch (err) {
+      this.logger.warn(
+        `[Cases] cooldown read failed for user=${cmd.username}; allowing open`,
+        err,
+      );
     }
 
     const tExec = performance.now();
@@ -261,6 +285,20 @@ export class OpenCaseUseCase
       `[Cases] opened qty=${cmd.quantity} user=${cmd.username} slug=${cmd.slug} | perf response=${responseMs}ms detailCache=${detailCacheMs}ms detailDb=${detailDbMs}ms cacheHit=${detailFromCache} seed=${seedMs}ms loop=${loopMs}ms placeBetSum=${accPlaceBetMs}ms settleSum=${accSettleMs}ms saveOpens=${saveOpensMs}ms`,
     );
 
+    // ── Set global 24-hour cooldown ───────────────────────────────────────────
+    try {
+      await this.redis.set(
+        RedisKeys.case.cooldown(cmd.username),
+        String(Date.now()),
+        86400,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[Cases] cooldown set failed for user=${cmd.username}`,
+        err,
+      );
+    }
+
     const { username, profilePicture } = cmd;
     setImmediate(() => {
       for (const w of writes) {
@@ -307,12 +345,12 @@ export class OpenCaseUseCase
     source: XpSource,
   ) {
     const xpAmount = Math.floor(pricePaid * CASE_XP_RATE);
-    if (xpAmount <= 0) return Promise.resolve(null);
 
     return this.addExperienceUseCase
       .execute({
         username,
-        amount: xpAmount,
+        amount: Math.max(0, xpAmount),
+        wagerCoins: pricePaid,
         source,
         referenceId: openId,
       })

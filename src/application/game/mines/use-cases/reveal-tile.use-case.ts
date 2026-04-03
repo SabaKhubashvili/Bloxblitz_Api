@@ -178,12 +178,12 @@ export class RevealTileUseCase
     source: XpSource,
   ) {
     const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-    if (xpAmount <= 0) return Promise.resolve(null);
 
     return this.addExperienceUseCase
       .execute({
         username,
-        amount: xpAmount,
+        amount: Math.max(0, xpAmount),
+        wagerCoins: betAmount,
         source,
         referenceId: gameId,
       })

@@ -134,12 +134,12 @@ export class CashoutMinesGameUseCase
 
   private async grantXp(username: string, betAmount: number, gameId: string){
     const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-    if (xpAmount <= 0) return Promise.resolve();
 
     return this.addExperienceUseCase
       .execute({
         username,
-        amount:      xpAmount,
+        amount:      Math.max(0, xpAmount),
+        wagerCoins: betAmount,
         source:      XpSource.GAME_WIN,
         referenceId: gameId,
       })

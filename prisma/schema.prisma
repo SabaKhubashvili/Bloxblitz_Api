@@ -95,6 +95,10 @@ model User {
 
   caseOpenHistory CaseOpenHistory[]
 
+  userRewardKeys          UserKey[]
+  rewardCaseOpens         RewardCaseOpen[]
+  rewardMilestoneProgress RewardCaseMilestoneProgress[]
+
   @@index([username, rblx_id])
   @@index([totalXP(sort: Desc)])
   @@index([currentLevel(sort: Desc)])
@@ -414,6 +418,7 @@ model pets {
   giveaways         AmpGiveaway[]
   inventory         UserInventoryAmp[]
   caseItems         CaseItem[]
+  rewardCaseItems RewardCaseItem[]
 
   @@index([name])
   @@index([rarity])
@@ -1185,6 +1190,15 @@ enum Variant {
   R
 }
 
+enum UserRewardKeySource {
+  WAGER
+  LEVEL_UP
+  MILESTONE_RAKEBACK
+  CASE_OPEN_SPEND
+  XP_MILESTONE
+  ADMIN_ADJUSTMENT
+}
+
 /// Case listing / UX grouping (separate from numeric `Case.riskLevel`).
 enum CaseVariant {
   FEATURED
@@ -1427,4 +1441,100 @@ model RaceReward {
 
   @@unique([raceId, position])
   @@index([raceId])
+}
+
+// ─── Level / milestone “reward” cases (separate from shop `Case`) ─────────────
+
+model RewardCaseDefinition {
+  id             String   @id @default(uuid())
+  slug           String   @unique
+  position       Int
+  imageUrl       String
+  title          String
+  isRakebackCase Boolean  @default(false)
+  milestoneLevel Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  isActive             Boolean @default(true)
+  receivesWagerKeys    Boolean @default(false)
+  wagerCoinsPerKey     Int     @default(100)
+  wagerKeysMaxPerEvent Int     @default(10)
+  levelUpKeysOverride  Int?
+
+  /// XP needed per milestone key grant (null = feature disabled).
+  xpMilestoneThreshold      Int?
+  /// Maximum keys granted per single XP-milestone event (caps burst from large bets). Default 10.
+  xpMilestoneMaxKeysPerEvent Int @default(10)
+
+  poolItems         RewardCaseItem[]
+  userKeyEntries    UserKey[]
+  rewardOpens       RewardCaseOpen[]
+  milestoneProgress RewardCaseMilestoneProgress[]
+
+  @@index([position])
+  @@map("reward_case_definitions")
+}
+
+model RewardCaseItem {
+  id           String    @id @default(uuid())
+  rewardCaseId String
+  petId        Int
+  weight       Int
+  sortOrder    Int       @default(0)
+  variant      Variant[] @default([])
+
+  case RewardCaseDefinition @relation(fields: [rewardCaseId], references: [id], onDelete: Cascade)
+  pet  pets                  @relation(fields: [petId], references: [id])
+
+  @@index([rewardCaseId])
+  @@index([petId])
+  @@map("reward_case_items")
+}
+
+model UserKey {
+  id           String              @id @default(uuid())
+  userUsername String
+  rewardCaseId String
+  quantity     Int
+  source       UserRewardKeySource
+  referenceId  String?
+  createdAt    DateTime            @default(now())
+
+  user User                 @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  case RewardCaseDefinition @relation(fields: [rewardCaseId], references: [id], onDelete: Restrict)
+
+  @@index([userUsername, rewardCaseId])
+  @@index([userUsername, createdAt(sort: Desc)])
+  @@map("user_keys")
+}
+
+model RewardCaseOpen {
+  id           String   @id @default(uuid())
+  userUsername String
+  rewardCaseId String
+  itemsReceived Json
+  createdAt    DateTime @default(now())
+
+  user User                 @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  case RewardCaseDefinition @relation(fields: [rewardCaseId], references: [id], onDelete: Restrict)
+
+  @@index([userUsername, rewardCaseId, createdAt(sort: Desc)])
+  @@map("reward_cases")
+}
+
+/// Tracks how many XP-milestone keys have already been granted per user per case.
+model RewardCaseMilestoneProgress {
+  id           String   @id @default(uuid())
+  userUsername String
+  rewardCaseId String
+  keysGranted  Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  user User                 @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+  case RewardCaseDefinition @relation(fields: [rewardCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([userUsername, rewardCaseId])
+  @@index([userUsername])
+  @@map("reward_case_milestone_progress")
 }

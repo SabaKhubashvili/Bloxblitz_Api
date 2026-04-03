@@ -24,10 +24,12 @@ import { LevelsController } from '../../../presentation/http/public/leveling/lev
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard }   from '../../../shared/guards/roles.guard';
 import { AuthModule } from '../../auth.module';
+import { RewardCasesModule } from '../../rewards/reward-cases.module';
 
 @Module({
   imports: [
     AuthModule,
+    RewardCasesModule,
   ],
   controllers: [LevelsController],
   providers: [

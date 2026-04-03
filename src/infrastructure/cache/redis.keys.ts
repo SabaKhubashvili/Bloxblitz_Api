@@ -209,6 +209,16 @@ export const RedisKeys = {
       distribution: () => `leveling:distribution`,
     },
 
+    /* ─────────────── CASE OPENING COOLDOWN ─────────────── */
+    case: {
+      /**
+       * Global 24-hour cooldown across ALL case types.
+       * Value = Unix ms timestamp of the last open.
+       * TTL = 86400 s (24 h).
+       */
+      cooldown: (username: string) => `case:cooldown:${username}`,
+    },
+
     /* ─────────────── RACE (wagering leaderboard) ─────────────── */
     race: {
       current: () => `race:current`,

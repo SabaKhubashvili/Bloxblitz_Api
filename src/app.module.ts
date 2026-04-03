@@ -14,6 +14,7 @@ import { LevelingModule } from './modules/user/statistics/leveling.module';
 import { RakebackModule } from './modules/user/rakeback.module';
 import { ProfileModule } from './modules/user/profile.module';
 import { DailySpinModule } from './modules/rewards/daily-spin.module';
+import { RewardCasesModule } from './modules/rewards/reward-cases.module';
 import { BetHistoryModule } from './modules/game/bet-history.module';
 import { TransactionModule } from './modules/user/transaction.module';
 import { KinguinModule } from './modules/kinguin.module';
@@ -38,6 +39,7 @@ import { UserTrackingModule } from './infrastructure/user-tracking/user-tracking
     RakebackModule,
     ProfileModule,
     DailySpinModule,
+    RewardCasesModule,
     BetHistoryModule,
     KinguinModule,
     UniwireModule,

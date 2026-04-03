@@ -71,3 +71,15 @@ export class CaseInvalidItemsError extends CaseError {
     super('Case must have at least one item with positive weights');
   }
 }
+
+export class CaseCooldownError extends CaseError {
+  readonly code = 'CASE_COOLDOWN';
+  /** ISO-8601 timestamp when the cooldown expires. */
+  readonly cooldownEndsAt: string;
+  constructor(cooldownEndsAt: Date) {
+    super(
+      `Case opening is on cooldown. Available again at ${cooldownEndsAt.toISOString()}.`,
+    );
+    this.cooldownEndsAt = cooldownEndsAt.toISOString();
+  }
+}

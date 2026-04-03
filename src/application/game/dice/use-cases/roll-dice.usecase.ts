@@ -271,11 +271,11 @@ export class RollDiceUseCase implements IUseCase<
     betId: string,
   ): Promise<{ ok: boolean; value?: { currentLevel: number } } | null> {
     const xpAmount = Math.floor(betAmount * DICE_XP_RATE);
-    if (xpAmount <= 0) return null;
 
     const result = await this.addExperienceUseCase.execute({
       username,
-      amount: xpAmount,
+      amount: Math.max(0, xpAmount),
+      wagerCoins: betAmount,
       source: XpSource.GAME_WIN,
       referenceId: betId,
     });
