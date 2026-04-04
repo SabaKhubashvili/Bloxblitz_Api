@@ -27,7 +27,7 @@ export class PrismaService
     bootLogger.log(`🔹 NODE_ENV: ${process.env.NODE_ENV}`);
 
     // Resolve absolute path to certificate
-    const certPath = path.resolve(__dirname, '../../../certs/db_cert/db_cert.crt');
+    const certPath = path.resolve('/app/certs/db_cert/db_cert.crt');
     bootLogger.log(`🔹 Resolving certificate path: ${certPath}`);
 
     // Check if certificate exists and readable
