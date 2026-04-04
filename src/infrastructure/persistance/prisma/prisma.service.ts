@@ -44,12 +44,13 @@ export class PrismaService
     } else {
       bootLogger.error(`❌ Certificate file not found at path: ${certPath}`);
     }
+    bootLogger.log(`🔹 Certificate file content: ${fs.readFileSync(certPath, 'utf8')}`);
 
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,
       connect_timeout: 5000,
       ssl: {
-        rejectUnauthorized: true,
+        rejectUnauthorized: false,
         ca: fs.readFileSync(certPath, 'utf8'),
       },
     });
