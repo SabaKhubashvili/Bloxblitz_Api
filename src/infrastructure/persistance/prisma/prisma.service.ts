@@ -50,7 +50,7 @@ export class PrismaService
       connectionString: process.env.DATABASE_URL!,
       connect_timeout: 5000,
       ssl: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
         ca: fs.readFileSync(certPath, 'utf8'),
       },
     });
