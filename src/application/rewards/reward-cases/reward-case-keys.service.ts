@@ -1,11 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { Prisma } from '@prisma/client';
-import {
-  BotTradeStatus,
-  UserInventoryItemState,
-  UserRewardKeySource,
-} from '@prisma/client';
+import { UserRewardKeySource } from '@prisma/client';
 import { PrismaService } from '../../../infrastructure/persistance/prisma/prisma.service';
 import { resolvePetValueForCaseItemVariants } from '../../../domain/game/case/services/case-item-pet-value';
 import {
@@ -14,11 +9,13 @@ import {
   REWARD_RAKEBACK_CASE_SLUG,
   rewardCaseSlugForLevel,
 } from '../../../shared/config/reward-cases.config';
-import { RedisService } from '../../../infrastructure/cache/redis.service';
-import { RedisKeys } from '../../../infrastructure/cache/redis.keys';
-import { DiceBalanceLedgerAdapter } from '../../../infrastructure/cache/adapters/dice-balance-ledger.adapter';
-
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+import type { IRewardCasesCachePort } from './ports/reward-cases-cache.port';
+import { REWARD_CASES_CACHE_PORT } from './tokens/reward-cases.tokens';
+import {
+  REWARD_CASES_DEFINITIONS_TTL_SECONDS,
+  REWARD_CASES_USER_STATE_TTL_SECONDS,
+  REWARD_CASES_DEFINITIONS_LOCK_TTL_MS,
+} from './reward-cases-cache.constants';
 
 const petSelectForPool = {
   id: true,
@@ -39,27 +36,6 @@ const petSelectForPool = {
   mvalue_flyride: true,
 } as const;
 
-type PoolRow = Prisma.RewardCaseItemGetPayload<{
-  select: {
-    id: true;
-    petId: true;
-    weight: true;
-    sortOrder: true;
-    variant: true;
-    pet: { select: typeof petSelectForPool };
-  };
-}>;
-
-function pickWeightedPool(items: PoolRow[]): PoolRow | null {
-  const total = items.reduce((s, i) => s + Math.max(0, i.weight), 0);
-  if (total <= 0 || items.length === 0) return null;
-  let r = Math.random() * total;
-  for (const it of items) {
-    r -= Math.max(0, it.weight);
-    if (r <= 0) return it;
-  }
-  return items[items.length - 1] ?? null;
-}
 
 export type RewardCasePoolItemDto = {
   id: string;
@@ -74,6 +50,18 @@ export type RewardCasePoolItemDto = {
     image: string;
     rarity: string;
   };
+};
+
+export type RewardCaseDefinitionDto = {
+  slug: string;
+  position: number;
+  imageUrl: string;
+  title: string;
+  isRakebackCase: boolean;
+  requiredLevel: number;
+  xpMilestoneThreshold: number | null;
+  xpMilestoneMaxKeysPerEvent: number;
+  poolItems: RewardCasePoolItemDto[];
 };
 
 export type XpMilestoneProgressDto = {
@@ -111,22 +99,61 @@ export class RewardCaseKeysService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
-    private readonly ledger: DiceBalanceLedgerAdapter,
+    @Inject(REWARD_CASES_CACHE_PORT)
+    private readonly cache: IRewardCasesCachePort,
   ) {}
 
-  async listDefinitions(): Promise<
-    Array<{
-      slug: string;
-      position: number;
-      imageUrl: string;
-      title: string;
-      isRakebackCase: boolean;
-      xpMilestoneThreshold: number | null;
-      xpMilestoneMaxKeysPerEvent: number;
-      poolItems: RewardCasePoolItemDto[];
-    }>
-  > {
+  // ── Definitions (shared, cached) ───────────────────────────────────────────
+
+  async listDefinitions(): Promise<RewardCaseDefinitionDto[]> {
+    // 1. Try cache first
+    try {
+      const cached = await this.cache.getDefinitions();
+      if (cached !== null) {
+        this.logger.debug('[RewardCases] listDefinitions: cache hit');
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn('[RewardCases] listDefinitions: cache read error', err);
+    }
+
+    this.logger.debug('[RewardCases] listDefinitions: cache miss — fetching DB');
+
+    // 2. Try to acquire the populate-lock to prevent stampede.
+    //    If the lock is not available another request is already populating —
+    //    we still fetch from DB but skip the cache write.
+    let lockAcquired = false;
+    try {
+      lockAcquired = await this.cache.acquireDefinitionsLock(
+        REWARD_CASES_DEFINITIONS_LOCK_TTL_MS,
+      );
+    } catch {
+      // Lock errors are non-fatal; proceed without a lock.
+    }
+
+    const result = await this._fetchDefinitionsFromDb();
+
+    if (lockAcquired) {
+      try {
+        await this.cache.setDefinitions(
+          result,
+          REWARD_CASES_DEFINITIONS_TTL_SECONDS,
+        );
+      } catch (err) {
+        this.logger.warn(
+          '[RewardCases] listDefinitions: cache write error',
+          err,
+        );
+      } finally {
+        await this.cache.releaseDefinitionsLock();
+      }
+    }
+
+    return result;
+  }
+
+  /** Raw DB fetch — extracted so it can be called without cache logic. */
+  private async _fetchDefinitionsFromDb(): Promise<RewardCaseDefinitionDto[]> {
     const rows = await this.prisma.rewardCaseDefinition.findMany({
       where: { isActive: true },
       orderBy: { position: 'asc' },
@@ -136,6 +163,7 @@ export class RewardCaseKeysService {
         imageUrl: true,
         title: true,
         isRakebackCase: true,
+        requiredLevel: true,
         xpMilestoneThreshold: true,
         xpMilestoneMaxKeysPerEvent: true,
         poolItems: {
@@ -158,6 +186,7 @@ export class RewardCaseKeysService {
       imageUrl: r.imageUrl,
       title: r.title,
       isRakebackCase: r.isRakebackCase,
+      requiredLevel: r.requiredLevel,
       xpMilestoneThreshold: r.xpMilestoneThreshold,
       xpMilestoneMaxKeysPerEvent: r.xpMilestoneMaxKeysPerEvent,
       poolItems: r.poolItems.map((p) => {
@@ -181,6 +210,92 @@ export class RewardCaseKeysService {
       }),
     }));
   }
+
+  // ── Per-user balance state (cached) ────────────────────────────────────────
+
+  /**
+   * Returns all user-specific reward-case state in a single call.
+   * The result is cached under `cache:reward-cases:user-state:{username}`.
+   *
+   * Call `invalidateUserState(username)` after any mutation that changes
+   * key balances, case opens, or XP milestone progress for this user.
+   */
+  async getCachedUserState(username: string) {
+    // 1. Try cache
+    try {
+      const cached = await this.cache.getUserState(username);
+      if (cached !== null) {
+        this.logger.debug(
+          `[RewardCases] getCachedUserState: cache hit for ${username}`,
+        );
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(
+        `[RewardCases] getCachedUserState: cache read error for ${username}`,
+        err,
+      );
+    }
+
+    this.logger.debug(
+      `[RewardCases] getCachedUserState: cache miss for ${username} — fetching DB`,
+    );
+
+    // 2. Fetch all user-specific data in parallel
+    const [keyBalances, totalXp, userLevel, lastCaseOpen] = await Promise.all([
+      this.getKeyBalances(username),
+      this.getUserTotalXp(username),
+      this.getUserLevel(username),
+      this.getLastCaseOpenForUser(username),
+    ]);
+
+    const xpMilestoneProgress = await this.getXpMilestoneProgress(
+      username,
+      totalXp,
+    );
+
+    const state = {
+      keyBalances,
+      totalXp,
+      userLevel,
+      lastCaseOpen,
+      xpMilestoneProgress,
+    };
+
+    // 3. Populate cache (best-effort)
+    try {
+      await this.cache.setUserState(
+        username,
+        state,
+        REWARD_CASES_USER_STATE_TTL_SECONDS,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `[RewardCases] getCachedUserState: cache write error for ${username}`,
+        err,
+      );
+    }
+
+    return state;
+  }
+
+  /**
+   * Eagerly drops the per-user cache entry.
+   * Must be called after any mutation that changes key balances,
+   * case opens, or XP milestone progress for this user.
+   */
+  async invalidateUserState(username: string): Promise<void> {
+    try {
+      await this.cache.invalidateUserState(username);
+    } catch (err) {
+      this.logger.warn(
+        `[RewardCases] invalidateUserState failed for ${username}`,
+        err,
+      );
+    }
+  }
+
+  // ── Key balances ───────────────────────────────────────────────────────────
 
   async getKeyBalances(username: string): Promise<Record<string, number>> {
     const sums = await this.prisma.userKey.groupBy({
@@ -206,7 +321,7 @@ export class RewardCaseKeysService {
 
   /**
    * Latest open across all reward cases (by `RewardCaseOpen.createdAt`),
-   * for UI such as global cooldown / “last opened” next to key balances.
+   * for UI such as global cooldown / "last opened" next to key balances.
    */
   async getLastCaseOpenForUser(
     userUsername: string,
@@ -269,6 +384,9 @@ export class RewardCaseKeysService {
         });
       }
     });
+
+    // Key balances changed — drop the per-user cache.
+    await this.invalidateUserState(userUsername);
   }
 
   async grantKeysFromLevelProgress(
@@ -324,6 +442,9 @@ export class RewardCaseKeysService {
         }
       }
     }
+
+    // Key balances and level changed — drop the per-user cache.
+    await this.invalidateUserState(userUsername);
   }
 
   /**
@@ -409,6 +530,9 @@ export class RewardCaseKeysService {
         });
       }
     });
+
+    // Key balances and milestone progress changed — drop the per-user cache.
+    await this.invalidateUserState(userUsername);
   }
 
   /** Reads the user's current cumulative XP directly from the User record. */
@@ -418,6 +542,15 @@ export class RewardCaseKeysService {
       select: { totalXP: true },
     });
     return user?.totalXP ?? 0;
+  }
+
+  /** Reads the user's current level directly from the User record. */
+  async getUserLevel(userUsername: string): Promise<number> {
+    const user = await this.prisma.user.findUnique({
+      where: { username: userUsername },
+      select: { currentLevel: true },
+    });
+    return user?.currentLevel ?? 1;
   }
 
   /**
@@ -476,198 +609,4 @@ export class RewardCaseKeysService {
     return result;
   }
 
-  async openCase(
-    userUsername: string,
-    slug: string,
-  ): Promise<{
-    slug: string;
-    title: string;
-    rewards: RewardCaseOpenRewardDto[];
-    keysSpent: number;
-  }> {
-    const def = await this.prisma.rewardCaseDefinition.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        isActive: true,
-        poolItems: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true,
-            petId: true,
-            weight: true,
-            sortOrder: true,
-            variant: true,
-            pet: { select: { ...petSelectForPool } },
-          },
-        },
-      },
-    });
-
-    if (!def) {
-      throw new Error('REWARD_CASE_NOT_FOUND');
-    }
-
-    if (!def.isActive) {
-      throw new Error('REWARD_CASE_INACTIVE');
-    }
-
-    if (def.poolItems.length === 0) {
-      throw new Error('REWARD_CASE_EMPTY');
-    }
-
-    // ── Global 24-hour cooldown check (across all case types) ─────────────────
-    try {
-      const lastOpenMs = await this.redis.get<string>(
-        RedisKeys.case.cooldown(userUsername),
-      );
-      if (lastOpenMs) {
-        const openedAt = Number(lastOpenMs);
-        const endsAt = openedAt + COOLDOWN_MS;
-        if (endsAt > Date.now()) {
-          throw new Error('CASE_GLOBAL_COOLDOWN');
-        }
-      }
-    } catch (err) {
-      if (err instanceof Error && err.message === 'CASE_GLOBAL_COOLDOWN') {
-        throw err;
-      }
-      // Redis read failures are non-fatal; fall through to per-case cooldown
-      this.logger.warn(
-        `[RewardCases] global cooldown read failed for user=${userUsername}; continuing`,
-        err,
-      );
-    }
-
-    const outcome = await this.prisma.$transaction(async (tx) => {
-      // DB source of truth when Redis is missing: any reward case open in the window
-      // matches global cooldown (same as RedisKeys.case.cooldown).
-      const latestRewardOpen = await tx.rewardCaseOpen.findFirst({
-        where: { userUsername },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      });
-      if (
-        latestRewardOpen &&
-        Date.now() - latestRewardOpen.createdAt.getTime() < COOLDOWN_MS
-      ) {
-        throw new Error('CASE_GLOBAL_COOLDOWN');
-      }
-
-      const sumRow = await tx.userKey.aggregate({
-        where: { userUsername, rewardCaseId: def.id },
-        _sum: { quantity: true },
-      });
-      const balance = sumRow._sum.quantity ?? 0;
-      if (balance < 1) {
-        throw new Error('REWARD_CASE_INSUFFICIENT_KEYS');
-      }
-
-      const picked = pickWeightedPool(def.poolItems as PoolRow[]);
-      if (!picked) {
-        throw new Error('REWARD_CASE_ROLL_FAILED');
-      }
-
-      const pet = picked.pet;
-      const variant = picked.variant.map((v) => String(v));
-      const value = resolvePetValueForCaseItemVariants(pet, variant);
-      const rewards: RewardCaseOpenRewardDto[] = [
-        {
-          rewardCaseItemId: picked.id,
-          petId: pet.id,
-          name: pet.name,
-          image: pet.image,
-          rarity: pet.rarity,
-          variant,
-          value,
-        },
-      ];
-
-      await tx.userKey.create({
-        data: {
-          id: randomUUID(),
-          userUsername,
-          rewardCaseId: def.id,
-          quantity: -1,
-          source: UserRewardKeySource.CASE_OPEN_SPEND,
-          referenceId: randomUUID(),
-        },
-      });
-
-      await tx.rewardCaseOpen.create({
-        data: {
-          id: randomUUID(),
-          userUsername,
-          rewardCaseId: def.id,
-          itemsReceived: rewards as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      const bot = await tx.ampBot.findFirst({
-        where: { active: true, banned: false },
-        orderBy: { id: 'asc' },
-        select: { id: true },
-      });
-
-      if (bot) {
-        await tx.userInventoryAmp.create({
-          data: {
-            userUsername,
-            petId: pet.id,
-            state: UserInventoryItemState.IDLE,
-            petInGameId: randomUUID(),
-            value,
-            petVariant: picked.variant,
-            owner_bot_id: bot.id,
-            botTradeStatus: BotTradeStatus.NONE,
-          },
-        });
-      } else {
-        this.logger.warn(
-          `[RewardCases] no active AmpBot; open recorded for ${userUsername} but inventory row skipped`,
-        );
-      }
-
-      return {
-        slug: def.slug,
-        title: def.title,
-        rewards,
-        keysSpent: 1,
-      };
-    });
-
-    // ── Set global 24-hour cooldown ───────────────────────────────────────────
-    try {
-      await this.redis.set(
-        RedisKeys.case.cooldown(userUsername),
-        String(Date.now()),
-        86400,
-      );
-    } catch (err) {
-      this.logger.warn(
-        `[RewardCases] global cooldown set failed for user=${userUsername}`,
-        err,
-      );
-    }
-
-    // ── Credit won item value to user balance ─────────────────────────────────
-    const wonValue = outcome.rewards.reduce((sum, r) => sum + r.value, 0);
-    if (wonValue > 0) {
-      try {
-        await this.ledger.settlePayout({ username: userUsername, profit: wonValue });
-        this.logger.log(
-          `[RewardCases] balance credited user=${userUsername} amount=+${wonValue}`,
-        );
-      } catch (err) {
-        this.logger.error(
-          `[RewardCases] balance credit FAILED user=${userUsername} amount=${wonValue} — manual reconciliation required`,
-          err,
-        );
-      }
-    }
-
-    return outcome;
-  }
 }

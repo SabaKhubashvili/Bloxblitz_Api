@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -12,42 +14,58 @@ import { JwtAuthGuard } from '../../../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../../../shared/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../../../shared/decorators/current-user.decorator';
 import { DomainExceptionFilter } from '../../../../../../shared/filters/domain-exception.filter';
+import { OptionalJwtAuthGuard } from 'src/shared/guards/optional-jwt-auth.guard';
 import { RewardCaseKeysService } from '../../../../../../application/rewards/reward-cases/reward-case-keys.service';
-import { OpenRewardCaseHttpDto } from './dto/open-reward-case.http-dto';
+import { OpenRewardCaseUseCase } from '../../../../../../application/rewards/reward-cases/use-cases/open-reward-case.use-case';
 import {
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+  RewardCaseCooldownError,
+  RewardCaseEmptyError,
+  RewardCaseInsufficientKeysError,
+  RewardCaseLevelLockedError,
+  RewardCaseNotFoundError,
+  RewardCaseRollFailedError,
+} from '../../../../../../domain/reward-cases/errors/reward-case.errors';
+import { OpenRewardCaseHttpDto } from './dto/open-reward-case.http-dto';
 
 @Controller('rewards/level-cases')
 @UseFilters(DomainExceptionFilter)
 export class RewardCasesController {
-  constructor(private readonly rewardCases: RewardCaseKeysService) {}
+  constructor(
+    private readonly rewardCases: RewardCaseKeysService,
+    private readonly openRewardCase: OpenRewardCaseUseCase,
+  ) {}
 
-  /** Public catalog (position, art, pool metadata). */
   @Get()
-  async listCatalog() {
-    return this.rewardCases.listDefinitions();
-  }
+  @UseGuards(OptionalJwtAuthGuard)
+  async myBalances(@CurrentUser() user?: JwtPayload) {
+    if (!user) {
+      const definitions = await this.rewardCases.listDefinitions();
+      return {
+        definitions,
+        keyBalances: {},
+        totalXp: 0,
+        userLevel: 0,
+        lastCaseOpen: null,
+      };
+    }
 
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  async myBalances(@CurrentUser() user: JwtPayload) {
-    const [definitions, balances, totalXp, lastCaseOpen] = await Promise.all([
+    const [definitions, userState] = await Promise.all([
       this.rewardCases.listDefinitions(),
-      this.rewardCases.getKeyBalances(user.username),
-      this.rewardCases.getUserTotalXp(user.username),
-      this.rewardCases.getLastCaseOpenForUser(user.username),
+      this.rewardCases.getCachedUserState(user.username),
     ]);
-    const xpMilestoneProgress = await this.rewardCases.getXpMilestoneProgress(
-      user.username,
-      totalXp,
-    );
+
+    const definitionsWithUnlock = definitions.map((d) => ({
+      ...d,
+      isUnlocked:
+        d.requiredLevel === 0 || userState.userLevel >= d.requiredLevel,
+    }));
+
     return {
-      definitions,
-      keyBalances: balances,
-      xpMilestoneProgress,
-      lastCaseOpen,
+      definitions: definitionsWithUnlock,
+      keyBalances: userState.keyBalances,
+      xpMilestoneProgress: userState.xpMilestoneProgress,
+      lastCaseOpen: userState.lastCaseOpen,
+      userLevel: userState.userLevel,
     };
   }
 
@@ -58,33 +76,36 @@ export class RewardCasesController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: OpenRewardCaseHttpDto,
   ) {
-    try {
-      return await this.rewardCases.openCase(user.username, dto.slug.trim());
-    } catch (e) {
-      const code = e instanceof Error ? e.message : 'UNKNOWN';
-      if (code === 'REWARD_CASE_NOT_FOUND') {
+    const result = await this.openRewardCase.execute({
+      userUsername: user.username,
+      slug: dto.slug.trim(),
+    });
+
+    if (!result.ok) {
+      const err = result.error;
+
+      if (err instanceof RewardCaseNotFoundError) {
         throw new BadRequestException('Unknown reward case');
       }
-      if (code === 'REWARD_CASE_EMPTY') {
+      if (err instanceof RewardCaseEmptyError) {
         throw new BadRequestException('Case pool is not configured');
       }
-      if (code === 'REWARD_CASE_COOLDOWN') {
-        throw new ForbiddenException(
-          'You can open this case again after 24 hours',
-        );
+      if (err instanceof RewardCaseCooldownError) {
+        throw new ForbiddenException('You can only open one case every 24 hours');
       }
-      if (code === 'CASE_GLOBAL_COOLDOWN') {
-        throw new ForbiddenException(
-          'You can only open one case every 24 hours',
-        );
-      }
-      if (code === 'REWARD_CASE_INSUFFICIENT_KEYS') {
+      if (err instanceof RewardCaseInsufficientKeysError) {
         throw new BadRequestException('Not enough keys for this case');
       }
-      if (code === 'REWARD_CASE_ROLL_FAILED') {
+      if (err instanceof RewardCaseRollFailedError) {
         throw new BadRequestException('Could not roll rewards');
       }
-      throw e;
+      if (err instanceof RewardCaseLevelLockedError) {
+        throw new ForbiddenException('Your level is too low to open this case');
+      }
+
+      throw new BadRequestException('Failed to open case');
     }
+
+    return result.value;
   }
 }

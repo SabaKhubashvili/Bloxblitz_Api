@@ -209,6 +209,35 @@ export const RedisKeys = {
       distribution: () => `leveling:distribution`,
     },
 
+    /* ─────────────── REWARD CASES CACHE ─────────────── */
+    rewardCases: {
+      /**
+       * Shared definitions catalog (all active cases + pool items).
+       * Invalidated whenever an admin creates, updates, or deletes a case
+       * definition or pool item.
+       */
+      definitions: () => `cache:reward-cases:definitions`,
+
+      /** NX populate-lock to prevent cache-stampede on a cold definitions key. */
+      definitionsLock: () => `cache:reward-cases:definitions:lock`,
+
+      /**
+       * Per-user balance state: key balances, totalXp, level,
+       * lastCaseOpen, xpMilestoneProgress.
+       * Invalidated on any mutation that touches this user's reward data.
+       */
+      userState: (username: string) =>
+        `cache:reward-cases:user-state:${username}`,
+
+      /**
+       * Per-user exclusive lock held during a case-open flow.
+       * Prevents concurrent opens / double-spend for the same user.
+       * TTL is the lock lifetime in ms (set by the use-case).
+       */
+      openLock: (username: string) =>
+        `cache:reward-cases:open-lock:${username}`,
+    },
+
     /* ─────────────── CASE OPENING COOLDOWN ─────────────── */
     case: {
       /**

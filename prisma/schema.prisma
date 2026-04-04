@@ -1462,6 +1462,9 @@ model RewardCaseDefinition {
   wagerKeysMaxPerEvent Int     @default(10)
   levelUpKeysOverride  Int?
 
+  /// Minimum user level required to unlock (open) this case. 0 = no restriction.
+  requiredLevel Int @default(0)
+
   /// XP needed per milestone key grant (null = feature disabled).
   xpMilestoneThreshold      Int?
   /// Maximum keys granted per single XP-milestone event (caps burst from large bets). Default 10.
