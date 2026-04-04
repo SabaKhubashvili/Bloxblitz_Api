@@ -21,23 +21,13 @@ export class PrismaService
   constructor() {
     const bootLogger = new Logger(PrismaService.name);
 
-    // Log environment variables (before super — cannot use `this` yet)
-    bootLogger.log('🔹 PrismaService starting...');
-    bootLogger.log(`🔹 DATABASE_URL: ${process.env.DATABASE_URL}`);
-    bootLogger.log(`🔹 NODE_ENV: ${process.env.NODE_ENV}`);
-
     // Resolve absolute path to certificate
     const certPath = path.resolve('/app/certs/db_cert/db_cert.crt');
-    bootLogger.log(`🔹 Resolving certificate path: ${certPath}`);
-
     // Check if certificate exists and readable
     if (fs.existsSync(certPath)) {
       bootLogger.log(`✅ Certificate file exists`);
       try {
         const certContent = fs.readFileSync(certPath, 'utf8');
-        bootLogger.log(
-          `✅ Certificate file read successfully, length: ${certContent.length} chars`,
-        );
       } catch (err) {
         bootLogger.error(`❌ Failed to read certificate file: ${err}`);
       }
