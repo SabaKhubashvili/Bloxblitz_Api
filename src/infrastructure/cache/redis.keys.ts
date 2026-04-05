@@ -141,6 +141,18 @@ export const RedisKeys = {
 
       minesRound: (gameId: string) => `cache:mines:round:${gameId}`,
 
+      diceHistoryVersion: (username: string) =>
+        `cache:dice:history:${username}:version`,
+
+      diceHistoryPage: (
+        username: string,
+        version: number,
+        page: number,
+        limit: number,
+        order: string,
+      ) =>
+        `cache:dice:history:${username}:v${version}:p${page}:l${limit}:o${order}`,
+
       /** Active cases catalog (list endpoint). Invalidate on case CRUD. */
       casesList: () => `cache:cases:list:active`,
 

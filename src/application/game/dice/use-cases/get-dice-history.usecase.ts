@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { IDiceHistoryRepository } from '../../../../domain/game/dice/ports/dice-history.repository.port';
+import type { IDiceHistoryCachePort } from '../ports/dice-history-cache.port';
 import type { GetDiceHistoryQuery } from '../dto/dice-history.query';
 import type {
   DiceHistoryOutputDto,
@@ -12,7 +13,10 @@ import {
   DiceHistoryFetchError,
   type DiceError,
 } from '../../../../domain/game/dice/errors/dice.errors';
-import { DICE_HISTORY_REPOSITORY } from '../tokens/dice.tokens';
+import { DICE_HISTORY_CACHE_PORT, DICE_HISTORY_REPOSITORY } from '../tokens/dice.tokens';
+
+/** Cache TTL for paginated dice history (seconds). */
+const HISTORY_PAGE_TTL = 120;
 
 @Injectable()
 export class GetDiceHistoryUseCase
@@ -23,6 +27,8 @@ export class GetDiceHistoryUseCase
   constructor(
     @Inject(DICE_HISTORY_REPOSITORY)
     private readonly historyRepo: IDiceHistoryRepository,
+    @Inject(DICE_HISTORY_CACHE_PORT)
+    private readonly historyCache: IDiceHistoryCachePort,
   ) {}
 
   async execute(
@@ -31,26 +37,42 @@ export class GetDiceHistoryUseCase
     const { username, page, limit, order } = query;
 
     try {
-      const pageData = await this.historyRepo.findPageByUsername(
-        username,
-        page,
-        limit,
-        order,
+      const cached = await this.historyCache.getPage(username, page, limit, order);
+      if (cached !== null) {
+        this.logger.debug(`[DiceHistory] Cache hit — user=${username} page=${page} order=${order}`);
+        return Ok(cached);
+      }
+    } catch (cacheErr) {
+      this.logger.warn(
+        `[DiceHistory] Cache read failed for ${username}, falling through to repo`,
+        cacheErr,
       );
+    }
 
-      const dto: DiceHistoryOutputDto = {
-        items: pageData.items.map(toItemOutputDto),
-        total: pageData.total,
-        page,
-        limit,
-        totalPages: Math.ceil(pageData.total / limit),
-      };
+    let pageData: Awaited<ReturnType<IDiceHistoryRepository['findPageByUsername']>>;
 
-      return Ok(dto);
+    try {
+      pageData = await this.historyRepo.findPageByUsername(username, page, limit, order);
     } catch (err) {
       this.logger.error(`[DiceHistory] Repository fetch failed for ${username}`, err);
       return Err(new DiceHistoryFetchError());
     }
+
+    const dto: DiceHistoryOutputDto = {
+      items: pageData.items.map(toItemOutputDto),
+      total: pageData.total,
+      page,
+      limit,
+      totalPages: Math.ceil(pageData.total / limit),
+    };
+
+    void this.historyCache
+      .setPage(username, page, limit, order, dto, HISTORY_PAGE_TTL)
+      .catch((err) =>
+        this.logger.warn(`[DiceHistory] Cache write failed for ${username}`, err),
+      );
+
+    return Ok(dto);
   }
 }
 

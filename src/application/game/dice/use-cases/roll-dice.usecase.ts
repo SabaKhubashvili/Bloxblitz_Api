@@ -4,6 +4,7 @@ import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port';
 import type { IDiceBalanceLedgerPort } from '../../../../domain/game/dice/ports/dice-balance-ledger.port';
 import type { IDiceHistoryRepository } from '../../../../domain/game/dice/ports/dice-history.repository.port';
+import type { IDiceHistoryCachePort } from '../ports/dice-history-cache.port';
 import type { IDiceConfigPort } from '../ports/dice-config.port';
 import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publisher.port';
 import { DiceFairnessDomainService } from '../../../../domain/game/dice/services/dice-fairness.domain-service';
@@ -26,6 +27,7 @@ import {
   DICE_CONFIG_PORT,
   DICE_BALANCE_LEDGER,
   DICE_HISTORY_REPOSITORY,
+  DICE_HISTORY_CACHE_PORT,
   USER_SEED_REPOSITORY,
   DICE_BET_EVENT_PUBLISHER,
 } from '../tokens/dice.tokens';
@@ -50,6 +52,8 @@ export class RollDiceUseCase implements IUseCase<
     private readonly ledger: IDiceBalanceLedgerPort,
     @Inject(DICE_HISTORY_REPOSITORY)
     private readonly historyRepo: IDiceHistoryRepository,
+    @Inject(DICE_HISTORY_CACHE_PORT)
+    private readonly historyCache: IDiceHistoryCachePort,
     @Inject(USER_SEED_REPOSITORY)
     private readonly seedRepo: IUserSeedRepository,
     @Inject(DICE_BET_EVENT_PUBLISHER)
@@ -212,6 +216,10 @@ export class RollDiceUseCase implements IUseCase<
       serverSeedHash,
       nonce,
     });
+
+    void this.historyCache.invalidate(cmd.username).catch((err) =>
+      this.logger.warn(`[Dice] history cache invalidate failed user=${cmd.username}`, err),
+    );
 
     this.logger.log(
       `[Dice] user=${cmd.username} roll=${rollResult} chance=${cmd.chance} ` +
