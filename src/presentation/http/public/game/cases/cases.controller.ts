@@ -37,12 +37,8 @@ import {
   toCaseListQueryFilter,
 } from './dto/list-cases-query.dto';
 import { CasesListRateLimitGuard } from './guards/cases-list-rate-limit.guard';
-import { RedisService } from '../../../../../infrastructure/cache/redis.service';
-import { RedisKeys } from '../../../../../infrastructure/cache/redis.keys';
-import { PrismaService } from '../../../../../infrastructure/persistance/prisma/prisma.service';
 
 const CASE_SLUG_MAX_LEN = 160;
-const CASE_OPEN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function assertValidCaseSlugParam(slug: string): string {
   const s = slug.trim();
@@ -68,8 +64,6 @@ export class CasesController {
     private readonly createCaseUseCase: CreateCaseUseCase,
     @Inject(CASE_DETAIL_CACHE)
     private readonly caseDetailCache: ICaseDetailCachePort,
-    private readonly redis: RedisService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -107,65 +101,6 @@ export class CasesController {
     });
     if (!result.ok) throw result.error;
     return result.value;
-  }
-
-  /**
-   * Returns the authenticated user's global case-open cooldown status.
-   * Declared before `GET :slug` so the literal segment isn't captured as a slug.
-   */
-  @Get('cooldown')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async getCooldownStatus(
-    @CurrentUser() user: JwtPayload,
-  ): Promise<{ onCooldown: boolean; cooldownEndsAt: string | null }> {
-    /** Last open time from Redis (game + reward) or reward-case DB row if Redis missed. */
-    let lastOpenMs = 0;
-
-    try {
-      const raw = await this.redis.get<string>(
-        RedisKeys.case.cooldown(user.username),
-      );
-      if (raw) {
-        const openedAt = Number(raw);
-        if (Number.isFinite(openedAt) && openedAt > 0) {
-          lastOpenMs = Math.max(lastOpenMs, openedAt);
-        }
-      }
-    } catch (err) {
-      this.logger.warn(
-        `[Cases] cooldown redis read failed for user=${user.username}`,
-        err,
-      );
-    }
-
-    try {
-      const row = await this.prisma.rewardCaseOpen.findFirst({
-        where: { userUsername: user.username },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      });
-      if (row) {
-        const t = row.createdAt.getTime();
-        if (Number.isFinite(t)) lastOpenMs = Math.max(lastOpenMs, t);
-      }
-    } catch (err) {
-      this.logger.warn(
-        `[Cases] cooldown reward-case DB read failed for user=${user.username}`,
-        err,
-      );
-    }
-
-    if (lastOpenMs <= 0) {
-      return { onCooldown: false, cooldownEndsAt: null };
-    }
-
-    const cooldownEndsAt = new Date(lastOpenMs + CASE_OPEN_COOLDOWN_MS);
-    const onCooldown = cooldownEndsAt.getTime() > Date.now();
-    return {
-      onCooldown,
-      cooldownEndsAt: onCooldown ? cooldownEndsAt.toISOString() : null,
-    };
   }
 
   /**

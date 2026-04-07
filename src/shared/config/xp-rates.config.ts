@@ -18,7 +18,8 @@ import { LEVELING_CONFIG } from '../../domain/leveling/config/leveling.config';
  *   COINFLIP: 5  → ~227  (pure luck; fastest rounds)
  *   CRASH:    7.5→ ~341  (timing skill; medium risk)
  *   MINES:   10  → ~455  (most decisions; high risk)
- *   CASE:   5.5 → ~250  (single-click loot open; between coinflip and dice)
+ *   CASE:     5.5 → ~250  (single-click loot open; between coinflip and dice)
+ *   ROULETTE: 6   → ~273  (one color/outcome pick per stake; same tier as dice)
  */
 
 const SCALE = LEVELING_CONFIG.GAME_RATE_SCALE_FACTOR;
@@ -31,11 +32,6 @@ export interface GameXpRate {
 }
 
 export const GAME_XP_RATES = {
-  JACKPOT: {
-    xpPerCoin: Math.round(3 * SCALE),
-    rationale:
-      'Passive deposit-and-wait format with no in-round decisions; lowest engagement per session',
-  },
   COINFLIP: {
     xpPerCoin: Math.round(5 * SCALE),
     rationale:
@@ -62,6 +58,11 @@ export const GAME_XP_RATES = {
     rationale:
       'One action per open (weighted roll); engagement between coinflip and dice.',
   },
+  ROULETTE: {
+    xpPerCoin: Math.round(6 * SCALE),
+    rationale:
+      'Single stake on a color/outcome per round; engagement profile aligned with dice.',
+  },
 } as const satisfies Record<string, GameXpRate>;
 
 /** Convenience accessor — avoids magic strings at call sites. */
@@ -69,5 +70,13 @@ export const MINES_XP_RATE  = GAME_XP_RATES.MINES.xpPerCoin;
 export const DICE_XP_RATE   = GAME_XP_RATES.DICE.xpPerCoin;
 export const CRASH_XP_RATE  = GAME_XP_RATES.CRASH.xpPerCoin;
 export const COINFLIP_XP_RATE = GAME_XP_RATES.COINFLIP.xpPerCoin;
-export const JACKPOT_XP_RATE  = GAME_XP_RATES.JACKPOT.xpPerCoin;
 export const CASE_XP_RATE     = GAME_XP_RATES.CASE.xpPerCoin;
+export const ROULETTE_XP_RATE = GAME_XP_RATES.ROULETTE.xpPerCoin;
+
+/** Base game XP (before account `xpMultiplier`) from coins wagered × per-coin rate. */
+export function coinsWageredToBaseGameXp(
+  wagerCoins: number,
+  xpPerCoin: number,
+): number {
+  return Math.max(0, Math.floor(wagerCoins * xpPerCoin));
+}

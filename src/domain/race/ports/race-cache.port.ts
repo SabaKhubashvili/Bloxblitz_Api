@@ -3,6 +3,7 @@ import type {
   RaceParticipantAfterIncrement,
   RaceRecord,
 } from './race.repository.port';
+import type { RaceStatusCacheRecord } from '../race-status-snapshot';
 
 /** Cached shape for `race:current` (no leaderboard rows). */
 export interface CurrentRaceCachePayload {
@@ -17,6 +18,19 @@ export interface IRaceCachePort {
     ttlSeconds?: number,
   ): Promise<void>;
   deleteCurrentRace(): Promise<void>;
+
+  /**
+   * Redis-only snapshot for minimal race status. Returns null when the key is absent.
+   * When present, DTO is re-validated against embedded window/status (no DB).
+   */
+  getRaceStatusSnapshot(): Promise<
+    { isActive: boolean; totalPrizePool: number } | null
+  >;
+
+  setRaceStatusRecord(
+    record: RaceStatusCacheRecord,
+    ttlSeconds: number,
+  ): Promise<void>;
 
   getTop10(raceId: string): Promise<RaceLeaderboardEntry[] | null>;
   setTop10(

@@ -253,8 +253,8 @@ export const RedisKeys = {
     /* ─────────────── CASE OPENING COOLDOWN ─────────────── */
     case: {
       /**
-       * Global 24-hour cooldown across ALL case types.
-       * Value = Unix ms timestamp of the last open.
+       * 24-hour cooldown for **reward level-cases** only (paid shop cases do not use this).
+       * Value = Unix ms timestamp of the last reward-case open.
        * TTL = 86400 s (24 h).
        */
       cooldown: (username: string) => `case:cooldown:${username}`,
@@ -263,6 +263,8 @@ export const RedisKeys = {
     /* ─────────────── RACE (wagering leaderboard) ─────────────── */
     race: {
       current: () => `race:current`,
+      /** Minimal public JSON for race strip banner / header — invalidated with `current`. */
+      publicStatus: () => `race:public:status`,
       top10: (raceId: string) => `race:${raceId}:top10`,
       leaderboard: (raceId: string) => `race:${raceId}:leaderboard`,
       userRank: (raceId: string, userId: string) =>

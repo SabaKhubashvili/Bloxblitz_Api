@@ -13,6 +13,11 @@ import type {
   RaceRecord,
 } from '../../../domain/race/ports/race.repository.port';
 import { RaceStatus } from '../../../domain/race/enums/race-status.enum';
+import {
+  buildRaceStatusCacheRecord,
+  raceStatusCacheRecordToDto,
+  type RaceStatusCacheRecord,
+} from '../../../domain/race/race-status-snapshot';
 import { RACE_CACHE_TTL } from '../../../application/race/tokens/race.tokens';
 
 type SerializedCurrentRace = {
@@ -88,6 +93,15 @@ export class RaceCacheAdapter implements IRaceCachePort {
         serializable,
         ttlSeconds,
       );
+      const statusRecord = buildRaceStatusCacheRecord(
+        payload.race,
+        payload.rewards,
+      );
+      await this.redis.set(
+        RedisKeys.race.publicStatus(),
+        statusRecord,
+        ttlSeconds,
+      );
     } catch (e) {
       this.logger.warn('[RaceCache] setCurrentRace failed', e);
     }
@@ -96,8 +110,40 @@ export class RaceCacheAdapter implements IRaceCachePort {
   async deleteCurrentRace(): Promise<void> {
     try {
       await this.redis.del(RedisKeys.race.current());
+      await this.redis.del(RedisKeys.race.publicStatus());
     } catch (e) {
       this.logger.warn('[RaceCache] deleteCurrentRace failed', e);
+    }
+  }
+
+  async getRaceStatusSnapshot(): Promise<{
+    isActive: boolean;
+    totalPrizePool: number;
+  } | null> {
+    try {
+      const raw = await this.redis.get<RaceStatusCacheRecord>(
+        RedisKeys.race.publicStatus(),
+      );
+      if (!raw?.endTime || !raw?.startTime) return null;
+      return raceStatusCacheRecordToDto(raw);
+    } catch (e) {
+      this.logger.warn('[RaceCache] getRaceStatusSnapshot failed', e);
+      return null;
+    }
+  }
+
+  async setRaceStatusRecord(
+    record: RaceStatusCacheRecord,
+    ttlSeconds: number,
+  ): Promise<void> {
+    try {
+      await this.redis.set(
+        RedisKeys.race.publicStatus(),
+        record,
+        ttlSeconds,
+      );
+    } catch (e) {
+      this.logger.warn('[RaceCache] setRaceStatusRecord failed', e);
     }
   }
 

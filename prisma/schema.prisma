@@ -1130,6 +1130,13 @@ enum GameType {
   JACKPOT
   DICE
   CASE
+  ROULETTE
+}
+
+enum RouletteColor {
+  GREEN
+  BROWN
+  YELLOW
 }
 
 enum CrashPlayerControlStatus {
@@ -1524,6 +1531,28 @@ model RewardCaseOpen {
 
   @@index([userUsername, rewardCaseId, createdAt(sort: Desc)])
   @@map("reward_cases")
+}
+
+// ─── Roulette ─────────────────────────────────────────────────────────────────
+
+/// One complete roulette round. Persisted after the spin resolves.
+/// gameIndex is the sequential nonce; use it for provably-fair verification:
+///   outcomeHash = HMAC-SHA256(serverSeed, "${eosBlockId}-${gameIndex}")
+model RouletteRound {
+  id          String        @id @default(uuid())
+  /// Sequential nonce — monotonically increasing across restarts.
+  gameIndex   Int           @unique
+  serverSeed  String        @db.VarChar(128)
+  eosBlockId  String        @db.VarChar(64)
+  /// HMAC-SHA256(serverSeed, "${eosBlockId}-${gameIndex}")
+  outcomeHash String        @db.VarChar(64)
+  outcome     RouletteColor
+  finished    Boolean       @default(false)
+  finishedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([gameIndex(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 /// Tracks how many XP-milestone keys have already been granted per user per case.

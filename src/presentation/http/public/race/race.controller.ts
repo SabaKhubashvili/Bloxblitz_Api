@@ -21,6 +21,7 @@ import { CurrentUser } from '../../../../shared/decorators/current-user.decorato
 import { UserRole } from '../../../../shared/enums/user-role.enum';
 import type { JwtPayload } from '../../../../shared/guards/jwt-auth.guard';
 import { GetCurrentRaceUseCase } from '../../../../application/race/use-cases/get-current-race.use-case';
+import { GetRaceStatusUseCase } from '../../../../application/race/use-cases/get-race-status.use-case';
 import { GetPreviousRacesUseCase } from '../../../../application/race/use-cases/get-previous-races.use-case';
 import { UpdateWagerOnActiveRaceUseCase } from '../../../../application/race/use-cases/update-wager-on-active-race.use-case';
 import { FinishRaceUseCase } from '../../../../application/race/use-cases/finish-race.use-case';
@@ -34,12 +35,19 @@ import {
 @UseFilters(DomainExceptionFilter)
 export class RaceController {
   constructor(
+    private readonly getRaceStatus: GetRaceStatusUseCase,
     private readonly getCurrentRace: GetCurrentRaceUseCase,
     private readonly getPreviousRaces: GetPreviousRacesUseCase,
     private readonly updateWagerOnActiveRace: UpdateWagerOnActiveRaceUseCase,
     private readonly finishRace: FinishRaceUseCase,
     private readonly createRaceWithRewards: CreateRaceWithRewardsUseCase,
   ) {}
+
+  @Get('status')
+  @HttpCode(HttpStatus.OK)
+  getStatus() {
+    return this.getRaceStatus.execute();
+  }
 
   @Get('current')
   @UseGuards(OptionalJwtAuthGuard)

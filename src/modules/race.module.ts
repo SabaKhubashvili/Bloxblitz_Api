@@ -7,6 +7,7 @@ import { PrismaRaceRepository } from '../infrastructure/persistance/repositories
 import { RaceCacheAdapter } from '../infrastructure/cache/adapters/race-cache.adapter';
 
 import { GetCurrentRaceUseCase } from '../application/race/use-cases/get-current-race.use-case';
+import { GetRaceStatusUseCase } from '../application/race/use-cases/get-race-status.use-case';
 import { GetPreviousRacesUseCase } from '../application/race/use-cases/get-previous-races.use-case';
 import { GetLeaderboardUseCase } from '../application/race/use-cases/get-leaderboard.use-case';
 import { GetUserRankUseCase } from '../application/race/use-cases/get-user-rank.use-case';
@@ -36,6 +37,7 @@ import { RolesGuard } from '../shared/guards/roles.guard';
     RolesGuard,
     { provide: RACE_REPOSITORY, useClass: PrismaRaceRepository },
     { provide: RACE_CACHE, useClass: RaceCacheAdapter },
+    GetRaceStatusUseCase,
     GetCurrentRaceUseCase,
     GetPreviousRacesUseCase,
     GetLeaderboardUseCase,
