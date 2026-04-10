@@ -77,6 +77,26 @@ export class UserSeedRepository implements IUserSeedRepository {
     );
   }
 
+  async reserveNextNonce(username: string): Promise<number> {
+    const u = username.toLowerCase();
+    const key = RedisKeys.user.nonce(u);
+    const exists = await this.redis.exists(key);
+    if (!exists) {
+      const record = await this.prisma.userSeed.findUnique({
+        where: { userUsername: u },
+        select: { totalGamesPlayed: true },
+      });
+      const start = record?.totalGamesPlayed ?? 0;
+      await this.redis.set(key, start);
+    }
+    return this.redis.incr(key);
+  }
+
+  async rollbackLastNonce(username: string): Promise<void> {
+    const key = RedisKeys.user.nonce(username.toLowerCase());
+    await this.redis.decrBy(key, 1);
+  }
+
   async incrementTotalGamesPlayed(username: string, delta: number): Promise<void> {
     if (!Number.isFinite(delta) || delta <= 0) return;
     const rounded = Math.floor(delta);

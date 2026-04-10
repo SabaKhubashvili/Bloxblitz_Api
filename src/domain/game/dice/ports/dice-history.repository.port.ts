@@ -45,4 +45,7 @@ export interface IDiceHistoryRepository {
   ): Promise<DiceHistoryPage>;
 
   saveBet(bet: DiceBetToSave): Promise<void>;
+
+  /** Idempotent insert for queue workers (duplicate `bet.id` → `{ inserted: false }`). */
+  saveBetIdempotent(bet: DiceBetToSave): Promise<{ inserted: boolean }>;
 }

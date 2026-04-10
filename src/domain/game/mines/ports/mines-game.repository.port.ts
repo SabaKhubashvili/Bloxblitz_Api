@@ -7,4 +7,9 @@ export interface IMinesGameRepository {
   update(game: MinesGame): Promise<void>;
   deleteActiveGame(username: string): Promise<void>;
   deleteGame(id: string): Promise<void>;
+
+  /** Sync fallback / worker: idempotent initial DB row for a new game. */
+  persistMinesInitialIdempotent(
+    game: MinesGame,
+  ): Promise<{ inserted: boolean }>;
 }

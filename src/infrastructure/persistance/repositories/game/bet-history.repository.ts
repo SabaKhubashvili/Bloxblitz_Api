@@ -7,6 +7,8 @@ import type {
   BetHistoryPage,
   BetHistorySortOrder,
 } from '../../../../domain/game/bet-history/ports/bet-history.repository.port';
+import type { TowersRowConfig } from '../../../../domain/game/towers/towers.config';
+import { towersDeriveAllGemIndicesByRow } from '../../../../domain/game/towers/towers-fairness.service';
 
 type GameHistoryRow = Awaited<
   ReturnType<PrismaService['gameHistory']['findMany']>
@@ -31,6 +33,39 @@ type GameHistoryRow = Awaited<
     player2Username: string;
     winnerSide: string;
     player1Side: string;
+    fairness: {
+      serverSeed: string;
+      serverSeedHash: string;
+      eosBlockNumber: number;
+      eosBlockId: string;
+      nonce: number;
+      result: string;
+    } | null;
+  } | null;
+  towersGameHistory: {
+    id: string;
+    gameId: string;
+    difficulty: string;
+    levels: number;
+    rowConfigs: unknown;
+    status: string;
+    currentRowIndex: number;
+    currentMultiplier: unknown;
+    picks: unknown;
+    multiplierLadder: unknown;
+    serverSeed: string;
+    serverSeedHash: string;
+    clientSeed: string;
+    nonce: number;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  rouletteRound: {
+    gameIndex: number;
+    serverSeed: string;
+    eosBlockId: string;
+    outcomeHash: string;
+    outcome: string;
   } | null;
   seedRotationHistory: {
     serverSeedHash: string;
@@ -84,7 +119,15 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
     const where: { username: string; gameType?: GameType } = { username };
     if (
       gameType &&
-      ['MINES', 'CRASH', 'COINFLIP', 'DICE', 'CASE'].includes(gameType)
+      [
+        'MINES',
+        'CRASH',
+        'COINFLIP',
+        'DICE',
+        'CASE',
+        'ROULETTE',
+        'TOWERS',
+      ].includes(gameType)
     ) {
       where.gameType = gameType as GameType;
     }
@@ -95,8 +138,18 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
         include: {
           minesBetHistory: true,
           crashBetHistory: true,
-          coinflipGameHistory: true,
+          coinflipGameHistory: { include: { fairness: true } },
+          towersGameHistory: true,
           diceBetHistory: true,
+          rouletteRound: {
+            select: {
+              gameIndex: true,
+              serverSeed: true,
+              eosBlockId: true,
+              outcomeHash: true,
+              outcome: true,
+            },
+          },
           caseOpenHistory: {
             include: {
               wonItem: {
@@ -137,13 +190,62 @@ export class PrismaBetHistoryRepository implements IBetHistoryRepository {
       include: {
         minesBetHistory: true,
         crashBetHistory: true,
-        coinflipGameHistory: true,
+        coinflipGameHistory: { include: { fairness: true } },
+        towersGameHistory: true,
+        diceBetHistory: true,
+        rouletteRound: {
+          select: {
+            gameIndex: true,
+            serverSeed: true,
+            eosBlockId: true,
+            outcomeHash: true,
+            outcome: true,
+          },
+        },
+        caseOpenHistory: {
+          include: {
+            wonItem: {
+              select: {
+                variant: true,
+                pet: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         seedRotationHistory: true,
       },
     });
 
     return row ? toBetHistoryRecord(row as GameHistoryRow) : null;
   }
+}
+
+function parseTowersRowConfigsJson(raw: unknown): TowersRowConfig[] {
+  if (!Array.isArray(raw)) return [];
+  const rows: TowersRowConfig[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const tiles = Number(o.tiles);
+    const gems = Number(o.gems);
+    if (
+      !Number.isFinite(tiles) ||
+      tiles < 1 ||
+      !Number.isFinite(gems) ||
+      gems < 1 ||
+      gems > tiles
+    ) {
+      continue;
+    }
+    rows.push({ tiles, gems });
+  }
+  return rows;
 }
 
 function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
@@ -153,6 +255,8 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
   const dbh = row.diceBetHistory;
   const srh = row.seedRotationHistory;
   const coh = row.caseOpenHistory;
+  const tg = row.towersGameHistory;
+  const rr = row.rouletteRound;
 
   let gameData: Record<string, unknown> | null = null;
 
@@ -181,11 +285,86 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
       did_cashout: cb.didCashout,
     };
   } else if (row.gameType === 'COINFLIP' && cfg) {
+    const fair = cfg.fairness;
     gameData = {
       player1_username: cfg.player1Username,
       player2_username: cfg.player2Username,
       winner_side: cfg.winnerSide,
       player1_side: cfg.player1Side,
+      ...(fair
+        ? {
+            fairness: {
+              server_seed: fair.serverSeed,
+              server_seed_hash: fair.serverSeedHash,
+              eos_block_number: fair.eosBlockNumber,
+              eos_block_id: fair.eosBlockId,
+              nonce: fair.nonce,
+              result: fair.result,
+            },
+          }
+        : {}),
+    };
+  } else if (row.gameType === 'TOWERS' && tg) {
+    const towerRows = parseTowersRowConfigsJson(tg.rowConfigs);
+    let gem_tile_indices: number[][] = [];
+    if (
+      towerRows.length > 0 &&
+      tg.serverSeed &&
+      tg.clientSeed &&
+      Number.isFinite(tg.nonce)
+    ) {
+      try {
+        gem_tile_indices = towersDeriveAllGemIndicesByRow({
+          serverSeed: tg.serverSeed,
+          clientSeed: tg.clientSeed,
+          nonce: tg.nonce,
+          rows: towerRows,
+        });
+      } catch {
+        gem_tile_indices = [];
+      }
+    }
+    /** Only expose decrypted server seed after seed rotation (linked history); never the raw game row seed. */
+    const seed_info = srh
+      ? {
+          server_seed_hash: srh.serverSeedHash,
+          client_seed: srh.clientSeed,
+          server_seed: srh.serverSeed,
+          nonce: tg.nonce,
+        }
+      : {
+          server_seed_hash: tg.serverSeedHash,
+          client_seed: tg.clientSeed,
+          server_seed: null as string | null,
+          nonce: tg.nonce,
+        };
+    gameData = {
+      towers_record_id: tg.id,
+      game_id: tg.gameId,
+      difficulty: tg.difficulty,
+      levels: tg.levels,
+      row_configs: tg.rowConfigs,
+      towers_status: tg.status,
+      current_row_index: tg.currentRowIndex,
+      current_multiplier: Number(tg.currentMultiplier),
+      picks: tg.picks,
+      multiplier_ladder: tg.multiplierLadder,
+      gem_tile_indices,
+      seed_info,
+      towers_created_at: tg.createdAt.toISOString(),
+      towers_updated_at: tg.updatedAt.toISOString(),
+    };
+  } else if (row.gameType === 'ROULETTE') {
+    gameData = {
+      seed_info: rr
+        ? {
+            game_index: rr.gameIndex,
+            server_seed: rr.serverSeed,
+            eos_block_id: rr.eosBlockId,
+            outcome_hash: rr.outcomeHash,
+            outcome: rr.outcome,
+          }
+        : null,
     };
   } else if (row.gameType === 'DICE' && dbh) {
     gameData = {

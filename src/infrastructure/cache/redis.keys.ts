@@ -86,6 +86,13 @@ export const RedisKeys = {
       bettingDisabled: () => 'dice:betting:disabled',
     },
 
+    /* ─────────────── ROULETTE (admin hash, shared with WS service) ─────────────── */
+
+    roulette: {
+      /** Hash: `gameEnabled`, `bettingEnabled`, `minBet`, `maxBet` (admin-api). */
+      adminConfigHash: () => 'roulette:admin:config',
+    },
+
     /* ─────────────── MINES GAME ─────────────── */
 
     mines: {
@@ -107,6 +114,38 @@ export const RedisKeys = {
 
       /** Global Mines ops mode — JSON written by admin-api, read by game API. */
       systemState: () => `mines:system:state`,
+    },
+
+    /* ─────────────── TOWERS GAME (Redis-first active state) ─────────────── */
+
+    towers: {
+      /** Full JSON snapshot — key = public `gameId` (parent `GameHistory.id`). */
+      game: (gameHistoryId: string) => `towers:game:${gameHistoryId}`,
+      /** Points to active `gameHistoryId` for this user (lowercase username). */
+      userActive: (username: string) => `towers:user:${username.toLowerCase()}:active`,
+      /** Set of active `gameHistoryId` values (monitoring / cleanup). */
+      activeIndex: () => 'towers:active:index',
+      /** Serialize mutations per game (short TTL). */
+      lockMutation: (gameHistoryId: string) => `towers:lock:${gameHistoryId}`,
+      /** Failed DB sync payloads (capped list). */
+      persistDlq: () => 'towers:persist:dlq',
+
+      /** Global Towers ops mode — JSON written by admin-api, read by game API. */
+      systemState: () => `towers:system:state`,
+
+      /** Bet limits + allowed difficulties/levels — JSON written by admin-api. */
+      adminConfig: () => `towers:admin:config`,
+
+      /**
+       * Hash `towers:restrictions` — field = lowercase username, value = JSON snapshot
+       * (admin-api + game API). Wager totals: `towers:wager:{daily|weekly|monthly}:{user}`.
+       */
+      restrictionsHash: () => 'towers:restrictions',
+
+      restrictionField: (username: string) => username.trim().toLowerCase(),
+
+      wagerTotal: (username: string, window: 'DAILY' | 'WEEKLY' | 'MONTHLY') =>
+        `towers:wager:${window.toLowerCase()}:${username.trim().toLowerCase()}`,
     },
     /* ─────────────── JACKPOT GAME ─────────────── */
   

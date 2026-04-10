@@ -30,7 +30,7 @@ export class GetUserBetHistoryUseCase
     const { username, page, limit, order, gameType } = query;
 
     try {
-      const pageData = await this.betHistoryRepo.findPageByUsername(
+    const pageData = await this.betHistoryRepo.findPageByUsername(
         username,
         page,
         limit,

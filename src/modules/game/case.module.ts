@@ -31,6 +31,8 @@ import {
 } from '../../application/game/dice/tokens/dice.tokens';
 
 import { CasesController } from '../../presentation/http/public/game/cases/cases.controller';
+import { CaseVerifyController } from '../../presentation/http/public/game/cases/case-verify.controller';
+import { VerifyCaseOpenUseCase } from '../../application/game/case/use-cases/verify-case-open.use-case';
 import { CasesListRateLimitGuard } from '../../presentation/http/public/game/cases/guards/cases-list-rate-limit.guard';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
@@ -40,13 +42,14 @@ import { RaceModule } from '../race.module';
 
 @Module({
   imports: [AuthModule, ProvablyFairModule, LevelingModule, RaceModule],
-  controllers: [CasesController],
+  controllers: [CasesController, CaseVerifyController],
   providers: [
     ListCasesUseCase,
     GetCaseBySlugUseCase,
     GetCaseMetadataUseCase,
     CaseMetadataDomainService,
     OpenCaseUseCase,
+    VerifyCaseOpenUseCase,
     CreateCaseUseCase,
     CaseFairnessDomainService,
     JwtAuthGuard,

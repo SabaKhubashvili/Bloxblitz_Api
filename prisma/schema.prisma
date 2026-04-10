@@ -41,6 +41,10 @@ model User {
   is_vpn             Boolean?
   is_proxy           Boolean?
 
+  /// Coinflip (and future) house bots — real `User` rows; gameplay reads config from Redis (`coinflip:bots`).
+  isBot Boolean @default(false)
+  botConfig  Json?
+
   referedBy          String?
   referralLastUpdate DateTime?
 
@@ -98,8 +102,11 @@ model User {
   userRewardKeys          UserKey[]
   rewardCaseOpens         RewardCaseOpen[]
   rewardMilestoneProgress RewardCaseMilestoneProgress[]
+  roulettePlayerRestriction RoulettePlayerRestriction?
+  towersPlayerRestriction   TowersPlayerRestriction?
 
   @@index([username, rblx_id])
+  @@index([isBot])
   @@index([totalXP(sort: Desc)])
   @@index([currentLevel(sort: Desc)])
 }
@@ -679,9 +686,13 @@ model GameHistory {
 
   seedRotationHistoryId String?
   seedRotationHistory   SeedRotationHistory? @relation(fields: [seedRotationHistoryId], references: [id])
-  createdAt             DateTime             @default(now())
+  /// Roulette round nonce; links to `RouletteRound` for provably-fair verification.
+  rouletteGameIndex Int?
+  rouletteRound     RouletteRound? @relation(fields: [rouletteGameIndex], references: [gameIndex], onDelete: SetNull)
+  createdAt         DateTime       @default(now())
 
   minesBetHistory     MinesBetHistory?
+  towersGameHistory   TowersGameHistory?
   crashBetHistory     CrashBet?
   coinflipGameHistory CoinflipGameHistory?
   diceBetHistory      DiceBet?
@@ -693,6 +704,7 @@ model GameHistory {
   @@index([createdAt])
   @@index([gameType, createdAt])
   @@index([seedRotationHistoryId])
+  @@index([rouletteGameIndex])
 }
 
 model CoinflipGameHistory {
@@ -868,6 +880,38 @@ model MinesBetHistory {
   @@index([userUsername])
   @@index([createdAt(sort: Desc)])
   @@index([gameId])
+}
+
+/// Towers minigame state; parent row is `GameHistory` (user via `GameHistory.username`).
+enum TowersGameStatus {
+  ACTIVE
+  LOST
+  CASHED_OUT
+  COMPLETED
+}
+
+model TowersGameHistory {
+  id                String           @id @default(uuid())
+  gameId            String           @unique
+  difficulty        String           @db.VarChar(16)
+  levels            Int
+  rowConfigs        Json
+  status            TowersGameStatus @default(ACTIVE)
+  currentRowIndex   Int              @default(0)
+  currentMultiplier Decimal          @db.Decimal(14, 6) @default(1)
+  picks             Json
+  multiplierLadder  Json
+  serverSeed        String           @db.VarChar(128)
+  serverSeedHash    String           @db.VarChar(64)
+  clientSeed        String           @db.VarChar(64)
+  nonce             Int
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  parentHistory GameHistory @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model DiceBet {
@@ -1131,6 +1175,7 @@ enum GameType {
   DICE
   CASE
   ROULETTE
+  TOWERS
 }
 
 enum RouletteColor {
@@ -1535,6 +1580,48 @@ model RewardCaseOpen {
 
 // ─── Roulette ─────────────────────────────────────────────────────────────────
 
+enum RestrictionTimeframe {
+  HOURLY
+  DAILY
+  WEEKLY
+}
+
+/// Admin-configured roulette limits / ban for a player. Redis is the WS runtime source; DB is durable.
+model RoulettePlayerRestriction {
+  id             String                @id @default(uuid())
+  userUsername   String                @unique
+  isBanned       Boolean               @default(false)
+  banReason      String?
+  maxWagerAmount Float?
+  timeframe      RestrictionTimeframe?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@map("roulette_player_restrictions")
+}
+
+/// Admin moderation for Towers: ban and/or rolling daily/weekly/monthly wager caps (enforced via Redis in game API).
+model TowersPlayerRestriction {
+  id                  String   @id @default(uuid())
+  userUsername        String   @unique
+  isBanned            Boolean  @default(false)
+  banReason           String?
+  dailyWagerLimit     Float?
+  weeklyWagerLimit    Float?
+  monthlyWagerLimit   Float?
+  /// Staff-facing note when wager limits apply (distinct from ban reason).
+  limitReason         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userUsername], references: [username], onDelete: Cascade)
+
+  @@index([userUsername])
+  @@map("towers_player_restrictions")
+}
+
 /// One complete roulette round. Persisted after the spin resolves.
 /// gameIndex is the sequential nonce; use it for provably-fair verification:
 ///   outcomeHash = HMAC-SHA256(serverSeed, "${eosBlockId}-${gameIndex}")
@@ -1550,6 +1637,8 @@ model RouletteRound {
   finished    Boolean       @default(false)
   finishedAt  DateTime?
   createdAt   DateTime      @default(now())
+
+  gameHistories GameHistory[]
 
   @@index([gameIndex(sort: Desc)])
   @@index([createdAt(sort: Desc)])

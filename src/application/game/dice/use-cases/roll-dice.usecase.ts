@@ -1,4 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { IUserSeedRepository } from '../../../../domain/user/ports/user-seed.repository.port';
@@ -38,6 +40,10 @@ import { sha256HashServerSeed } from '../../../../domain/shared/provably-fair-ha
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 import { DiceModerationRedisService } from '../../../../infrastructure/cache/dice-moderation.redis.service';
 import { DiceBettingDisabledRedisService } from '../../../../infrastructure/cache/dice-betting-disabled.redis.service';
+import {
+  DICE_SAVE_BET_JOB_NAME,
+  GAME_SAVE_QUEUE,
+} from '../../../../infrastructure/queue/game-save/game-save.job-data';
 
 @Injectable()
 export class RollDiceUseCase implements IUseCase<
@@ -63,6 +69,8 @@ export class RollDiceUseCase implements IUseCase<
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
     private readonly diceModeration: DiceModerationRedisService,
     private readonly diceBettingGate: DiceBettingDisabledRedisService,
+    @InjectQueue(GAME_SAVE_QUEUE)
+    private readonly gameSaveQueue: Queue,
   ) {}
 
   async execute(
@@ -202,7 +210,7 @@ export class RollDiceUseCase implements IUseCase<
     const betId = crypto.randomUUID();
     const serverSeedHash = sha256HashServerSeed(seed.serverSeed);
 
-    this.historyRepo.saveBet({
+    const betPayload = {
       id: betId,
       username: cmd.username,
       betAmount: bet,
@@ -215,7 +223,23 @@ export class RollDiceUseCase implements IUseCase<
       clientSeed: seed.clientSeed,
       serverSeedHash,
       nonce,
-    });
+    };
+
+    try {
+      await this.gameSaveQueue.add(DICE_SAVE_BET_JOB_NAME, betPayload, {
+        jobId: betId,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      });
+    } catch (e) {
+      this.logger.error(
+        `[Dice] game-save enqueue failed; persisting synchronously user=${cmd.username} betId=${betId}`,
+        e,
+      );
+      await this.historyRepo.saveBet(betPayload);
+    }
 
     void this.historyCache.invalidate(cmd.username).catch((err) =>
       this.logger.warn(`[Dice] history cache invalidate failed user=${cmd.username}`, err),

@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GameType, GameStatus, DiceRollMode, Prisma } from '@prisma/client';
+import {
+  GameType,
+  GameStatus,
+  DiceRollMode,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   IDiceHistoryRepository,
@@ -74,6 +79,26 @@ export class PrismaDiceHistoryRepository implements IDiceHistoryRepository {
         },
       });
     });
+  }
+
+  async saveBetIdempotent(bet: DiceBetToSave): Promise<{ inserted: boolean }> {
+    try {
+      await this.saveBet(bet);
+      return { inserted: true };
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        const parent = await this.prisma.gameHistory.findUnique({
+          where: { id: bet.id },
+        });
+        if (parent) {
+          return { inserted: false };
+        }
+      }
+      throw e;
+    }
   }
 }
 

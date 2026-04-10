@@ -29,7 +29,7 @@ export class BetHistoryController {
    * GET /bets/history?page=1&limit=10&order=desc&gameType=MINES
    *
    * Returns a paginated list of the authenticated user's bet history
-   * across all game types (MINES, CRASH, COINFLIP), sorted newest-first.
+   * across game types (MINES, CRASH, COINFLIP, DICE, CASE, ROULETTE, TOWERS, …), sorted newest-first.
    * Optionally filter by gameType.
    */
   @Get()

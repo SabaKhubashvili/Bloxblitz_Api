@@ -7,7 +7,11 @@ import { Money } from '../../../../domain/shared/value-objects/money.vo';
 import { RedisService } from '../../../cache/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisKeys } from '../../../cache/redis.keys';
-import { GameStatus as PrismaGameStatus, GameType } from '@prisma/client';
+import {
+  GameStatus as PrismaGameStatus,
+  GameType,
+  Prisma,
+} from '@prisma/client';
 import { MINES_CONFIG_DEFAULTS } from '../../../../domain/game/mines/mines-config';
 
 const activeGameKey = RedisKeys.mines.activeGame;
@@ -70,6 +74,12 @@ function toDomain(raw: RawStoredGame): MinesGame {
   return gameResult.value;
 }
 
+function isPrismaUniqueViolation(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+  );
+}
+
 function toRaw(game: MinesGame): RawStoredGame {
   return {
     id: game.id.value,
@@ -107,16 +117,99 @@ export class MinesGameRepository implements IMinesGameRepository {
     return toDomain(raw);
   }
 
+  /**
+   * Writes active game to Redis only. Initial PostgreSQL row is persisted via BullMQ
+   * (`save-mines-initial`) or sync fallback from the use case.
+   */
   async save(game: MinesGame): Promise<void> {
-    const raw = toRaw(game);
-    await this.redis.set(gameKey(game.id.value), raw, 86_400);
-    void this.persistToDatabase(game, true);
+    await this.writeGameCache(game);
   }
 
   async update(game: MinesGame): Promise<void> {
+    await this.writeGameCache(game);
+    void this.persistUpdateToDatabase(game);
+  }
+
+  private async writeGameCache(game: MinesGame): Promise<void> {
     const raw = toRaw(game);
     await this.redis.set(gameKey(game.id.value), raw, 86_400);
-    void this.persistToDatabase(game, false);
+  }
+
+  /**
+   * Worker / sync fallback: insert `GameHistory` + `MinesBetHistory` for a new ACTIVE game.
+   */
+  async persistMinesInitialIdempotent(
+    game: MinesGame,
+  ): Promise<{ inserted: boolean }> {
+    try {
+      await this.persistNewActiveGameToDatabase(game);
+      return { inserted: true };
+    } catch (err) {
+      if (isPrismaUniqueViolation(err)) {
+        const row = await this.prisma.minesBetHistory.findUnique({
+          where: { gameId: game.id.value },
+        });
+        if (row) {
+          return { inserted: false };
+        }
+      }
+      throw err;
+    }
+  }
+
+  private async persistNewActiveGameToDatabase(game: MinesGame): Promise<void> {
+    const prismaStatus = toPrismaStatus(game.status);
+    const isTerminal = game.status !== GameStatus.ACTIVE;
+    const profit = isTerminal
+      ? game.status === GameStatus.WON
+        ? game.betAmount.multiply(game.calculateMultiplier() - 1).amount
+        : -game.betAmount.amount
+      : null;
+
+    await this.prisma.gameHistory.create({
+      data: {
+        id: game.id.value,
+        gameType: GameType.MINES,
+        username: game.username,
+        status: prismaStatus,
+        betAmount: game.betAmount.amount,
+        profit: profit,
+        multiplier: null,
+      },
+    });
+
+    await this.prisma.minesBetHistory.upsert({
+      where: { gameId: game.id.value },
+      create: {
+        gameId: game.id.value,
+        userUsername: game.username,
+        gridSize: game.gridSize,
+        minesCount: game.mineCount,
+        nonce: game.nonce,
+        revealedTiles: Array.from(game.revealedTiles),
+        minePositions: game.getMinePositions(),
+        status: prismaStatus,
+      },
+      update: {
+        revealedTiles: Array.from(game.revealedTiles),
+        status: prismaStatus,
+        cashoutTile: isTerminal
+          ? (Array.from(game.revealedTiles).at(-1) ?? null)
+          : null,
+        minesHit: game.status === GameStatus.LOST ? 1 : 0,
+      },
+    });
+
+    if (isTerminal) {
+      await this.prisma.gameHistory.update({
+        where: { id: game.id.value },
+        data: {
+          status: prismaStatus,
+          profit: profit,
+          multiplier: game.calculateMultiplier(),
+        },
+      });
+    }
   }
 
   async deleteActiveGame(username: string): Promise<void> {
@@ -128,35 +221,18 @@ export class MinesGameRepository implements IMinesGameRepository {
   }
 
   /**
-   * Persists the game state to PostgreSQL asynchronously.
-   * Uses upsert so that both initial creation and subsequent updates are handled.
-   * Fire-and-forget on the hot path — errors are logged but not thrown.
+   * Mid-game / terminal updates: upsert mines row and optionally parent `GameHistory`.
+   * Fire-and-forget — errors are logged but not thrown (matches prior behavior).
    */
-  private async persistToDatabase(game: MinesGame, isNew: boolean): Promise<void> {
+  private async persistUpdateToDatabase(game: MinesGame): Promise<void> {
     try {
       const prismaStatus = toPrismaStatus(game.status);
       const isTerminal = game.status !== GameStatus.ACTIVE;
-      // For WON games: net gain = gross payout − bet = bet × (multiplier − 1).
-      // For LOST games: player forfeits the full bet, so profit = −betAmount.
       const profit = isTerminal
         ? game.status === GameStatus.WON
           ? game.betAmount.multiply(game.calculateMultiplier() - 1).amount
           : -game.betAmount.amount
         : null;
-
-      if (isNew) {
-        await this.prisma.gameHistory.create({
-          data: {
-            id: game.id.value,
-            gameType: GameType.MINES,
-            username: game.username,
-            status: prismaStatus,
-            betAmount: game.betAmount.amount,
-            profit: profit,
-            multiplier: null,
-          },
-        });
-      }
 
       await this.prisma.minesBetHistory.upsert({
         where: { gameId: game.id.value },
@@ -173,7 +249,9 @@ export class MinesGameRepository implements IMinesGameRepository {
         update: {
           revealedTiles: Array.from(game.revealedTiles),
           status: prismaStatus,
-          cashoutTile: isTerminal ? Array.from(game.revealedTiles).at(-1) ?? null : null,
+          cashoutTile: isTerminal
+            ? (Array.from(game.revealedTiles).at(-1) ?? null)
+            : null,
           minesHit: game.status === GameStatus.LOST ? 1 : 0,
         },
       });

@@ -1,14 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 
 import { AppController } from './app.controller';
 
 import { RedisModule } from './infrastructure/cache/redis.module';
 import { PrismaModule } from './infrastructure/persistance/prisma/prisma.module';
 import { WorkersModule } from './infrastructure/workers/workers.module';
+import { GameSaveModule } from './infrastructure/queue/game-save/game-save.module';
 import { MinesModule } from './modules/game/mines.module';
+import { TowersModule } from './modules/game/towers.module';
 import { DiceModule } from './modules/game/dice.module';
 import { CaseModule } from './modules/game/case.module';
+import { GameFairnessVerifyModule } from './modules/game/game-fairness-verify.module';
 import { UserModule } from './modules/user/user.module';
 import { LevelingModule } from './modules/user/statistics/leveling.module';
 import { RakebackModule } from './modules/user/rakeback.module';
@@ -22,17 +26,27 @@ import { UniwireModule } from './modules/uniwire.module';
 import { ProvablyFairModule } from './modules/user/provably-fair.module';
 import { RaceModule } from './modules/race.module';
 import { UserTrackingModule } from './infrastructure/user-tracking/user-tracking.module';
+import { RouletteRestrictionSyncModule } from './infrastructure/roulette-restriction/roulette-restriction-sync.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    BullModule.forRoot({
+      connection: {
+        url: process.env.REDIS_URL,
+      },
+    }),
     PrismaModule,
     RedisModule,
+    RouletteRestrictionSyncModule,
+    GameSaveModule,
     UserTrackingModule,
     WorkersModule,
     MinesModule,
+    TowersModule,
     DiceModule,
     CaseModule,
+    GameFairnessVerifyModule,
     UserModule,
     TransactionModule,
     LevelingModule,

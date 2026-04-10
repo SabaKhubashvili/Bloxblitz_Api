@@ -26,6 +26,8 @@ import { DiceModerationRedisService } from '../../infrastructure/cache/dice-mode
 import { DiceBettingDisabledRedisService } from '../../infrastructure/cache/dice-betting-disabled.redis.service';
 
 import { DiceController } from '../../presentation/http/public/game/dice/dice.controller';
+import { DiceVerifyController } from '../../presentation/http/public/game/dice/dice-verify.controller';
+import { VerifyDiceGameUseCase } from '../../application/game/dice/use-cases/verify-dice-game.use-case';
 
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
@@ -40,10 +42,11 @@ import { RaceModule } from '../race.module';
     ProvablyFairModule,
     RaceModule,
   ],
-  controllers: [DiceController],
+  controllers: [DiceController, DiceVerifyController],
   providers: [
     RollDiceUseCase,
     GetDiceHistoryUseCase,
+    VerifyDiceGameUseCase,
     DiceModerationRedisService,
     DiceBettingDisabledRedisService,
 

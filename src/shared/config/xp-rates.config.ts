@@ -63,6 +63,12 @@ export const GAME_XP_RATES = {
     rationale:
       'Single stake on a color/outcome per round; engagement profile aligned with dice.',
   },
+  TOWERS: {
+    xpPerCoin: Math.round(6 * SCALE),
+    rationale:
+      'Most active game: every tile reveal is an independent risk/reward decision. ' +
+      'Highest rate reflects highest engagement. Scaled with leveling progression.',
+  },
 } as const satisfies Record<string, GameXpRate>;
 
 /** Convenience accessor — avoids magic strings at call sites. */
@@ -72,6 +78,7 @@ export const CRASH_XP_RATE  = GAME_XP_RATES.CRASH.xpPerCoin;
 export const COINFLIP_XP_RATE = GAME_XP_RATES.COINFLIP.xpPerCoin;
 export const CASE_XP_RATE     = GAME_XP_RATES.CASE.xpPerCoin;
 export const ROULETTE_XP_RATE = GAME_XP_RATES.ROULETTE.xpPerCoin;
+export const TOWERS_XP_RATE = GAME_XP_RATES.TOWERS.xpPerCoin;
 
 /** Base game XP (before account `xpMultiplier`) from coins wagered × per-coin rate. */
 export function coinsWageredToBaseGameXp(

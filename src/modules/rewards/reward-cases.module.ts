@@ -11,11 +11,11 @@ import {
   REWARD_CASES_CACHE_PORT,
   REWARD_CASE_OPEN_REPOSITORY,
 } from '../../application/rewards/reward-cases/tokens/reward-cases.tokens';
-import { INCREMENT_USER_BALANCE_PORT } from '../../application/balance/tokens/balance.tokens';
+import { USER_BALANCE_REPOSITORY } from '../../application/balance/tokens/balance.tokens';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 import { RewardCasesCacheAdapter } from '../../infrastructure/cache/adapters/reward-cases-cache.adapter';
-import { IncrementUserBalanceAdapter } from '../../infrastructure/cache/adapters/increment-user-balance.adapter';
+import { UserBalanceRedisRepository } from '../../infrastructure/cache/adapters/user-balance-redis.repository';
 import { PrismaRewardCaseOpenRepository } from '../../infrastructure/persistance/repositories/rewards/reward-case-open.repository';
 
 // ── Presentation ──────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
     // ── Port bindings ───────────────────────────────────────────────────────
     { provide: REWARD_CASES_CACHE_PORT,      useClass: RewardCasesCacheAdapter        },
     { provide: REWARD_CASE_OPEN_REPOSITORY,  useClass: PrismaRewardCaseOpenRepository },
-    { provide: INCREMENT_USER_BALANCE_PORT,  useClass: IncrementUserBalanceAdapter    },
+    { provide: USER_BALANCE_REPOSITORY, useClass: UserBalanceRedisRepository },
   ],
   exports: [RewardCaseKeysService],
 })

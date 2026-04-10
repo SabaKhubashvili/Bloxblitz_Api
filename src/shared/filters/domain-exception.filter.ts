@@ -121,6 +121,22 @@ import {
   RaceTimeOverlapError,
 } from '../../domain/race/errors/race.errors';
 
+import {
+  TowersValidationError,
+  TowersActiveGameExistsError,
+  TowersInsufficientBalanceError,
+  TowersGameNotFoundError,
+  TowersGameNotActiveError,
+  TowersInvalidMoveError,
+  TowersPersistenceError,
+  TowersUserSeedNotFoundError,
+  TowersNewGamesDisabledError,
+  TowersRouletteGameDisabledError,
+  TowersRouletteBettingDisabledError,
+  TowersPlayerBannedError,
+  TowersWagerLimitExceededError,
+} from '../../domain/game/towers/errors/towers.errors';
+
 /**
  * Global domain-exception filter.
  *
@@ -255,6 +271,29 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof CaseUnknownPetsError)        return HttpStatus.BAD_REQUEST;
     if (error instanceof CaseInvalidItemsError)       return HttpStatus.BAD_REQUEST;
     if (error instanceof CaseCooldownError)           return HttpStatus.TOO_MANY_REQUESTS;
+
+    // ── Towers ──────────────────────────────────────────────────────────────────
+    if (error instanceof TowersInsufficientBalanceError)
+      return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof TowersActiveGameExistsError)
+      return HttpStatus.CONFLICT;
+    if (error instanceof TowersGameNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof TowersUserSeedNotFoundError)
+      return HttpStatus.NOT_FOUND;
+    if (error instanceof TowersGameNotActiveError) return HttpStatus.CONFLICT;
+    if (error instanceof TowersInvalidMoveError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof TowersValidationError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof TowersNewGamesDisabledError)
+      return HttpStatus.FORBIDDEN;
+    if (error instanceof TowersRouletteGameDisabledError)
+      return HttpStatus.FORBIDDEN;
+    if (error instanceof TowersRouletteBettingDisabledError)
+      return HttpStatus.FORBIDDEN;
+    if (error instanceof TowersPlayerBannedError) return HttpStatus.FORBIDDEN;
+    if (error instanceof TowersWagerLimitExceededError)
+      return HttpStatus.FORBIDDEN;
+    if (error instanceof TowersPersistenceError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Race ────────────────────────────────────────────────────────────────────
     if (error instanceof RaceNotFoundError)          return HttpStatus.NOT_FOUND;

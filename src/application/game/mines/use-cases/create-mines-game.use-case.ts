@@ -1,4 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import { Money } from '../../../../domain/shared/value-objects/money.vo';
@@ -36,6 +38,10 @@ import {
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
 import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
+import {
+  GAME_SAVE_QUEUE,
+  MINES_SAVE_INITIAL_JOB_NAME,
+} from '../../../../infrastructure/queue/game-save/game-save.job-data';
 
 @Injectable()
 export class CreateMinesGameUseCase
@@ -54,6 +60,8 @@ export class CreateMinesGameUseCase
     private readonly fairnessService: MinesFairnessDomainService,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
     private readonly minesModeration: MinesModerationRedisService,
+    @InjectQueue(GAME_SAVE_QUEUE)
+    private readonly gameSaveQueue: Queue,
   ) {}
 
   async execute(
@@ -164,7 +172,42 @@ export class CreateMinesGameUseCase
 
     if (!gameResult.ok) return Err(gameResult.error);
 
-    await this.minesRepo.save(gameResult.value);
+    const game = gameResult.value;
+    await this.minesRepo.save(game);
+
+    try {
+      await this.gameSaveQueue.add(
+        MINES_SAVE_INITIAL_JOB_NAME,
+        {
+          gameId: game.id.value,
+          username: cmd.username,
+          profilePicture: cmd.profilePicture,
+          betAmount: cmd.betAmount,
+          mineCount: cmd.mineCount,
+          gridSize: cmd.gridSize,
+          minePositions: game.getMinePositions(),
+          nonce,
+          houseEdge: config.houseEdge,
+        },
+        {
+          jobId: game.id.value,
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    } catch (e) {
+      this.logger.error(
+        {
+          event: 'mines.game_save_enqueue_failed',
+          username: cmd.username,
+          gameId: game.id.value,
+        },
+        e,
+      );
+      await this.minesRepo.persistMinesInitialIdempotent(game);
+    }
 
     void this.incrementRaceWager.executeBestEffort({
       username: cmd.username,
@@ -172,6 +215,6 @@ export class CreateMinesGameUseCase
       source: 'mines',
     });
 
-    return Ok(MinesGameMapper.toOutputDto(gameResult.value));
+    return Ok(MinesGameMapper.toOutputDto(game));
   }
 }

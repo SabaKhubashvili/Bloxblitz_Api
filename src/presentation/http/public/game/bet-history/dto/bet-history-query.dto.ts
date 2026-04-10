@@ -10,6 +10,10 @@ export enum GameTypeFilter {
   MINES = 'MINES',
   CRASH = 'CRASH',
   COINFLIP = 'COINFLIP',
+  DICE = 'DICE',
+  CASE = 'CASE',
+  ROULETTE = 'ROULETTE',
+  TOWERS = 'TOWERS',
 }
 
 export class BetHistoryQueryDto {
@@ -37,9 +41,7 @@ export class BetHistoryQueryDto {
 
   /**
    * Optional filter by game type.
-   * - `MINES` — Mines game bets only
-   * - `CRASH` — Crash game bets only
-   * - `COINFLIP` — Coinflip game bets only
+   * - `MINES`, `CRASH`, `COINFLIP`, `ROULETTE`, `TOWERS`, etc.
    */
   @IsOptional()
   @IsEnum(GameTypeFilter)
