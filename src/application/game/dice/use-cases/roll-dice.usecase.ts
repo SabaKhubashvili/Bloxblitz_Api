@@ -253,20 +253,24 @@ export class RollDiceUseCase implements IUseCase<
     );
 
     setImmediate(() => {
-      void this.betPublisher.publishBetPlaced({
-        username: cmd.username,
-        game: 'dice',
-        gameId: betId,
-        profilePicture: cmd.profilePicture ?? '',
-        amount: bet,
-        returnedAmount: won ? Math.round(bet * roundedMultiplier * 100) / 100 : 0,
-        level: 1,
-        multiplier: roundedMultiplier,
-        profit: roundedProfit,
-        createdAt: Date.now(),
-        type: 'bet',
+
+      void this.grantXp(cmd.username, bet, betId).then((response) => {
+        if (response && !response.ok) {
+          void this.betPublisher.publishBetPlaced({
+            username: cmd.username,
+            game: 'dice',
+            gameId: betId,
+            profilePicture: cmd.profilePicture ?? '',
+            amount: bet,
+            returnedAmount: won ? Math.round(bet * roundedMultiplier * 100) / 100 : 0,
+            level: response?.value?.currentLevel ?? 1,
+            multiplier: roundedMultiplier,
+            profit: roundedProfit,
+            createdAt: Date.now(),
+            type: 'bet',
+          });
+        }
       });
-      void this.grantXp(cmd.username, bet, betId);
     });
 
     return Ok({

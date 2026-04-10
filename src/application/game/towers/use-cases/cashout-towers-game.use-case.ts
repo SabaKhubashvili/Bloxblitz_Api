@@ -95,32 +95,34 @@ export class CashoutTowersGameUseCase
 
     const meta = boxed.value;
     setImmediate(() => {
-      void this.betEventPublisher
-        .publishBetPlaced({
-          username: user,
-          game: 'towers',
-          gameId: meta.gameHistoryId,
-          profilePicture: meta.profilePicture,
-          amount: meta.betAmount,
-          returnedAmount: meta.payout,
-          level: 1,
-          multiplier: meta.multiplier,
-          profit: meta.payout,
-          createdAt: Date.now(),
-          type: 'bet',
-        })
-        .catch((err) =>
-          this.logger.error(
-            `[towers.cashout] publishBetPlaced failed user=${user} gameId=${meta.gameHistoryId}`,
-            err,
-          ),
-        );
+  
 
       void this.grantXp(user, meta.betAmount, meta.gameHistoryId).then(
         (response) => {
           if (response && !response.ok) {
             this.logger.warn(
               `[towers.cashout] XP grant failed — user=${user} amount=${meta.betAmount} error=${response.error.message}`,
+            );
+          }else{
+            void this.betEventPublisher
+            .publishBetPlaced({
+              username: user,
+              game: 'towers',
+              gameId: meta.gameHistoryId,
+              profilePicture: meta.profilePicture,
+              amount: meta.betAmount,
+              returnedAmount: meta.payout,
+              level: response?.value?.currentLevel ?? 1,
+              multiplier: meta.multiplier,
+              profit: meta.payout,
+              createdAt: Date.now(),
+              type: 'bet',
+            })
+            .catch((err) =>
+              this.logger.error(
+                `[towers.cashout] publishBetPlaced failed user=${user} gameId=${meta.gameHistoryId}`,
+                err,
+              ),
             );
           }
         },

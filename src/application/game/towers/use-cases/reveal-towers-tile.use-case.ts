@@ -137,42 +137,7 @@ export class RevealTowersTileUseCase
     if (locked.value.terminalSideEffects) {
       const t = locked.value.terminalSideEffects;
       setImmediate(() => {
-        void this.betEventPublisher
-          .publishBetPlaced(
-            t.kind === 'lost'
-              ? {
-                  type: 'bet',
-                  game: 'towers',
-                  gameId: t.gameHistoryId,
-                  username: t.username,
-                  profilePicture: t.profilePicture,
-                  multiplier: 0,
-                  amount: t.betAmount,
-                  returnedAmount: 0,
-                  level: 1,
-                  profit: -t.betAmount,
-                  createdAt: Date.now(),
-                }
-              : {
-                  type: 'bet',
-                  game: 'towers',
-                  gameId: t.gameHistoryId,
-                  username: t.username,
-                  profilePicture: t.profilePicture,
-                  multiplier: t.multiplier,
-                  amount: t.betAmount,
-                  returnedAmount: t.grossReturned,
-                  level: 1,
-                  profit: t.grossReturned,
-                  createdAt: Date.now(),
-                },
-          )
-          .catch((err) =>
-            this.logger.error(
-              `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
-              err,
-            ),
-          );
+      
 
         const xpSource =
           t.kind === 'lost' ? XpSource.GAME_LOSE : XpSource.GAME_WIN;
@@ -185,6 +150,43 @@ export class RevealTowersTileUseCase
           if (response && !response.ok) {
             this.logger.warn(
               `[towers.reveal] XP grant failed — user=${t.username} bet=${t.betAmount} error=${response.error.message}`,
+            );
+          }else{
+            void this.betEventPublisher
+            .publishBetPlaced(
+              t.kind === 'lost'
+                ? {
+                    type: 'bet',
+                    game: 'towers',
+                    gameId: t.gameHistoryId,
+                    username: t.username,
+                    profilePicture: t.profilePicture,
+                    multiplier: 0,
+                    amount: t.betAmount,
+                    returnedAmount: 0,
+                    level: 1,
+                    profit: -t.betAmount,
+                    createdAt: Date.now(),
+                  }
+                : {
+                    type: 'bet',
+                    game: 'towers',
+                    gameId: t.gameHistoryId,
+                    username: t.username,
+                    profilePicture: t.profilePicture,
+                    multiplier: t.multiplier,
+                    amount: t.betAmount,
+                    returnedAmount: t.grossReturned,
+                    level: 1,
+                    profit: t.grossReturned,
+                    createdAt: Date.now(),
+                  },
+            )
+            .catch((err) =>
+              this.logger.error(
+                `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
+                err,
+              ),
             );
           }
         });

@@ -105,24 +105,25 @@ export class CashoutMinesGameUseCase
 
     // Rakeback + XP: fire-and-forget; rakeback must not depend on XP success.
     setImmediate(() => {
-      void this.betEventPublisher.publishBetPlaced({
-        username: cmd.username,
-        game: 'mines',
-        gameId: game.id.value,
-        profilePicture: game.profilePicture,
-        amount: game.betAmount.amount,
-        returnedAmount: cashoutResult.value.profit.amount,
-        level: 1,
-        multiplier: cashoutResult.value.multiplier,
-        profit: cashoutResult.value.profit.amount,
-        createdAt: Date.now(),
-        type: 'bet',
-      });
       void this.grantXp(cmd.username, game.betAmount.amount, game.id.value).then((response) => {
         if (response && !response.ok) {
           this.logger.warn(
             `[Cashout] XP grant failed — user=${cmd.username} amount=${game.betAmount.amount} error=${response.error.message}`,
           );
+        }else{
+          void this.betEventPublisher.publishBetPlaced({
+            username: cmd.username,
+            game: 'mines',
+            gameId: game.id.value,
+            profilePicture: game.profilePicture,
+            amount: game.betAmount.amount,
+            returnedAmount: cashoutResult.value.profit.amount,
+            level: response?.value?.currentLevel ?? 1,
+            multiplier: cashoutResult.value.multiplier,
+            profit: cashoutResult.value.profit.amount,
+            createdAt: Date.now(),
+            type: 'bet',
+          });
         }
       });
     });

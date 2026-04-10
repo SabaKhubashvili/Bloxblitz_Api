@@ -272,26 +272,34 @@ export class OpenCaseUseCase
             : 0;
         const ts = Date.now();
 
-        void this.betEventPublisher.publishBetPlaced({
-          type: 'bet',
-          game: 'case',
-          gameId: w.id,
-          username,
-          userId: username,
-          caseId: w.caseId,
-          profilePicture: profilePicture ?? '',
-          amount: w.pricePaid,
-          returnedAmount: w.wonPetValue,
-          payout: w.wonPetValue,
-          level: 1,
-          multiplier,
-          profit,
-          result: profit >= 0 ? 'win' : 'loss',
-          createdAt: ts,
-        });
+    
 
         const xpSource = profit >= 0 ? XpSource.GAME_WIN : XpSource.GAME_LOSE;
-        void this.grantCaseXp(username, w.pricePaid, w.id, xpSource);
+        void this.grantCaseXp(username, w.pricePaid, w.id, xpSource).then((response) => {
+          if (response && !response.ok) {
+            this.logger.warn(
+              `[Cases] XP grant failed — user=${username} amount=${w.pricePaid} error=${response.error.message}`,
+            );
+          }else{
+            void this.betEventPublisher.publishBetPlaced({
+              type: 'bet',
+              game: 'case',
+              gameId: w.id,
+              username,
+              userId: username,
+              caseId: w.caseId,
+              profilePicture: profilePicture ?? '',
+              amount: w.pricePaid,
+              returnedAmount: w.wonPetValue,
+              payout: w.wonPetValue,
+              level: response?.value?.currentLevel ?? 1,
+              multiplier,
+              profit,
+              result: profit >= 0 ? 'win' : 'loss',
+              createdAt: ts,
+            });
+          }
+        });
       }
     });
 
