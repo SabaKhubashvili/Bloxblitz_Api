@@ -27,6 +27,9 @@ import { ProvablyFairModule } from './modules/user/provably-fair.module';
 import { RaceModule } from './modules/race.module';
 import { UserTrackingModule } from './infrastructure/user-tracking/user-tracking.module';
 import { RouletteRestrictionSyncModule } from './infrastructure/roulette-restriction/roulette-restriction-sync.module';
+import { AffiliateModule } from './modules/user/affiliate.module';
+import { AffiliateWagerCommissionModule } from './infrastructure/queue/affiliate-wager/affiliate-wager-commission.module';
+import { InternalMicroserviceModule } from './modules/internal-microservice.module';
 
 @Module({
   imports: [
@@ -40,6 +43,8 @@ import { RouletteRestrictionSyncModule } from './infrastructure/roulette-restric
     RedisModule,
     RouletteRestrictionSyncModule,
     GameSaveModule,
+    AffiliateWagerCommissionModule,
+    InternalMicroserviceModule,
     UserTrackingModule,
     WorkersModule,
     MinesModule,
@@ -60,6 +65,7 @@ import { RouletteRestrictionSyncModule } from './infrastructure/roulette-restric
     
     ProvablyFairModule,
     RaceModule,
+    AffiliateModule,
   ],
   controllers: [AppController],
 })

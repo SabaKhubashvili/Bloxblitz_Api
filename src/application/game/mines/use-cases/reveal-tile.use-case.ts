@@ -25,7 +25,7 @@ import { GameStatus } from '../../../../domain/game/mines/value-objects/game-sta
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { MINES_XP_RATE } from 'src/shared/config/xp-rates.config';
 import { XpSource } from 'src/domain/leveling/enums/xp-source.enum';
-import { AddExperienceUseCase } from 'src/application/user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from 'src/application/user/leveling/use-cases/grant-wager-xp.use-case';
 import type { IBetEventPublisherPort } from '../ports/bet-event-publisher.port';
 import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 
@@ -44,7 +44,7 @@ export class RevealTileUseCase
     @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
     @Inject(MINES_SYSTEM_STATE_PROVIDER)
     private readonly minesSystemState: MinesSystemStateProvider,
-    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly grantWagerXp: GrantWagerXpUseCase,
     private readonly minesModeration: MinesModerationRedisService,
   ) {}
 
@@ -114,12 +114,15 @@ export class RevealTileUseCase
             profit: cashoutResult.value.profit.amount,
             createdAt: Date.now(),
           });
-          void this.grantMinesXp(
-            cmd.username,
-            game.betAmount.amount,
-            game.id.value,
-            XpSource.GAME_WIN,
-          );
+          const xpAmount = Math.floor(game.betAmount.amount * MINES_XP_RATE);
+          void this.grantWagerXp.execute({
+            username: cmd.username,
+            xpAmount,
+            wager: game.betAmount.amount,
+            gameId: game.id.value,
+            source: XpSource.GAME_WIN,
+            grantContext: 'mines.reveal.auto_win',
+          });
         });
 
         return Ok(MinesGameMapper.toRevealTileOutputDto(game, false));
@@ -151,17 +154,14 @@ export class RevealTileUseCase
           profit: -game.betAmount.amount,
           createdAt: Date.now(),
         });
-        void this.grantMinesXp(
-          cmd.username,
-          game.betAmount.amount,
-          game.id.value,
-          XpSource.GAME_LOSE,
-        ).then((response) => {
-          if (response && !response.ok) {
-            this.logger.warn(
-              `[RevealTile] XP grant failed — user=${cmd.username} amount=${game.betAmount.amount} error=${response.error.message}`,
-            );
-          }
+        const xpAmount = Math.floor(game.betAmount.amount * MINES_XP_RATE);
+        void this.grantWagerXp.execute({
+          username: cmd.username,
+          xpAmount,
+          wager: game.betAmount.amount,
+          gameId: game.id.value,
+          source: XpSource.GAME_LOSE,
+          grantContext: 'mines.reveal.terminal_lose',
         });
       });
       void this.historyCache.invalidate(cmd.username).catch((err) =>
@@ -170,42 +170,5 @@ export class RevealTileUseCase
     }
 
     return Ok(MinesGameMapper.toRevealTileOutputDto(game, revealResult.value.isMine));
-  }
-  private grantMinesXp(
-    username: string,
-    betAmount: number,
-    gameId: string,
-    source: XpSource,
-  ) {
-    const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-
-    return this.addExperienceUseCase
-      .execute({
-        username,
-        amount: Math.max(0, xpAmount),
-        wagerCoins: betAmount,
-        source,
-        referenceId: gameId,
-      })
-      .then((result) => {
-        if (!result.ok) {
-          this.logger.warn(
-            `[Cashout] XP grant failed — user=${username} amount=${xpAmount} error=${result.error.message}`,
-          );
-        } else {
-          this.logger.debug(
-            `[Cashout] XP granted — user=${username} xp=${xpAmount} ` +
-            `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
-          );
-        }
-        return result
-      })
-      .catch((err) => {
-        this.logger.error(
-          `[Cashout] Unexpected XP grant error — user=${username}`,
-          err,
-        );
-        return null;
-      });
   }
 }

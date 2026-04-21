@@ -28,7 +28,7 @@ import { BET_EVENT_PUBLISHER } from '../../mines/tokens/mines.tokens';
 import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publisher.port';
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
-import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from '../../../user/leveling/use-cases/grant-wager-xp.use-case';
 
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
@@ -82,7 +82,7 @@ export class RevealTowersTileUseCase
     private readonly persist: TowersGameAsyncPersistenceService,
     @Inject(BET_EVENT_PUBLISHER)
     private readonly betEventPublisher: IBetEventPublisherPort,
-    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly grantWagerXp: GrantWagerXpUseCase,
   ) {}
 
   async execute(cmd: {
@@ -137,58 +137,55 @@ export class RevealTowersTileUseCase
     if (locked.value.terminalSideEffects) {
       const t = locked.value.terminalSideEffects;
       setImmediate(() => {
-      
-
         const xpSource =
           t.kind === 'lost' ? XpSource.GAME_LOSE : XpSource.GAME_WIN;
-        void this.grantTowersXp(
-          t.username,
-          t.betAmount,
-          t.gameHistoryId,
-          xpSource,
-        ).then((response) => {
-          if (response && !response.ok) {
-            this.logger.warn(
-              `[towers.reveal] XP grant failed — user=${t.username} bet=${t.betAmount} error=${response.error.message}`,
-            );
-          }else{
-            void this.betEventPublisher
-            .publishBetPlaced(
-              t.kind === 'lost'
-                ? {
-                    type: 'bet',
-                    game: 'towers',
-                    gameId: t.gameHistoryId,
-                    username: t.username,
-                    profilePicture: t.profilePicture,
-                    multiplier: 0,
-                    amount: t.betAmount,
-                    returnedAmount: 0,
-                    level: 1,
-                    profit: -t.betAmount,
-                    createdAt: Date.now(),
-                  }
-                : {
-                    type: 'bet',
-                    game: 'towers',
-                    gameId: t.gameHistoryId,
-                    username: t.username,
-                    profilePicture: t.profilePicture,
-                    multiplier: t.multiplier,
-                    amount: t.betAmount,
-                    returnedAmount: t.grossReturned,
-                    level: 1,
-                    profit: t.grossReturned,
-                    createdAt: Date.now(),
-                  },
-            )
-            .catch((err) =>
-              this.logger.error(
-                `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
-                err,
-              ),
-            );
-          }
+
+        // Rakeback queue + pub/sub: do not depend on XP (same idea as mines reveal on bust).
+        void this.betEventPublisher
+          .publishBetPlaced(
+            t.kind === 'lost'
+              ? {
+                  type: 'bet',
+                  game: 'towers',
+                  gameId: t.gameHistoryId,
+                  username: t.username,
+                  profilePicture: t.profilePicture,
+                  multiplier: 0,
+                  amount: t.betAmount,
+                  returnedAmount: 0,
+                  level: 1,
+                  profit: -t.betAmount,
+                  createdAt: Date.now(),
+                }
+              : {
+                  type: 'bet',
+                  game: 'towers',
+                  gameId: t.gameHistoryId,
+                  username: t.username,
+                  profilePicture: t.profilePicture,
+                  multiplier: t.multiplier,
+                  amount: t.betAmount,
+                  returnedAmount: t.grossReturned,
+                  level: 1,
+                  profit: t.grossReturned,
+                  createdAt: Date.now(),
+                },
+          )
+          .catch((err) =>
+            this.logger.error(
+              `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
+              err,
+            ),
+          );
+
+        const xpAmount = Math.floor(t.betAmount * MINES_XP_RATE);
+        void this.grantWagerXp.execute({
+          username: t.username,
+          xpAmount,
+          wager: t.betAmount,
+          gameId: t.gameHistoryId,
+          source: xpSource,
+          grantContext: 'towers.reveal.terminal',
         });
       });
     }
@@ -422,43 +419,5 @@ export class RevealTowersTileUseCase
         finalMultiplier: terminal.finalMultiplier,
       });
     }
-  }
-
-  private grantTowersXp(
-    username: string,
-    betAmount: number,
-    gameId: string,
-    source: XpSource,
-  ) {
-    const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-
-    return this.addExperienceUseCase
-      .execute({
-        username,
-        amount: Math.max(0, xpAmount),
-        wagerCoins: betAmount,
-        source,
-        referenceId: gameId,
-      })
-      .then((result) => {
-        if (!result.ok) {
-          this.logger.warn(
-            `[towers.reveal] XP grant failed — user=${username} amount=${xpAmount} error=${result.error.message}`,
-          );
-        } else {
-          this.logger.debug(
-            `[towers.reveal] XP granted — user=${username} xp=${xpAmount} ` +
-              `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
-          );
-        }
-        return result;
-      })
-      .catch((err) => {
-        this.logger.error(
-          `[towers.reveal] Unexpected XP grant error — user=${username}`,
-          err,
-        );
-        return null;
-      });
   }
 }

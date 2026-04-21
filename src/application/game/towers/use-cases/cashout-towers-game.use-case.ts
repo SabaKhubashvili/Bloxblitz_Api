@@ -23,7 +23,7 @@ import { BET_EVENT_PUBLISHER } from '../../mines/tokens/mines.tokens';
 import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publisher.port';
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
-import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from '../../../user/leveling/use-cases/grant-wager-xp.use-case';
 
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
@@ -44,7 +44,7 @@ export class CashoutTowersGameUseCase
     private readonly persist: TowersGameAsyncPersistenceService,
     @Inject(BET_EVENT_PUBLISHER)
     private readonly betEventPublisher: IBetEventPublisherPort,
-    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly grantWagerXp: GrantWagerXpUseCase,
   ) {}
 
   async execute(cmd: {
@@ -95,16 +95,21 @@ export class CashoutTowersGameUseCase
 
     const meta = boxed.value;
     setImmediate(() => {
-  
-
-      void this.grantXp(user, meta.betAmount, meta.gameHistoryId).then(
-        (response) => {
+      const xpAmount = Math.floor(meta.betAmount * MINES_XP_RATE);
+      void this.grantWagerXp
+        .execute({
+          username: user,
+          xpAmount,
+          wager: meta.betAmount,
+          gameId: meta.gameHistoryId,
+          source: XpSource.GAME_WIN,
+          grantContext: 'towers.cashout',
+        })
+        .then((response) => {
           if (response && !response.ok) {
-            this.logger.warn(
-              `[towers.cashout] XP grant failed — user=${user} amount=${meta.betAmount} error=${response.error.message}`,
-            );
-          }else{
-            void this.betEventPublisher
+            return;
+          }
+          void this.betEventPublisher
             .publishBetPlaced({
               username: user,
               game: 'towers',
@@ -124,9 +129,7 @@ export class CashoutTowersGameUseCase
                 err,
               ),
             );
-          }
-        },
-      );
+        });
     });
 
     return Ok(boxed.value.dto);
@@ -230,38 +233,5 @@ export class CashoutTowersGameUseCase
       multiplier: entity.currentMultiplier,
       profilePicture: entity.profilePicture ?? '',
     });
-  }
-
-  private async grantXp(username: string, betAmount: number, gameId: string) {
-    const xpAmount = Math.floor(betAmount * MINES_XP_RATE);
-
-    return this.addExperienceUseCase
-      .execute({
-        username,
-        amount: Math.max(0, xpAmount),
-        wagerCoins: betAmount,
-        source: XpSource.GAME_WIN,
-        referenceId: gameId,
-      })
-      .then((result) => {
-        if (!result.ok) {
-          this.logger.warn(
-            `[towers.cashout] XP grant failed — user=${username} amount=${xpAmount} error=${result.error.message}`,
-          );
-        } else {
-          this.logger.debug(
-            `[towers.cashout] XP granted — user=${username} xp=${xpAmount} ` +
-              `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
-          );
-        }
-        return result;
-      })
-      .catch((err) => {
-        this.logger.error(
-          `[towers.cashout] Unexpected XP grant error — user=${username}`,
-          err,
-        );
-        return null;
-      });
   }
 }

@@ -153,6 +153,7 @@ export const RedisKeys = {
       status: () => `jackpot:status`,
       disabledMessage: () => `jackpot:message`,
     },
+
     /* ─────────────── CACHE ─────────────── */
 
     cache: {
@@ -208,6 +209,29 @@ export const RedisKeys = {
       /** Single case with items (detail endpoint). Keyed by slug. */
       caseDetail: (slug: string) =>
         `cache:cases:detail:v3:${encodeURIComponent(slug)}`,
+
+      /**
+       * Affiliate dashboard reads — epoch key has no TTL (tiny integer).
+       * Value keys embed epoch so invalidation is O(1) without SCAN.
+       */
+      affiliate: {
+        epoch: (username: string) =>
+          `cache:affiliate:epoch:${username.trim()}`,
+
+        usedCode: (username: string, epoch: number) =>
+          `cache:affiliate:usedCode:${username.trim()}:e${epoch}`,
+
+        summary: (username: string, epoch: number) =>
+          `cache:affiliate:summary:${username.trim()}:e${epoch}`,
+
+        stats: (username: string, range: string, epoch: number) =>
+          `cache:affiliate:stats:${username.trim()}:${range}:e${epoch}`,
+
+        referrals: (username: string, queryDigest: string, epoch: number) =>
+          `cache:affiliate:referrals:${username.trim()}:h${queryDigest}:e${epoch}`,
+
+        populateLock: (token: string) => `cache:affiliate:poplock:${token}`,
+      },
     },
     chat: {
       bans: () => `chat:bans`,

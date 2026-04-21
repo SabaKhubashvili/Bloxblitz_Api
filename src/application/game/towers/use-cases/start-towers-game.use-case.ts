@@ -29,6 +29,7 @@ import { toTowersGamePublicDto } from '../mappers/towers-public.mapper';
 import type { TowersStartGameResponseDto } from '../dto/towers-game-public.dto';
 import { TOWERS_MULTIPLIER_LADDERS_PREVIEW } from '../../../../domain/game/towers/towers-multiplier.service';
 import { ValidateTowersPlayRestrictionUseCase } from './validate-towers-play-restriction.use-case';
+import { AffiliateWagerCommissionManager } from '../../../user/affiliate/services/affiliate-wager-commission.manager';
 import {
   TowersActiveGameExistsError,
   TowersInsufficientBalanceError,
@@ -86,6 +87,7 @@ export class StartTowersGameUseCase
     @Inject(ROULETTE_ADMIN_WAGER_GATE_PROVIDER)
     private readonly rouletteWagerGate: RouletteAdminWagerGateProvider,
     private readonly validateTowersRestriction: ValidateTowersPlayRestrictionUseCase,
+    private readonly affiliateWagerCommission: AffiliateWagerCommissionManager,
   ) {}
 
   async execute(cmd: {
@@ -227,13 +229,14 @@ export class StartTowersGameUseCase
      */
     let gameHistoryId: string | undefined;
     try {
-      gameHistoryId = randomUUID();
+      const createdGameHistoryId = randomUUID();
+      gameHistoryId = createdGameHistoryId;
       const towersRowId = randomUUID();
       const now = new Date();
 
       const entity: TowersGameEntity = {
         id: towersRowId,
-        gameHistoryId,
+        gameHistoryId: createdGameHistoryId,
         userUsername: user,
         profilePicture,
         betAmount,
@@ -261,7 +264,7 @@ export class StartTowersGameUseCase
       await this.gameSaveQueue.add(
         TOWERS_SAVE_GAME_JOB_NAME,
         {
-          gameHistoryId,
+          gameHistoryId: createdGameHistoryId,
           towersRowId,
           userUsername: user,
           betAmount,
@@ -276,7 +279,7 @@ export class StartTowersGameUseCase
           nonce,
         },
         {
-          jobId: gameHistoryId,
+          jobId: createdGameHistoryId,
           attempts: 5,
           backoff: { type: 'exponential', delay: 1000 },
           removeOnComplete: true,
@@ -287,8 +290,24 @@ export class StartTowersGameUseCase
 
       const totalMs = msSince(tExec);
       this.logger.log(
-        `[Towers] start ok user=${user} gameId=${gameHistoryId} levels=${levels} diff=${difficulty} | perf total=${totalMs}ms activeCheck=${activeCheckMs}ms seedLookup=${seedLookupMs}ms debit=${debitMs}ms nonce=${nonceMs}ms build=${buildMs}ms redis=${redisMs}ms enqueue=${enqueueMs}ms`,
+        `[Towers] start ok user=${user} gameId=${createdGameHistoryId} levels=${levels} diff=${difficulty} | perf total=${totalMs}ms activeCheck=${activeCheckMs}ms seedLookup=${seedLookupMs}ms debit=${debitMs}ms nonce=${nonceMs}ms build=${buildMs}ms redis=${redisMs}ms enqueue=${enqueueMs}ms`,
       );
+
+      setImmediate(() => {
+        void this.affiliateWagerCommission
+          .enqueueWagerCommission({
+            bettorUsername: user,
+            wagerAmount: betAmount,
+            sourceEventId: createdGameHistoryId,
+            game: 'TOWERS',
+          })
+          .catch((err) =>
+            this.logger.warn(
+              `[Towers] affiliate wager commission enqueue failed user=${user} gameId=${createdGameHistoryId}`,
+              err,
+            ),
+          );
+      });
 
       return Ok({
         game: toTowersGamePublicDto(entity),

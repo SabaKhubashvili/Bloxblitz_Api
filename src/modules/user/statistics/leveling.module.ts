@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 // ── Use cases ─────────────────────────────────────────────────────────────────
 import { GetUserLevelUseCase }   from '../../../application/user/leveling/use-cases/get-user-level.use-case';
 import { AddExperienceUseCase }  from '../../../application/user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from '../../../application/user/leveling/use-cases/grant-wager-xp.use-case';
 import { SetUserLevelUseCase }   from '../../../application/user/leveling/use-cases/set-user-level.use-case';
 import { GetTierByLevelUseCase } from '../../../application/user/leveling/use-cases/get-tier-by-level.use-case';
 
@@ -36,6 +37,7 @@ import { RewardCasesModule } from '../../rewards/reward-cases.module';
     // Use cases
     GetUserLevelUseCase,
     AddExperienceUseCase,
+    GrantWagerXpUseCase,
     SetUserLevelUseCase,
     GetTierByLevelUseCase,
 
@@ -52,6 +54,7 @@ import { RewardCasesModule } from '../../rewards/reward-cases.module';
   exports: [
     GetUserLevelUseCase,
     AddExperienceUseCase,
+    GrantWagerXpUseCase,
     SetUserLevelUseCase,
     GetTierByLevelUseCase,
   ],

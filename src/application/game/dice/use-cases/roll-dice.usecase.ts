@@ -33,7 +33,7 @@ import {
   USER_SEED_REPOSITORY,
   DICE_BET_EVENT_PUBLISHER,
 } from '../tokens/dice.tokens';
-import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from '../../../user/leveling/use-cases/grant-wager-xp.use-case';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { DICE_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { sha256HashServerSeed } from '../../../../domain/shared/provably-fair-hash';
@@ -44,6 +44,7 @@ import {
   DICE_SAVE_BET_JOB_NAME,
   GAME_SAVE_QUEUE,
 } from '../../../../infrastructure/queue/game-save/game-save.job-data';
+import { AffiliateWagerCommissionManager } from '../../../user/affiliate/services/affiliate-wager-commission.manager';
 
 @Injectable()
 export class RollDiceUseCase implements IUseCase<
@@ -65,12 +66,13 @@ export class RollDiceUseCase implements IUseCase<
     @Inject(DICE_BET_EVENT_PUBLISHER)
     private readonly betPublisher: IBetEventPublisherPort,
     private readonly fairnessService: DiceFairnessDomainService,
-    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly grantWagerXp: GrantWagerXpUseCase,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
     private readonly diceModeration: DiceModerationRedisService,
     private readonly diceBettingGate: DiceBettingDisabledRedisService,
     @InjectQueue(GAME_SAVE_QUEUE)
     private readonly gameSaveQueue: Queue,
+    private readonly affiliateWagerCommission: AffiliateWagerCommissionManager,
   ) {}
 
   async execute(
@@ -253,9 +255,36 @@ export class RollDiceUseCase implements IUseCase<
     );
 
     setImmediate(() => {
+      void this.affiliateWagerCommission
+        .enqueueWagerCommission({
+          bettorUsername: cmd.username,
+          wagerAmount: bet,
+          sourceEventId: betId,
+          game: 'DICE',
+        })
+        .catch((err) =>
+          this.logger.warn(
+            `[Dice] affiliate wager commission enqueue failed user=${cmd.username} betId=${betId}`,
+            err,
+          ),
+        );
+    });
 
-      void this.grantXp(cmd.username, bet, betId).then((response) => {
-        if (response && !response.ok) {
+    setImmediate(() => {
+      const xpAmount = Math.floor(bet * DICE_XP_RATE);
+      void this.grantWagerXp
+        .execute({
+          username: cmd.username,
+          xpAmount,
+          wager: bet,
+          gameId: betId,
+          source: XpSource.GAME_WIN,
+          grantContext: 'dice.roll',
+        })
+        .then((response) => {
+          if (response && !response.ok) {
+            return;
+          }
           void this.betPublisher.publishBetPlaced({
             username: cmd.username,
             game: 'dice',
@@ -269,8 +298,7 @@ export class RollDiceUseCase implements IUseCase<
             createdAt: Date.now(),
             type: 'bet',
           });
-        }
-      });
+        });
     });
 
     return Ok({
@@ -299,25 +327,5 @@ export class RollDiceUseCase implements IUseCase<
         `code=${err.code} message=${err.message}`,
     );
     return Err(err);
-  }
-
-  private async grantXp(
-    username: string,
-    betAmount: number,
-    betId: string,
-  ): Promise<{ ok: boolean; value?: { currentLevel: number } } | null> {
-    const xpAmount = Math.floor(betAmount * DICE_XP_RATE);
-
-    const result = await this.addExperienceUseCase.execute({
-      username,
-      amount: Math.max(0, xpAmount),
-      wagerCoins: betAmount,
-      source: XpSource.GAME_WIN,
-      referenceId: betId,
-    });
-
-    return result.ok
-      ? { ok: true, value: { currentLevel: result.value.currentLevel } }
-      : null;
   }
 }

@@ -122,6 +122,17 @@ import {
 } from '../../domain/race/errors/race.errors';
 
 import {
+  ReferralCodeNotFoundError,
+  ReferralUseCooldownError,
+  ReferralSelfReferralError,
+  ReferralAlreadyCreatedError,
+  ReferralCodeTakenError,
+  ReferralNothingToClaimError,
+  ReferralBelowMinimumClaimError,
+  ReferralInvalidCodeFormatError,
+} from '../../domain/referral/errors/referral.errors';
+
+import {
   TowersValidationError,
   TowersActiveGameExistsError,
   TowersInsufficientBalanceError,
@@ -303,6 +314,16 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (error instanceof InvalidRaceRewardsError)    return HttpStatus.BAD_REQUEST;
     if (error instanceof InvalidRaceTimeRangeError)  return HttpStatus.BAD_REQUEST;
     if (error instanceof RaceTimeOverlapError)       return HttpStatus.CONFLICT;
+
+    // ── Referral / affiliate ───────────────────────────────────────────────────
+    if (error instanceof ReferralCodeNotFoundError)       return HttpStatus.NOT_FOUND;
+    if (error instanceof ReferralUseCooldownError)        return HttpStatus.TOO_MANY_REQUESTS;
+    if (error instanceof ReferralSelfReferralError)      return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralAlreadyCreatedError)    return HttpStatus.CONFLICT;
+    if (error instanceof ReferralCodeTakenError)       return HttpStatus.CONFLICT;
+    if (error instanceof ReferralNothingToClaimError)    return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralBelowMinimumClaimError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralInvalidCodeFormatError) return HttpStatus.BAD_REQUEST;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

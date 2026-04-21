@@ -30,13 +30,17 @@ import {
 import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publisher.port';
 import { CASE_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
-import { AddExperienceUseCase } from '../../../user/leveling/use-cases/add-experience.use-case';
+import { GrantWagerXpUseCase } from '../../../user/leveling/use-cases/grant-wager-xp.use-case';
 import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 import { USER_SEED_REPOSITORY } from '../../dice/tokens/dice.tokens';
 import { DICE_BALANCE_LEDGER } from '../../dice/tokens/dice.tokens';
 import type { OpenCaseCommand } from '../dto/open-case.command';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
-import type { OpenCaseOutputDto, CaseOpenSingleOutputDto } from '../dto/case.output-dto';
+import { AffiliateWagerCommissionManager } from '../../../user/affiliate/services/affiliate-wager-commission.manager';
+import type {
+  OpenCaseOutputDto,
+  CaseOpenSingleOutputDto,
+} from '../dto/case.output-dto';
 
 const MIN_QTY = 1;
 /** Keep in sync with HTTP DTO (`OpenCaseHttpDto` max). */
@@ -51,9 +55,10 @@ function msSince(start: number): number {
 }
 
 @Injectable()
-export class OpenCaseUseCase
-  implements IUseCase<OpenCaseCommand, Result<OpenCaseOutputDto, CaseError>>
-{
+export class OpenCaseUseCase implements IUseCase<
+  OpenCaseCommand,
+  Result<OpenCaseOutputDto, CaseError>
+> {
   private readonly logger = new Logger(OpenCaseUseCase.name);
 
   constructor(
@@ -68,11 +73,14 @@ export class OpenCaseUseCase
     @Inject(CASE_BET_EVENT_PUBLISHER)
     private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly fairness: CaseFairnessDomainService,
-    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly grantWagerXp: GrantWagerXpUseCase,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
+    private readonly affiliateWagerCommission: AffiliateWagerCommissionManager,
   ) {}
 
-  async execute(cmd: OpenCaseCommand): Promise<Result<OpenCaseOutputDto, CaseError>> {
+  async execute(
+    cmd: OpenCaseCommand,
+  ): Promise<Result<OpenCaseOutputDto, CaseError>> {
     if (
       !Number.isInteger(cmd.quantity) ||
       cmd.quantity < MIN_QTY ||
@@ -104,7 +112,10 @@ export class OpenCaseUseCase
       try {
         detail = await this.caseRepo.findBySlugWithItems(cmd.slug);
       } catch (err) {
-        this.logger.error(`[Cases] open findBySlug failed slug=${cmd.slug}`, err);
+        this.logger.error(
+          `[Cases] open findBySlug failed slug=${cmd.slug}`,
+          err,
+        );
         return Err(new CasePersistenceError());
       }
       detailDbMs = msSince(tDb);
@@ -171,7 +182,10 @@ export class OpenCaseUseCase
 
       let wonCaseItemId: string;
       try {
-        wonCaseItemId = this.fairness.selectWeightedItemId(pool, normalizedRoll);
+        wonCaseItemId = this.fairness.selectWeightedItemId(
+          pool,
+          normalizedRoll,
+        );
       } catch {
         return Err(new CaseEmptyPoolError());
       }
@@ -234,6 +248,22 @@ export class OpenCaseUseCase
           variant: won.variant,
         },
       });
+
+      setImmediate(() => {
+        void this.affiliateWagerCommission
+          .enqueueWagerCommission({
+            bettorUsername: cmd.username,
+            wagerAmount: price,
+            sourceEventId: openId,
+            game: 'CASE',
+          })
+          .catch((err) =>
+            this.logger.warn(
+              `[Cases] affiliate wager commission enqueue failed user=${cmd.username} openId=${openId}`,
+              err,
+            ),
+          );
+      });
     }
 
     const loopMs = msSince(tLoop);
@@ -272,15 +302,21 @@ export class OpenCaseUseCase
             : 0;
         const ts = Date.now();
 
-    
-
         const xpSource = profit >= 0 ? XpSource.GAME_WIN : XpSource.GAME_LOSE;
-        void this.grantCaseXp(username, w.pricePaid, w.id, xpSource).then((response) => {
-          if (response && !response.ok) {
-            this.logger.warn(
-              `[Cases] XP grant failed — user=${username} amount=${w.pricePaid} error=${response.error.message}`,
-            );
-          }else{
+        const xpAmount = Math.floor(w.pricePaid * CASE_XP_RATE);
+        void this.grantWagerXp
+          .execute({
+            username,
+            xpAmount,
+            wager: w.pricePaid,
+            gameId: w.id,
+            source: xpSource,
+            grantContext: 'case.open',
+          })
+          .then((response) => {
+            if (response && !response.ok) {
+              return;
+            }
             void this.betEventPublisher.publishBetPlaced({
               type: 'bet',
               game: 'case',
@@ -298,8 +334,7 @@ export class OpenCaseUseCase
               result: profit >= 0 ? 'win' : 'loss',
               createdAt: ts,
             });
-          }
-        });
+          });
       }
     });
 
@@ -307,43 +342,5 @@ export class OpenCaseUseCase
       case: { id: detail.id, slug: detail.slug, name: detail.name },
       opens,
     });
-  }
-
-  private grantCaseXp(
-    username: string,
-    pricePaid: number,
-    openId: string,
-    source: XpSource,
-  ) {
-    const xpAmount = Math.floor(pricePaid * CASE_XP_RATE);
-
-    return this.addExperienceUseCase
-      .execute({
-        username,
-        amount: Math.max(0, xpAmount),
-        wagerCoins: pricePaid,
-        source,
-        referenceId: openId,
-      })
-      .then((result) => {
-        if (!result.ok) {
-          this.logger.warn(
-            `[Cases] XP grant failed — user=${username} amount=${xpAmount} error=${result.error.message}`,
-          );
-        } else {
-          this.logger.debug(
-            `[Cases] XP granted — user=${username} xp=${xpAmount} ` +
-              `newLevel=${result.value.currentLevel} tier=${result.value.tierName}`,
-          );
-        }
-        return result;
-      })
-      .catch((err) => {
-        this.logger.error(
-          `[Cases] Unexpected XP grant error — user=${username}`,
-          err,
-        );
-        return null;
-      });
   }
 }

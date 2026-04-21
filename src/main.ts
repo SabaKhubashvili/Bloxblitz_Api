@@ -75,6 +75,7 @@ async function bootstrap() {
       'Authorization',
       'Accept',
       'X-Requested-With',
+      'X-Internal-Service-Secret',
     ],
   });
 

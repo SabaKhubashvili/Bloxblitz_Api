@@ -37,6 +37,7 @@ import {
 } from '../../../../domain/game/mines/errors/mines.errors';
 import { MinesGameMapper } from '../mappers/mines-game.mapper';
 import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-race-wager.use-case';
+import { AffiliateWagerCommissionManager } from '../../../user/affiliate/services/affiliate-wager-commission.manager';
 import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 import {
   GAME_SAVE_QUEUE,
@@ -59,6 +60,7 @@ export class CreateMinesGameUseCase
     private readonly minesSystemState: MinesSystemStateProvider,
     private readonly fairnessService: MinesFairnessDomainService,
     private readonly incrementRaceWager: IncrementRaceWagerUseCase,
+    private readonly affiliateWagerCommission: AffiliateWagerCommissionManager,
     private readonly minesModeration: MinesModerationRedisService,
     @InjectQueue(GAME_SAVE_QUEUE)
     private readonly gameSaveQueue: Queue,
@@ -213,6 +215,22 @@ export class CreateMinesGameUseCase
       username: cmd.username,
       grossBetAmount: cmd.betAmount,
       source: 'mines',
+    });
+
+    setImmediate(() => {
+      void this.affiliateWagerCommission
+        .enqueueWagerCommission({
+          bettorUsername: cmd.username,
+          wagerAmount: cmd.betAmount,
+          sourceEventId: game.id.value,
+          game: 'MINES',
+        })
+        .catch((err) =>
+          this.logger.warn(
+            `[Mines] affiliate wager commission enqueue failed user=${cmd.username} gameId=${game.id.value}`,
+            err,
+          ),
+        );
     });
 
     return Ok(MinesGameMapper.toOutputDto(game));

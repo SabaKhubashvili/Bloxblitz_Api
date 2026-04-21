@@ -19,6 +19,8 @@ export type RaceWagerGameSource =
   | 'dice'
   | 'case'
   | 'crash'
+  | 'roulette'
+  | 'coinflip'
   | 'manual';
 
 export type IncrementRaceWagerOptions = {

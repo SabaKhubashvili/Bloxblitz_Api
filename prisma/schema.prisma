@@ -66,7 +66,7 @@ model User {
 
   seedRotationHistory SeedRotationHistory[] @relation("SeedRotationHistory")
 
-  referedByUser              Referral?               @relation("user_refered_by", fields: [referedBy], references: [referralCode])
+  referedByReferral              Referral?               @relation("user_refered_by", fields: [referedBy], references: [referralCode])
   userGameStats              UserGameStatistics[]    @relation("UserGameStats")
   inventory                  UserInventoryAmp[]
   userSeed                   UserSeed?               @relation("UserSeed")
@@ -106,6 +106,7 @@ model User {
   towersPlayerRestriction   TowersPlayerRestriction?
 
   @@index([username, rblx_id])
+  @@index([referedBy])
   @@index([isBot])
   @@index([totalXP(sort: Desc)])
   @@index([currentLevel(sort: Desc)])
@@ -487,16 +488,19 @@ model Referral {
 model ReferralLog {
   id               String   @id @default(uuid())
   referredUsername String
-  game             String
+  game             GameType
   amount           Decimal  @default(0) @db.Decimal(10, 2)
+  referrerShare     Decimal  @default(0) @db.Decimal(10, 2)
+  
   referrerCode     String
   createdAt        DateTime @default(now())
-  referralMm2Id    String?
   referredUser     User     @relation(fields: [referredUsername], references: [username], onDelete: Cascade)
   referrer         Referral @relation(fields: [referrerCode], references: [referralCode], onDelete: Cascade)
 
   @@index([referrerCode])
+  @@index([referrerCode, referredUsername])
 }
+
 
 model TipTransaction {
   id                String   @id @default(cuid())
@@ -702,6 +706,7 @@ model GameHistory {
 
   @@index([gameType])
   @@index([createdAt])
+  @@index([username, createdAt(sort: Desc)])
   @@index([gameType, createdAt])
   @@index([seedRotationHistoryId])
   @@index([rouletteGameIndex])
