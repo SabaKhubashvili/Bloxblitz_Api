@@ -610,38 +610,21 @@ model KinguinCodeBatch {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([batchName])
   @@index([purchaseDate])
-}
-
-model HashChain {
-  id              String       @id @default(uuid())
-  finalHash       String       @db.VarChar(64)
-  clientSeed      String?      @db.VarChar(64)
-  clientSeedSetAt DateTime?
-  isActive        Boolean      @default(true)
-  chainId         String       @unique
-  completedAt     DateTime?
-  createdAt       DateTime     @default(now())
-  currentRound    Int          @default(0)
-  gameType        GameType
-  isComplete      Boolean      @default(false)
-  serverSeed      String       @db.VarChar(128)
-  totalRounds     Int          @default(1000000)
-  crashRounds     CrashRound[]
-
-  @@unique([gameType, chainId])
-  @@index([gameType, isActive])
-  @@index([gameType, currentRound])
 }
 
 model CrashRound {
   id           String   @id @default(uuid())
-  chainId      String
-  roundNumber  Int
-  gameHash     String   @unique @db.VarChar(64)
+  /// EOS block id used as the public randomness source for this round (provably fair).
+  eosBlockId   String   @unique @db.VarChar(64)
+  /// EOS block number (height) corresponding to `eosBlockId`.
+  eosBlockNum  Int
+  /// Server seed for this round; combined with `nonce` and EOS block data to derive `crashPoint`.
+  serverSeed   String   @db.VarChar(128)
+  serverSeedHash String   @db.VarChar(64)
+  /// Nonce used in the crash-point derivation (e.g. HMAC / hash iteration index).
+  nonce        Int
   crashPoint   Decimal  @db.Decimal(10, 4)
-  clientSeed   String   @db.VarChar(64)
   totalBets    Int      @default(0)
   totalWagered Decimal  @default(0) @db.Decimal(12, 2)
   totalPayout  Decimal  @default(0) @db.Decimal(12, 2)
@@ -650,11 +633,9 @@ model CrashRound {
   finished   Boolean   @default(false)
   finishedAt DateTime?
 
-  chain HashChain @relation(fields: [chainId], references: [chainId], onDelete: Cascade)
-
-  @@unique([chainId, roundNumber])
-  @@index([chainId, roundNumber(sort: Desc)])
-  @@index([gameHash])
+  @@unique([nonce])
+  @@index([nonce(sort: Desc)])
+  @@index([eosBlockNum])
   @@index([createdAt(sort: Desc)])
 }
 
