@@ -28,7 +28,7 @@ export class HandleTransactionPendingUseCase {
 
       await this.repo.createInvoiceTransactionPending({
         invoiceId: query.transaction?.invoice?.id ?? '',
-        
+
         providerTransactionId: query.transaction?.id ?? '',
         status: TransactionStatus.PENDING,
         txid: query.transaction?.txid ?? '',
@@ -47,7 +47,9 @@ export class HandleTransactionPendingUseCase {
         coinAmountPaid: this.getCoinAmountPaid(
           (query.transaction?.amount.paid?.amount as number) ?? 0,
         ),
-        username: this.extractUsername(query.transaction?.invoice.passthrough ?? ''),
+        username: this.extractUsername(
+          query.transaction?.invoice.passthrough ?? '',
+        ),
         minConfirmations: query.transaction?.invoice.min_confirmations ?? 0,
       });
       return Ok(void 0);
@@ -65,9 +67,7 @@ export class HandleTransactionPendingUseCase {
   ): number {
     return quotes[currency] ?? 0;
   }
-  private getCryptoAmountPaid(
-    amount: number,
-  ): number {
+  private getCryptoAmountPaid(amount: number): number {
     return amount ?? 0;
   }
   private getCoinAmountPaid(amount: number): number {

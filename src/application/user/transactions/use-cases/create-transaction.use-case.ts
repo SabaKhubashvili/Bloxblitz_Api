@@ -30,9 +30,10 @@ import { TRANSACTION_HISTORY_REPOSITORY } from '../tokens/transaction.tokens';
  *  - TransactionCreateError        — unexpected infrastructure failure
  */
 @Injectable()
-export class CreateTransactionUseCase
-  implements IUseCase<CreateTransactionCommand, Result<TransactionHistoryItemOutputDto, TransactionError>>
-{
+export class CreateTransactionUseCase implements IUseCase<
+  CreateTransactionCommand,
+  Result<TransactionHistoryItemOutputDto, TransactionError>
+> {
   private readonly logger = new Logger(CreateTransactionUseCase.name);
 
   constructor(
@@ -50,42 +51,42 @@ export class CreateTransactionUseCase
 
     try {
       const record = await this.repo.create({
-        userUsername:     cmd.userUsername,
-        category:         cmd.category,
-        direction:        cmd.direction,
-        provider:         cmd.provider,
-        status:           cmd.status,
-        usdAmountPaid:    cmd.usdAmountPaid,
+        userUsername: cmd.userUsername,
+        category: cmd.category,
+        direction: cmd.direction,
+        provider: cmd.provider,
+        status: cmd.status,
+        usdAmountPaid: cmd.usdAmountPaid,
         cryptoAmountPaid: cmd.cryptoAmountPaid,
-        coinAmountPaid:   cmd.coinAmountPaid,
-        balanceAfter:     cmd.balanceAfter,
-        assetType:        cmd.assetType,
-        assetSymbol:      cmd.assetSymbol ?? null,
-        referenceType:    cmd.referenceType,
-        referenceId:      cmd.referenceId,
-        metadata:         cmd.metadata ?? null,
+        coinAmountPaid: cmd.coinAmountPaid,
+        balanceAfter: cmd.balanceAfter,
+        assetType: cmd.assetType,
+        assetSymbol: cmd.assetSymbol ?? null,
+        referenceType: cmd.referenceType,
+        referenceId: cmd.referenceId,
+        metadata: cmd.metadata ?? null,
       });
 
       this.logger.log(
         `[Transactions] Created — id="${record.id}", user="${record.userUsername}", ` +
-        `category="${record.category}", direction="${record.direction}", amount=${record.coinAmountPaid}`,
+          `category="${record.category}", direction="${record.direction}", amount=${record.coinAmountPaid}`,
       );
 
       return Ok({
-        id:             record.id,
-        category:       record.category,
-        direction:      record.direction,
-        provider:       record.provider,
-        status:         record.status,
+        id: record.id,
+        category: record.category,
+        direction: record.direction,
+        provider: record.provider,
+        status: record.status,
         coinAmountPaid: record.coinAmountPaid,
-        usdAmountPaid:  record.usdAmountPaid,
-        balanceAfter:   record.balanceAfter,
-        assetType:      record.assetType,
-        assetSymbol:    record.assetSymbol,
-        referenceType:  record.referenceType,
-        referenceId:    record.referenceId,
-        metadata:       record.metadata,
-        createdAt:      record.createdAt.toISOString(),
+        usdAmountPaid: record.usdAmountPaid,
+        balanceAfter: record.balanceAfter,
+        assetType: record.assetType,
+        assetSymbol: record.assetSymbol,
+        referenceType: record.referenceType,
+        referenceId: record.referenceId,
+        metadata: record.metadata,
+        createdAt: record.createdAt.toISOString(),
       });
     } catch (err) {
       this.logger.error(

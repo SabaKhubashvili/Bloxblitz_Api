@@ -1,7 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Ok, Err } from '../../../domain/shared/types/result.type';
 import { UNIWIRE_API_PORT, UNIWIRE_REPOSITORY } from '../tokens/uniwire.tokens';
-import type { IUniwireApiPort, UniwireInvoiceKind } from '../../../domain/uniwire/ports/uniwire-api.ports';
+import type {
+  IUniwireApiPort,
+  UniwireInvoiceKind,
+} from '../../../domain/uniwire/ports/uniwire-api.ports';
 import type { IUniwireRepository } from '../../../domain/uniwire/ports/uniwire.repository.port';
 import type { CreateDepositInvoiceCommand } from '../dto/create-deposit-invoice.command';
 import {
@@ -31,25 +34,28 @@ export class CreateDepositInvoiceUseCase {
     private readonly repo: IUniwireRepository,
   ) {}
 
-  async execute(cmd: CreateDepositInvoiceCommand): Promise<CreateDepositInvoiceUseCaseResult> {
-    const profile = await this.repo.findInvoiceByUsernameAndCurrency(cmd.username, cmd.currency);
+  async execute(
+    cmd: CreateDepositInvoiceCommand,
+  ): Promise<CreateDepositInvoiceUseCaseResult> {
+    const profile = await this.repo.findInvoiceByUsernameAndCurrency(
+      cmd.username,
+      cmd.currency,
+    );
     if (!profile) {
       return Err(new UniwireAddressNotFoundError());
     }
-    
 
     try {
       const result = await this.api.createInvoice({
         profile_id: profile.address,
         currency: cmd.currency,
-        kind: cmd.kind as UniwireInvoiceKind,
+        kind: cmd.kind,
         passthrough: cmd.passthrough,
       });
       console.log(result);
-      if(!result.result.address) {
+      if (!result.result.address) {
         return Err(new UniwireAddressNotFoundError());
       }
-
 
       await this.repo.createInvoice({
         userUsername: cmd.username,

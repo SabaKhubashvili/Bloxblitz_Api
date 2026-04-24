@@ -1,4 +1,7 @@
-import type { MinesHistoryOutputDto, MinesHistoryItemOutputDto } from '../dto/mines-history.output-dto';
+import type {
+  MinesHistoryOutputDto,
+  MinesHistoryItemOutputDto,
+} from '../dto/mines-history.output-dto';
 import type { MinesHistorySortOrder } from '../../../../domain/game/mines/ports/mines-history.repository.port';
 
 /**

@@ -43,5 +43,8 @@ export interface IMinesHistoryRepository {
    * requesting user.  Returns null if the round does not exist or the
    * username does not match.
    */
-  findByIdAndUsername(gameId: string, username: string): Promise<MinesHistoryRecord | null>;
+  findByIdAndUsername(
+    gameId: string,
+    username: string,
+  ): Promise<MinesHistoryRecord | null>;
 }

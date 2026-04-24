@@ -15,13 +15,15 @@ import {
 import { BET_HISTORY_REPOSITORY } from '../tokens/bet-history.tokens';
 
 @Injectable()
-export class GetUserBetHistoryUseCase
-  implements IUseCase<GetBetHistoryQuery, Result<BetHistoryOutputDto, BetHistoryError>>
-{
+export class GetUserBetHistoryUseCase implements IUseCase<
+  GetBetHistoryQuery,
+  Result<BetHistoryOutputDto, BetHistoryError>
+> {
   private readonly logger = new Logger(GetUserBetHistoryUseCase.name);
 
   constructor(
-    @Inject(BET_HISTORY_REPOSITORY) private readonly betHistoryRepo: IBetHistoryRepository,
+    @Inject(BET_HISTORY_REPOSITORY)
+    private readonly betHistoryRepo: IBetHistoryRepository,
   ) {}
 
   async execute(
@@ -30,7 +32,7 @@ export class GetUserBetHistoryUseCase
     const { username, page, limit, order, gameType } = query;
 
     try {
-    const pageData = await this.betHistoryRepo.findPageByUsername(
+      const pageData = await this.betHistoryRepo.findPageByUsername(
         username,
         page,
         limit,
@@ -48,7 +50,10 @@ export class GetUserBetHistoryUseCase
 
       return Ok(dto);
     } catch (err) {
-      this.logger.error(`[BetHistory] Repository fetch failed for ${username}`, err);
+      this.logger.error(
+        `[BetHistory] Repository fetch failed for ${username}`,
+        err,
+      );
       return Err(new BetHistoryFetchError());
     }
   }

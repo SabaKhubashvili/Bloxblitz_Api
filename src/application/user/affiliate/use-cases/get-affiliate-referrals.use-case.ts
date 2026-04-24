@@ -25,13 +25,10 @@ function round2(n: number): number {
 }
 
 @Injectable()
-export class GetAffiliateReferralsUseCase
-  implements
-    IUseCase<
-      GetAffiliateReferralsQuery,
-      Result<PaginatedReferralsOutputDto, UserNotFoundError>
-    >
-{
+export class GetAffiliateReferralsUseCase implements IUseCase<
+  GetAffiliateReferralsQuery,
+  Result<PaginatedReferralsOutputDto, UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,
@@ -136,8 +133,7 @@ export class GetAffiliateReferralsUseCase
       limit,
     });
 
-    const totalPages =
-      raw.total === 0 ? 0 : Math.ceil(raw.total / raw.limit);
+    const totalPages = raw.total === 0 ? 0 : Math.ceil(raw.total / raw.limit);
 
     return {
       items: raw.items.map((i) => ({

@@ -13,15 +13,19 @@ import {
   DiceHistoryFetchError,
   type DiceError,
 } from '../../../../domain/game/dice/errors/dice.errors';
-import { DICE_HISTORY_CACHE_PORT, DICE_HISTORY_REPOSITORY } from '../tokens/dice.tokens';
+import {
+  DICE_HISTORY_CACHE_PORT,
+  DICE_HISTORY_REPOSITORY,
+} from '../tokens/dice.tokens';
 
 /** Cache TTL for paginated dice history (seconds). */
 const HISTORY_PAGE_TTL = 120;
 
 @Injectable()
-export class GetDiceHistoryUseCase
-  implements IUseCase<GetDiceHistoryQuery, Result<DiceHistoryOutputDto, DiceError>>
-{
+export class GetDiceHistoryUseCase implements IUseCase<
+  GetDiceHistoryQuery,
+  Result<DiceHistoryOutputDto, DiceError>
+> {
   private readonly logger = new Logger(GetDiceHistoryUseCase.name);
 
   constructor(
@@ -37,9 +41,16 @@ export class GetDiceHistoryUseCase
     const { username, page, limit, order } = query;
 
     try {
-      const cached = await this.historyCache.getPage(username, page, limit, order);
+      const cached = await this.historyCache.getPage(
+        username,
+        page,
+        limit,
+        order,
+      );
       if (cached !== null) {
-        this.logger.debug(`[DiceHistory] Cache hit — user=${username} page=${page} order=${order}`);
+        this.logger.debug(
+          `[DiceHistory] Cache hit — user=${username} page=${page} order=${order}`,
+        );
         return Ok(cached);
       }
     } catch (cacheErr) {
@@ -49,12 +60,22 @@ export class GetDiceHistoryUseCase
       );
     }
 
-    let pageData: Awaited<ReturnType<IDiceHistoryRepository['findPageByUsername']>>;
+    let pageData: Awaited<
+      ReturnType<IDiceHistoryRepository['findPageByUsername']>
+    >;
 
     try {
-      pageData = await this.historyRepo.findPageByUsername(username, page, limit, order);
+      pageData = await this.historyRepo.findPageByUsername(
+        username,
+        page,
+        limit,
+        order,
+      );
     } catch (err) {
-      this.logger.error(`[DiceHistory] Repository fetch failed for ${username}`, err);
+      this.logger.error(
+        `[DiceHistory] Repository fetch failed for ${username}`,
+        err,
+      );
       return Err(new DiceHistoryFetchError());
     }
 
@@ -69,7 +90,10 @@ export class GetDiceHistoryUseCase
     void this.historyCache
       .setPage(username, page, limit, order, dto, HISTORY_PAGE_TTL)
       .catch((err) =>
-        this.logger.warn(`[DiceHistory] Cache write failed for ${username}`, err),
+        this.logger.warn(
+          `[DiceHistory] Cache write failed for ${username}`,
+          err,
+        ),
       );
 
     return Ok(dto);

@@ -7,9 +7,10 @@ import type { GetDailySpinHistoryQuery } from '../dto/get-daily-spin-history.que
 import type { DailySpinHistoryOutputDto } from '../dto/daily-spin.output-dto';
 
 @Injectable()
-export class GetDailySpinHistoryUseCase
-  implements IUseCase<GetDailySpinHistoryQuery, Result<DailySpinHistoryOutputDto, never>>
-{
+export class GetDailySpinHistoryUseCase implements IUseCase<
+  GetDailySpinHistoryQuery,
+  Result<DailySpinHistoryOutputDto, never>
+> {
   constructor(
     @Inject(DAILY_SPIN_REPOSITORY) private readonly repo: IDailySpinRepository,
   ) {}
@@ -18,19 +19,23 @@ export class GetDailySpinHistoryUseCase
     query: GetDailySpinHistoryQuery,
   ): Promise<Result<DailySpinHistoryOutputDto, never>> {
     const safeLimit = Math.min(Math.max(query.limit, 1), 50);
-    const safePage  = Math.max(query.page, 1);
+    const safePage = Math.max(query.page, 1);
 
-    const records = await this.repo.getSpinHistory(query.username, safePage, safeLimit);
+    const records = await this.repo.getSpinHistory(
+      query.username,
+      safePage,
+      safeLimit,
+    );
 
     return Ok({
       items: records.map((r) => ({
-        id:          r.id,
-        prizeLabel:  r.prizeLabel,
+        id: r.id,
+        prizeLabel: r.prizeLabel,
         prizeAmount: r.prizeAmount,
-        prizeTier:   r.prizeTier,
-        spunAt:      r.createdAt,
+        prizeTier: r.prizeTier,
+        spunAt: r.createdAt,
       })),
-      page:  safePage,
+      page: safePage,
       limit: safeLimit,
     });
   }

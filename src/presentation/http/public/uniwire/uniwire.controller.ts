@@ -15,7 +15,6 @@ import { CurrentUser } from '../../../../shared/decorators/current-user.decorato
 import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';
 import { GetExchangeRatesUseCase } from '../../../../application/uniwire/use-cases/get-exchange-rates.use-case';
 import { GetTransactionConfirmationsUseCase } from '../../../../application/uniwire/use-cases/get-transaction-confirmations.use-case';
-import { CreateDepositInvoiceUseCase } from '../../../../application/uniwire/use-cases/create-deposit-invoice.use-case';
 import { CreatePayoutUseCase } from '../../../../application/uniwire/use-cases/create-payout.use-case';
 import { GetDepositAddressUseCase } from '../../../../application/uniwire/use-cases/get-deposit-address.use-case';
 import { CreatePayoutDto } from './dto/create-payout.dto';
@@ -91,7 +90,9 @@ export class UniwireController {
       username: user.username,
       amount: body.amount,
       currency: body.currency,
+      address: body.address,
       kind: body.kind,
+      symbol: body.symbol,
     });
     if (!result.ok) throw result.error;
     return result.value;
@@ -160,14 +161,6 @@ export class UniwireController {
       const result = await this.handleTransactionCompletedUseCase.execute(body);
       if (!result.ok) throw result.error;
       return result.value;
-    } else if (
-      body.callback_status === UniwireCallbackStatus.PAYOUT_COMPLETED
-    ) {
-      // const result = await this.createPayoutUseCase.execute({
-      //   payoutId: body.payout?.id ?? '',
-      // });
-      // if (!result.ok) throw result.error;
-      // return result.value;
     } else if (
       body.callback_status === UniwireCallbackStatus.PAYOUT_COMPLETED
     ) {

@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IUseCase } from '../../../shared/use-case.interface';
-import { Ok, Err, type Result } from '../../../../domain/shared/types/result.type';
+import {
+  Ok,
+  Err,
+  type Result,
+} from '../../../../domain/shared/types/result.type';
 import {
   RewardCaseCooldownError,
   RewardCaseEmptyError,
@@ -9,13 +13,17 @@ import {
   RewardCaseRollFailedError,
   type RewardCaseError,
 } from '../../../../domain/reward-cases/errors/reward-case.errors';
-import type { RewardCaseDefinitionDto, RewardCaseOpenRewardDto } from '../reward-case-keys.service';
+import type {
+  RewardCaseDefinitionDto,
+  RewardCaseOpenRewardDto,
+} from '../reward-case-keys.service';
 import { RewardCaseKeysService } from '../reward-case-keys.service';
 import type { IRewardCasesCachePort } from '../ports/reward-cases-cache.port';
-import { REWARD_CASES_CACHE_PORT, REWARD_CASE_OPEN_REPOSITORY } from '../tokens/reward-cases.tokens';
-import type {
-  IRewardCaseOpenRepository,
-} from '../ports/reward-case-open.repository.port';
+import {
+  REWARD_CASES_CACHE_PORT,
+  REWARD_CASE_OPEN_REPOSITORY,
+} from '../tokens/reward-cases.tokens';
+import type { IRewardCaseOpenRepository } from '../ports/reward-case-open.repository.port';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -72,9 +80,10 @@ function pickWeighted(items: PoolItem[]): PoolItem | null {
  * decorators are only used for DI wiring, not for HTTP concerns.
  */
 @Injectable()
-export class OpenRewardCaseUseCase
-  implements IUseCase<OpenRewardCaseCommand, Result<OpenRewardCaseResult, RewardCaseError>>
-{
+export class OpenRewardCaseUseCase implements IUseCase<
+  OpenRewardCaseCommand,
+  Result<OpenRewardCaseResult, RewardCaseError>
+> {
   private readonly logger = new Logger(OpenRewardCaseUseCase.name);
 
   constructor(
@@ -104,7 +113,9 @@ export class OpenRewardCaseUseCase
       );
       // Treat as cooldown from the caller's perspective (user is already
       // opening a case in another request).
-      return Err(new RewardCaseCooldownError(new Date(Date.now() + OPEN_LOCK_TTL_MS)));
+      return Err(
+        new RewardCaseCooldownError(new Date(Date.now() + OPEN_LOCK_TTL_MS)),
+      );
     }
 
     try {
@@ -173,7 +184,9 @@ export class OpenRewardCaseUseCase
       const code = err instanceof Error ? err.message : '';
 
       if (code === 'CASE_GLOBAL_COOLDOWN') {
-        return Err(new RewardCaseCooldownError(new Date(Date.now() + COOLDOWN_MS)));
+        return Err(
+          new RewardCaseCooldownError(new Date(Date.now() + COOLDOWN_MS)),
+        );
       }
       if (code === 'REWARD_CASE_INSUFFICIENT_KEYS') {
         return Err(new RewardCaseInsufficientKeysError());

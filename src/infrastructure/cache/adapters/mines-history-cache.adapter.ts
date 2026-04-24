@@ -50,12 +50,21 @@ export class MinesHistoryCacheAdapter implements IMinesHistoryCachePort {
   ): Promise<MinesHistoryOutputDto | null> {
     try {
       const version = await this.getVersion(username);
-      const key = RedisKeys.cache.minesHistoryPage(username, version, page, limit, order);
+      const key = RedisKeys.cache.minesHistoryPage(
+        username,
+        version,
+        page,
+        limit,
+        order,
+      );
       const raw = await this.redis.mainClient.get(key);
       if (!raw) return null;
       return JSON.parse(raw) as MinesHistoryOutputDto;
     } catch (err) {
-      this.logger.warn(`[MinesHistoryCache] getPage() failed — user=${username}`, err);
+      this.logger.warn(
+        `[MinesHistoryCache] getPage() failed — user=${username}`,
+        err,
+      );
       return null;
     }
   }
@@ -70,10 +79,21 @@ export class MinesHistoryCacheAdapter implements IMinesHistoryCachePort {
   ): Promise<void> {
     try {
       const version = await this.getVersion(username);
-      const key = RedisKeys.cache.minesHistoryPage(username, version, page, limit, order);
-      await this.redis.mainClient.set(key, JSON.stringify(data), { EX: ttlSeconds });
+      const key = RedisKeys.cache.minesHistoryPage(
+        username,
+        version,
+        page,
+        limit,
+        order,
+      );
+      await this.redis.mainClient.set(key, JSON.stringify(data), {
+        EX: ttlSeconds,
+      });
     } catch (err) {
-      this.logger.warn(`[MinesHistoryCache] setPage() failed — user=${username}`, err);
+      this.logger.warn(
+        `[MinesHistoryCache] setPage() failed — user=${username}`,
+        err,
+      );
     }
   }
 
@@ -82,9 +102,14 @@ export class MinesHistoryCacheAdapter implements IMinesHistoryCachePort {
       await this.redis.mainClient.incr(
         RedisKeys.cache.minesHistoryVersion(username),
       );
-      this.logger.debug(`[MinesHistoryCache] Invalidated history cache — user=${username}`);
+      this.logger.debug(
+        `[MinesHistoryCache] Invalidated history cache — user=${username}`,
+      );
     } catch (err) {
-      this.logger.warn(`[MinesHistoryCache] invalidate() failed — user=${username}`, err);
+      this.logger.warn(
+        `[MinesHistoryCache] invalidate() failed — user=${username}`,
+        err,
+      );
     }
   }
 
@@ -98,7 +123,10 @@ export class MinesHistoryCacheAdapter implements IMinesHistoryCachePort {
       if (!raw) return null;
       return JSON.parse(raw) as MinesHistoryItemOutputDto;
     } catch (err) {
-      this.logger.warn(`[MinesHistoryCache] getRound() failed — gameId=${gameId}`, err);
+      this.logger.warn(
+        `[MinesHistoryCache] getRound() failed — gameId=${gameId}`,
+        err,
+      );
       return null;
     }
   }
@@ -111,9 +139,14 @@ export class MinesHistoryCacheAdapter implements IMinesHistoryCachePort {
     const key = RedisKeys.cache.minesRound(gameId);
 
     try {
-      await this.redis.mainClient.set(key, JSON.stringify(data), { EX: ttlSeconds });
+      await this.redis.mainClient.set(key, JSON.stringify(data), {
+        EX: ttlSeconds,
+      });
     } catch (err) {
-      this.logger.warn(`[MinesHistoryCache] setRound() failed — gameId=${gameId}`, err);
+      this.logger.warn(
+        `[MinesHistoryCache] setRound() failed — gameId=${gameId}`,
+        err,
+      );
     }
   }
 }

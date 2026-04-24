@@ -43,7 +43,7 @@ export class RakebackController {
   ) {
     const rakebackType = this.parseType(type);
 
-  const result = await this.claimRakebackUseCase.execute({
+    const result = await this.claimRakebackUseCase.execute({
       username: user.username,
       type: rakebackType,
     });
@@ -53,8 +53,8 @@ export class RakebackController {
 
   private parseType(raw: string): RakebackType {
     const upper = raw.toUpperCase();
-    if (upper === 'DAILY')   return RakebackType.DAILY;
-    if (upper === 'WEEKLY')  return RakebackType.WEEKLY;
+    if (upper === 'DAILY') return RakebackType.DAILY;
+    if (upper === 'WEEKLY') return RakebackType.WEEKLY;
     if (upper === 'MONTHLY') return RakebackType.MONTHLY;
     throw new Error(`Invalid rakeback type: ${raw}`);
   }

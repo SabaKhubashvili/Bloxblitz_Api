@@ -16,19 +16,31 @@ export interface IUniwireApiPort {
   getExchangeRates(): Promise<UniwireExchangeRates>;
 
   /** Create a payout. Returns payout id and status. */
-  createPayout(params: CreatePayoutParams): Promise<UniwireCreatePayoutResponse>;
+  createPayout(
+    params: CreatePayoutParams,
+  ): Promise<UniwireCreatePayoutResponse>;
 
   /** Get transaction confirmations by transaction id(s). */
-  getTransactionConfirmations(ids: string[]): Promise<UniwireRecentTransaction[]>;
+  getTransactionConfirmations(
+    ids: string[],
+  ): Promise<UniwireRecentTransaction[]>;
 
   /** Get coin address and recent transactions for a profile. */
-  getInvoiceAddress(profileId: string, currency: AvailableCryptos): Promise<UniwireGetInvoiceResponse>;
+  getInvoiceAddress(
+    profileId: string,
+    currency: AvailableCryptos,
+  ): Promise<UniwireGetInvoiceResponse>;
 
   /** Create an invoice. */
-  createInvoice(params: CreateInvoiceParams): Promise<UniwireGetInvoiceResponse>;
+  createInvoice(
+    params: CreateInvoiceParams,
+  ): Promise<UniwireGetInvoiceResponse>;
 
   /** Generate a new deposit address for a currency. Uses profileId from config. */
-  createDepositAddress(currency: AvailableCryptos, passthrough: Record<string, string>): Promise<UniwireCreateDepositAddressResponse>;
+  createDepositAddress(
+    currency: AvailableCryptos,
+    passthrough: Record<string, string>,
+  ): Promise<UniwireCreateDepositAddressResponse>;
 }
 export enum UniwireInvoiceKind {
   BTC = 'BTC',
@@ -40,9 +52,20 @@ export enum UniwireInvoiceKind {
 
 export interface CreatePayoutParams {
   profileId: string;
-  amount: number;
-  currency: string;
-  kind?: string;
+  /** Must be unique per payout (Uniwire idempotency / tracking). */
+  referenceId: string;
+  /**
+   * Stringified JSON object, e.g. `JSON.stringify({ user_id: 1 })` — required by some Uniwire environments.
+   */
+  passthrough: string;
+  kind: string;
+  recipients: Array<{
+    amount: string;
+    currency: string;
+    address: string;
+    /** Optional; shown in provider / reconciliation. */
+    notes?: string;
+  }>;
 }
 
 export interface CreateInvoiceParams {

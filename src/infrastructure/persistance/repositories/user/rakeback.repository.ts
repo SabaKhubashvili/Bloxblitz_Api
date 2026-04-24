@@ -1,9 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Rakeback, type RakebackProps } from '../../../../domain/rakeback/entities/rakeback.entity';
+import {
+  Rakeback,
+  type RakebackProps,
+} from '../../../../domain/rakeback/entities/rakeback.entity';
 import { RakebackType } from '../../../../domain/rakeback/enums/rakeback-type.enum';
-import type { IRakebackRepository, ClaimLogData } from '../../../../domain/rakeback/ports/rakeback.repository.port';
+import type {
+  IRakebackRepository,
+  ClaimLogData,
+} from '../../../../domain/rakeback/ports/rakeback.repository.port';
 import {
   accrualDeltaForNetLossChange,
   applyDailyPositiveAccrualCap,
@@ -19,33 +25,33 @@ function toNumber(d: Prisma.Decimal | number): number {
 
 function toDomain(row: PrismaRakeback): Rakeback {
   const props: RakebackProps = {
-    id:                   row.id,
-    username:             row.userUsername,
-    dailyAccrued:         toNumber(row.dailyAccrued),
-    weeklyAccrued:        toNumber(row.weeklyAccrued),
-    monthlyAccrued:       toNumber(row.monthlyAccrued),
-    dailyClaimable:       toNumber(row.dailyClaimable),
-    weeklyClaimable:      toNumber(row.weeklyClaimable),
-    monthlyClaimable:     toNumber(row.monthlyClaimable),
-    dailyUnlocksAt:       row.dailyUnlocksAt,
-    weeklyUnlocksAt:      row.weeklyUnlocksAt,
-    weeklyExpiresAt:      row.weeklyExpiresAt,
-    monthlyUnlocksAt:     row.monthlyUnlocksAt,
-    monthlyExpiresAt:     row.monthlyExpiresAt,
-    lastDailyClaim:       row.lastDailyClaim,
-    lastWeeklyClaim:      row.lastWeeklyClaim,
-    lastMonthlyClaim:     row.lastMonthlyClaim,
-    dailyStreak:          row.dailyStreak,
-    dailyLongestStreak:   row.dailyLongestStreak,
-    dailyLastStreakDate:   row.dailyLastStreakDate,
+    id: row.id,
+    username: row.userUsername,
+    dailyAccrued: toNumber(row.dailyAccrued),
+    weeklyAccrued: toNumber(row.weeklyAccrued),
+    monthlyAccrued: toNumber(row.monthlyAccrued),
+    dailyClaimable: toNumber(row.dailyClaimable),
+    weeklyClaimable: toNumber(row.weeklyClaimable),
+    monthlyClaimable: toNumber(row.monthlyClaimable),
+    dailyUnlocksAt: row.dailyUnlocksAt,
+    weeklyUnlocksAt: row.weeklyUnlocksAt,
+    weeklyExpiresAt: row.weeklyExpiresAt,
+    monthlyUnlocksAt: row.monthlyUnlocksAt,
+    monthlyExpiresAt: row.monthlyExpiresAt,
+    lastDailyClaim: row.lastDailyClaim,
+    lastWeeklyClaim: row.lastWeeklyClaim,
+    lastMonthlyClaim: row.lastMonthlyClaim,
+    dailyStreak: row.dailyStreak,
+    dailyLongestStreak: row.dailyLongestStreak,
+    dailyLastStreakDate: row.dailyLastStreakDate,
     dailyStreakMultiplier: toNumber(row.dailyStreakMultiplier),
-    weeklyStreak:          row.weeklyStreak,
-    weeklyLongestStreak:   row.weeklyLongestStreak,
-    weeklyLastStreakDate:  row.weeklyLastStreakDate,
+    weeklyStreak: row.weeklyStreak,
+    weeklyLongestStreak: row.weeklyLongestStreak,
+    weeklyLastStreakDate: row.weeklyLastStreakDate,
     weeklyStreakMultiplier: toNumber(row.weeklyStreakMultiplier),
-    monthlyStreak:          row.monthlyStreak,
-    monthlyLongestStreak:   row.monthlyLongestStreak,
-    monthlyLastStreakDate:   row.monthlyLastStreakDate,
+    monthlyStreak: row.monthlyStreak,
+    monthlyLongestStreak: row.monthlyLongestStreak,
+    monthlyLastStreakDate: row.monthlyLastStreakDate,
     monthlyStreakMultiplier: toNumber(row.monthlyStreakMultiplier),
   };
   return Rakeback.fromPersistence(props);
@@ -53,31 +59,31 @@ function toDomain(row: PrismaRakeback): Rakeback {
 
 function toPersistence(r: Rakeback): Prisma.UserRakebackUpdateInput {
   return {
-    dailyAccrued:          r.dailyAccrued,
-    weeklyAccrued:         r.weeklyAccrued,
-    monthlyAccrued:        r.monthlyAccrued,
-    dailyClaimable:        r.dailyClaimable,
-    weeklyClaimable:       r.weeklyClaimable,
-    monthlyClaimable:      r.monthlyClaimable,
-    dailyUnlocksAt:        r.dailyUnlocksAt,
-    weeklyUnlocksAt:       r.weeklyUnlocksAt,
-    weeklyExpiresAt:       r.weeklyExpiresAt,
-    monthlyUnlocksAt:      r.monthlyUnlocksAt,
-    monthlyExpiresAt:      r.monthlyExpiresAt,
-    lastDailyClaim:        r.lastDailyClaim,
-    lastWeeklyClaim:       r.lastWeeklyClaim,
-    lastMonthlyClaim:      r.lastMonthlyClaim,
-    dailyStreak:           r.dailyStreak,
-    dailyLongestStreak:    r.dailyLongestStreak,
-    dailyLastStreakDate:    r.dailyLastStreakDate,
-    dailyStreakMultiplier:  r.dailyStreakMultiplier,
-    weeklyStreak:          r.weeklyStreak,
-    weeklyLongestStreak:   r.weeklyLongestStreak,
-    weeklyLastStreakDate:   r.weeklyLastStreakDate,
+    dailyAccrued: r.dailyAccrued,
+    weeklyAccrued: r.weeklyAccrued,
+    monthlyAccrued: r.monthlyAccrued,
+    dailyClaimable: r.dailyClaimable,
+    weeklyClaimable: r.weeklyClaimable,
+    monthlyClaimable: r.monthlyClaimable,
+    dailyUnlocksAt: r.dailyUnlocksAt,
+    weeklyUnlocksAt: r.weeklyUnlocksAt,
+    weeklyExpiresAt: r.weeklyExpiresAt,
+    monthlyUnlocksAt: r.monthlyUnlocksAt,
+    monthlyExpiresAt: r.monthlyExpiresAt,
+    lastDailyClaim: r.lastDailyClaim,
+    lastWeeklyClaim: r.lastWeeklyClaim,
+    lastMonthlyClaim: r.lastMonthlyClaim,
+    dailyStreak: r.dailyStreak,
+    dailyLongestStreak: r.dailyLongestStreak,
+    dailyLastStreakDate: r.dailyLastStreakDate,
+    dailyStreakMultiplier: r.dailyStreakMultiplier,
+    weeklyStreak: r.weeklyStreak,
+    weeklyLongestStreak: r.weeklyLongestStreak,
+    weeklyLastStreakDate: r.weeklyLastStreakDate,
     weeklyStreakMultiplier: r.weeklyStreakMultiplier,
-    monthlyStreak:          r.monthlyStreak,
-    monthlyLongestStreak:   r.monthlyLongestStreak,
-    monthlyLastStreakDate:   r.monthlyLastStreakDate,
+    monthlyStreak: r.monthlyStreak,
+    monthlyLongestStreak: r.monthlyLongestStreak,
+    monthlyLastStreakDate: r.monthlyLastStreakDate,
     monthlyStreakMultiplier: r.monthlyStreakMultiplier,
   };
 }
@@ -110,7 +116,8 @@ export class PrismaRakebackRepository implements IRakebackRepository {
     eligibleWagerDelta: number;
     eligibleWonDelta: number;
   }): Promise<void> {
-    const { username, userLevel, eligibleWagerDelta, eligibleWonDelta } = params;
+    const { username, userLevel, eligibleWagerDelta, eligibleWonDelta } =
+      params;
 
     await this.prisma.$transaction(
       async (tx) => {
@@ -125,11 +132,11 @@ export class PrismaRakebackRepository implements IRakebackRepository {
         const newEo = round2(eo + eligibleWonDelta);
         const nextNet = netLossFromEligible(newEw, newEo);
 
-        let { daily: dd, weekly: dw, monthly: dm } = accrualDeltaForNetLossChange(
-          userLevel,
-          prevNet,
-          nextNet,
-        );
+        let {
+          daily: dd,
+          weekly: dw,
+          monthly: dm,
+        } = accrualDeltaForNetLossChange(userLevel, prevNet, nextNet);
 
         const utcDay = new Date().toISOString().slice(0, 10);
         let dayTotal = toNumber(row.rakebackAccrualDayTotal);
@@ -178,14 +185,14 @@ export class PrismaRakebackRepository implements IRakebackRepository {
       }),
       this.prisma.rakebackClaimLog.create({
         data: {
-          userUsername:  rakeback.username,
-          type:         log.type as any,
+          userUsername: rakeback.username,
+          type: log.type as any,
           amountClaimed: log.amountClaimed,
-          streakDay:    log.streakDay,
-          streakBonus:  log.streakBonus,
-          streakReset:  log.streakReset,
+          streakDay: log.streakDay,
+          streakBonus: log.streakBonus,
+          streakReset: log.streakReset,
           balanceBefore: log.balanceBefore,
-          balanceAfter:  log.balanceAfter,
+          balanceAfter: log.balanceAfter,
         },
       }),
     ]);

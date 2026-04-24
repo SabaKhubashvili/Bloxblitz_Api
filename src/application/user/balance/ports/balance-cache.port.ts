@@ -1,4 +1,7 @@
-import type { UserBalanceRecord, UserPetValueBalanceRecord } from '../../../../domain/user/ports/balance.repository.port';
+import type {
+  UserBalanceRecord,
+  UserPetValueBalanceRecord,
+} from '../../../../domain/user/ports/balance.repository.port';
 
 /**
  * Short-lived read cache for the balance HTTP endpoint.
@@ -18,12 +21,18 @@ export interface IBalanceCachePort {
   /**
    * Returns the cached pet value balance snapshot, or null on a cache miss.
    */
-  getPetValueBalance(username: string): Promise<UserPetValueBalanceRecord | null>;
+  getPetValueBalance(
+    username: string,
+  ): Promise<UserPetValueBalanceRecord | null>;
 
   /**
    * Writes a balance snapshot with the given TTL (in seconds).
    */
-  set(username: string, data: UserBalanceRecord, ttlSeconds?: number): Promise<void>;
+  set(
+    username: string,
+    data: UserBalanceRecord,
+    ttlSeconds?: number,
+  ): Promise<void>;
 
   /**
    * Deletes the cached entry so the next read goes to the source of truth.

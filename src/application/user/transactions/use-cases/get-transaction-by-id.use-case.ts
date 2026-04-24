@@ -37,9 +37,10 @@ export interface GetTransactionByIdInput {
  *  - TransactionFetchError    — unexpected infrastructure failure
  */
 @Injectable()
-export class GetTransactionByIdUseCase
-  implements IUseCase<GetTransactionByIdInput, Result<TransactionHistoryItemOutputDto, TransactionError>>
-{
+export class GetTransactionByIdUseCase implements IUseCase<
+  GetTransactionByIdInput,
+  Result<TransactionHistoryItemOutputDto, TransactionError>
+> {
   private readonly logger = new Logger(GetTransactionByIdUseCase.name);
 
   constructor(
@@ -62,20 +63,20 @@ export class GetTransactionByIdUseCase
       }
 
       const dto: TransactionHistoryItemOutputDto = {
-        id:             record.id,
-        category:       record.category,
-        direction:      record.direction,
-        provider:       record.provider,
-        status:         record.status,
+        id: record.id,
+        category: record.category,
+        direction: record.direction,
+        provider: record.provider,
+        status: record.status,
         coinAmountPaid: record.coinAmountPaid,
-        usdAmountPaid:  record.usdAmountPaid,
-        balanceAfter:   record.balanceAfter,
-        assetType:      record.assetType,
-        assetSymbol:    record.assetSymbol,
-        referenceType:  record.referenceType,
-        referenceId:    record.referenceId,
-        metadata:       record.metadata,
-        createdAt:      record.createdAt.toISOString(),
+        usdAmountPaid: record.usdAmountPaid,
+        balanceAfter: record.balanceAfter,
+        assetType: record.assetType,
+        assetSymbol: record.assetSymbol,
+        referenceType: record.referenceType,
+        referenceId: record.referenceId,
+        metadata: record.metadata,
+        createdAt: record.createdAt.toISOString(),
       };
 
       return Ok(dto);

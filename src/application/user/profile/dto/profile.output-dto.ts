@@ -1,4 +1,4 @@
-import { UserRoles } from "@prisma/client";
+import { UserRoles } from '@prisma/client';
 
 export interface ProfileStatisticsDto {
   readonly totalDeposits: string;

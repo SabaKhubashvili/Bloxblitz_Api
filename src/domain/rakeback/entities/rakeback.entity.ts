@@ -168,7 +168,9 @@ export class Rakeback {
   // ── Claim dispatch ───────────────────────────────────────────────────────
 
   claim(type: RakebackType, now: Date): Result<ClaimResult, RakebackError> {
-    console.log(`Claiming rakeback for user ${this.username} of type ${type}, ${JSON.stringify(this)}`);
+    console.log(
+      `Claiming rakeback for user ${this.username} of type ${type}, ${JSON.stringify(this)}`,
+    );
     switch (type) {
       case RakebackType.DAILY:
         return this.claimDaily(now);
@@ -206,7 +208,10 @@ export class Rakeback {
       return Err(new ZeroRakebackBalanceError('DAILY'));
     }
 
-    const streakReset = DailyClaimPolicy.isStreakBroken(this.lastDailyClaim, now);
+    const streakReset = DailyClaimPolicy.isStreakBroken(
+      this.lastDailyClaim,
+      now,
+    );
     if (streakReset) this.dailyStreak = 0;
 
     this.dailyStreak += 1;
@@ -221,23 +226,42 @@ export class Rakeback {
     this.lastDailyClaim = now;
     this.dailyUnlocksAt = ClaimWindowPolicy.dailyUnlockAfter(now);
     this.dailyLastStreakDate = now;
-    this.dailyLongestStreak = Math.max(this.dailyLongestStreak, this.dailyStreak);
+    this.dailyLongestStreak = Math.max(
+      this.dailyLongestStreak,
+      this.dailyStreak,
+    );
 
-    return Ok({ type: RakebackType.DAILY, amount, streak: this.dailyStreak, streakPercent: percent, streakReset, nextClaimAvailableAt: this.dailyUnlocksAt });
+    return Ok({
+      type: RakebackType.DAILY,
+      amount,
+      streak: this.dailyStreak,
+      streakPercent: percent,
+      streakReset,
+      nextClaimAvailableAt: this.dailyUnlocksAt,
+    });
   }
 
   private getDailyInfo(now: Date): RakebackTypeInfo {
-    const unlocked = ClaimWindowPolicy.isDailyUnlocked(this.dailyUnlocksAt, now);
+    const unlocked = ClaimWindowPolicy.isDailyUnlocked(
+      this.dailyUnlocksAt,
+      now,
+    );
     const total = round2(this.dailyAccrued + this.dailyClaimable);
-    console.log(`Getting daily info for user ${this.username}, ${JSON.stringify(this)}`);
+    console.log(
+      `Getting daily info for user ${this.username}, ${JSON.stringify(this)}`,
+    );
 
     let previewAmount = 0;
     let previewStreak = this.dailyStreak;
 
     if (unlocked && total > 0) {
-      if (DailyClaimPolicy.isStreakBroken(this.lastDailyClaim, now)) previewStreak = 0;
+      if (DailyClaimPolicy.isStreakBroken(this.lastDailyClaim, now))
+        previewStreak = 0;
       previewStreak += 1;
-      const pct = DailyClaimPolicy.calculateClaimPercent(previewStreak, this.dailyStreakMultiplier);
+      const pct = DailyClaimPolicy.calculateClaimPercent(
+        previewStreak,
+        this.dailyStreakMultiplier,
+      );
       previewAmount = round2(total * pct);
     }
 
@@ -248,18 +272,31 @@ export class Rakeback {
       isClaimable: unlocked && total > 0,
       nextClaimAvailableAt: unlocked ? null : this.dailyUnlocksAt,
       streak: this.dailyStreak,
-      streakProgressPercent: Math.min(this.dailyStreak * this.dailyStreakMultiplier * 100, 100),
+      streakProgressPercent: Math.min(
+        this.dailyStreak * this.dailyStreakMultiplier * 100,
+        100,
+      ),
     };
   }
 
   // ── Private: Weekly ──────────────────────────────────────────────────────
 
   private claimWeekly(now: Date): Result<ClaimResult, RakebackError> {
-    if (!ClaimWindowPolicy.isWindowOpen(this.weeklyUnlocksAt, this.weeklyExpiresAt, now)) {
+    if (
+      !ClaimWindowPolicy.isWindowOpen(
+        this.weeklyUnlocksAt,
+        this.weeklyExpiresAt,
+        now,
+      )
+    ) {
       return Err(new RakebackWindowClosedError('WEEKLY'));
     }
 
-    if (this.lastWeeklyClaim && this.weeklyUnlocksAt && this.lastWeeklyClaim >= this.weeklyUnlocksAt) {
+    if (
+      this.lastWeeklyClaim &&
+      this.weeklyUnlocksAt &&
+      this.lastWeeklyClaim >= this.weeklyUnlocksAt
+    ) {
       return Err(new RakebackAlreadyClaimedError('WEEKLY'));
     }
 
@@ -272,14 +309,32 @@ export class Rakeback {
     this.weeklyStreak += 1;
     this.lastWeeklyClaim = now;
     this.weeklyLastStreakDate = now;
-    this.weeklyLongestStreak = Math.max(this.weeklyLongestStreak, this.weeklyStreak);
+    this.weeklyLongestStreak = Math.max(
+      this.weeklyLongestStreak,
+      this.weeklyStreak,
+    );
 
-    return Ok({ type: RakebackType.WEEKLY, amount, streak: this.weeklyStreak, streakPercent: 1.0, streakReset: false, nextClaimAvailableAt: ClaimWindowPolicy.nextWeeklyWindowStart(now) });
+    return Ok({
+      type: RakebackType.WEEKLY,
+      amount,
+      streak: this.weeklyStreak,
+      streakPercent: 1.0,
+      streakReset: false,
+      nextClaimAvailableAt: ClaimWindowPolicy.nextWeeklyWindowStart(now),
+    });
   }
 
   private getWeeklyInfo(now: Date): RakebackTypeInfo {
-    const windowOpen = ClaimWindowPolicy.isWindowOpen(this.weeklyUnlocksAt, this.weeklyExpiresAt, now);
-    const alreadyClaimed = !!(this.lastWeeklyClaim && this.weeklyUnlocksAt && this.lastWeeklyClaim >= this.weeklyUnlocksAt);
+    const windowOpen = ClaimWindowPolicy.isWindowOpen(
+      this.weeklyUnlocksAt,
+      this.weeklyExpiresAt,
+      now,
+    );
+    const alreadyClaimed = !!(
+      this.lastWeeklyClaim &&
+      this.weeklyUnlocksAt &&
+      this.lastWeeklyClaim >= this.weeklyUnlocksAt
+    );
     const total = round2(this.weeklyAccrued + this.weeklyClaimable);
     const claimable = windowOpen && !alreadyClaimed ? this.weeklyClaimable : 0;
 
@@ -288,7 +343,9 @@ export class Rakeback {
       totalAccumulated: total,
       claimableAmount: claimable,
       isClaimable: windowOpen && !alreadyClaimed && this.weeklyClaimable > 0,
-      nextClaimAvailableAt: windowOpen ? null : ClaimWindowPolicy.nextWeeklyWindowStart(now),
+      nextClaimAvailableAt: windowOpen
+        ? null
+        : ClaimWindowPolicy.nextWeeklyWindowStart(now),
       streak: this.weeklyStreak,
     };
   }
@@ -296,11 +353,21 @@ export class Rakeback {
   // ── Private: Monthly ─────────────────────────────────────────────────────
 
   private claimMonthly(now: Date): Result<ClaimResult, RakebackError> {
-    if (!ClaimWindowPolicy.isWindowOpen(this.monthlyUnlocksAt, this.monthlyExpiresAt, now)) {
+    if (
+      !ClaimWindowPolicy.isWindowOpen(
+        this.monthlyUnlocksAt,
+        this.monthlyExpiresAt,
+        now,
+      )
+    ) {
       return Err(new RakebackWindowClosedError('MONTHLY'));
     }
 
-    if (this.lastMonthlyClaim && this.monthlyUnlocksAt && this.lastMonthlyClaim >= this.monthlyUnlocksAt) {
+    if (
+      this.lastMonthlyClaim &&
+      this.monthlyUnlocksAt &&
+      this.lastMonthlyClaim >= this.monthlyUnlocksAt
+    ) {
       return Err(new RakebackAlreadyClaimedError('MONTHLY'));
     }
 
@@ -313,14 +380,32 @@ export class Rakeback {
     this.monthlyStreak += 1;
     this.lastMonthlyClaim = now;
     this.monthlyLastStreakDate = now;
-    this.monthlyLongestStreak = Math.max(this.monthlyLongestStreak, this.monthlyStreak);
+    this.monthlyLongestStreak = Math.max(
+      this.monthlyLongestStreak,
+      this.monthlyStreak,
+    );
 
-    return Ok({ type: RakebackType.MONTHLY, amount, streak: this.monthlyStreak, streakPercent: 1.0, streakReset: false, nextClaimAvailableAt: ClaimWindowPolicy.nextMonthlyWindowStart(now) });
+    return Ok({
+      type: RakebackType.MONTHLY,
+      amount,
+      streak: this.monthlyStreak,
+      streakPercent: 1.0,
+      streakReset: false,
+      nextClaimAvailableAt: ClaimWindowPolicy.nextMonthlyWindowStart(now),
+    });
   }
 
   private getMonthlyInfo(now: Date): RakebackTypeInfo {
-    const windowOpen = ClaimWindowPolicy.isWindowOpen(this.monthlyUnlocksAt, this.monthlyExpiresAt, now);
-    const alreadyClaimed = !!(this.lastMonthlyClaim && this.monthlyUnlocksAt && this.lastMonthlyClaim >= this.monthlyUnlocksAt);
+    const windowOpen = ClaimWindowPolicy.isWindowOpen(
+      this.monthlyUnlocksAt,
+      this.monthlyExpiresAt,
+      now,
+    );
+    const alreadyClaimed = !!(
+      this.lastMonthlyClaim &&
+      this.monthlyUnlocksAt &&
+      this.lastMonthlyClaim >= this.monthlyUnlocksAt
+    );
     const total = round2(this.monthlyAccrued + this.monthlyClaimable);
     const claimable = windowOpen && !alreadyClaimed ? this.monthlyClaimable : 0;
 
@@ -329,7 +414,9 @@ export class Rakeback {
       totalAccumulated: total,
       claimableAmount: claimable,
       isClaimable: windowOpen && !alreadyClaimed && this.monthlyClaimable > 0,
-      nextClaimAvailableAt: windowOpen ? null : ClaimWindowPolicy.nextMonthlyWindowStart(now),
+      nextClaimAvailableAt: windowOpen
+        ? null
+        : ClaimWindowPolicy.nextMonthlyWindowStart(now),
       streak: this.monthlyStreak,
     };
   }

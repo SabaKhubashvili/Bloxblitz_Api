@@ -56,10 +56,7 @@ export class MinesHistoryController {
    */
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getRound(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-  ) {
+  async getRound(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const result = await this.getRoundUseCase.execute({
       gameId: id,
       username: user.username,

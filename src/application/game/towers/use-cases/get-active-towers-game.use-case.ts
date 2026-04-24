@@ -7,13 +7,10 @@ import type { TowersActiveGameResponseDto } from '../dto/towers-game-public.dto'
 import { TOWERS_MULTIPLIER_LADDERS_PREVIEW } from '../../../../domain/game/towers/towers-multiplier.service';
 
 @Injectable()
-export class GetActiveTowersGameUseCase
-  implements
-    IUseCase<
-      { username?: string },
-      Result<TowersActiveGameResponseDto, never>
-    >
-{
+export class GetActiveTowersGameUseCase implements IUseCase<
+  { username?: string },
+  Result<TowersActiveGameResponseDto, never>
+> {
   constructor(private readonly activeGame: TowersActiveGameService) {}
 
   async execute(cmd: {

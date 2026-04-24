@@ -56,7 +56,7 @@ export class RaceCacheAdapter implements IRaceCachePort {
       return {
         race: {
           id: raw.race.id,
-          status: raw.race.status as RaceStatus,
+          status: raw.race.status,
           totalPrizePool: raw.race.totalPrizePool,
           startTime: new Date(raw.race.startTime),
           endTime: new Date(raw.race.endTime),
@@ -88,11 +88,7 @@ export class RaceCacheAdapter implements IRaceCachePort {
         },
         rewards: payload.rewards,
       };
-      await this.redis.set(
-        RedisKeys.race.current(),
-        serializable,
-        ttlSeconds,
-      );
+      await this.redis.set(RedisKeys.race.current(), serializable, ttlSeconds);
       const statusRecord = buildRaceStatusCacheRecord(
         payload.race,
         payload.rewards,
@@ -137,11 +133,7 @@ export class RaceCacheAdapter implements IRaceCachePort {
     ttlSeconds: number,
   ): Promise<void> {
     try {
-      await this.redis.set(
-        RedisKeys.race.publicStatus(),
-        record,
-        ttlSeconds,
-      );
+      await this.redis.set(RedisKeys.race.publicStatus(), record, ttlSeconds);
     } catch (e) {
       this.logger.warn('[RaceCache] setRaceStatusRecord failed', e);
     }
@@ -170,11 +162,7 @@ export class RaceCacheAdapter implements IRaceCachePort {
     ttlSeconds: number = RACE_CACHE_TTL.top10Sec,
   ): Promise<void> {
     try {
-      await this.redis.set(
-        RedisKeys.race.top10(raceId),
-        entries,
-        ttlSeconds,
-      );
+      await this.redis.set(RedisKeys.race.top10(raceId), entries, ttlSeconds);
     } catch (e) {
       this.logger.warn(`[RaceCache] setTop10 failed raceId=${raceId}`, e);
     }
@@ -268,7 +256,9 @@ export class RaceCacheAdapter implements IRaceCachePort {
       wageredAmount: p.wageredAmount,
       updatedAt: p.updatedAt,
     });
-    const sorted = [...byUser.values()].sort(compareLeaderboardRows).slice(0, 10);
+    const sorted = [...byUser.values()]
+      .sort(compareLeaderboardRows)
+      .slice(0, 10);
     return sorted.map((r, i) => ({ ...r, position: i + 1 }));
   }
 

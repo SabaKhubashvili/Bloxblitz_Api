@@ -30,8 +30,7 @@ export function buildCaseVerifyPoolItems(
     id: item.id,
     weight: item.weight,
     sortOrder: item.sortOrder,
-    dropPercent:
-      Math.round((item.weight / totalWeight) * 10000) / 100,
+    dropPercent: Math.round((item.weight / totalWeight) * 10000) / 100,
     pet: {
       id: item.pet.id,
       name: item.pet.name,

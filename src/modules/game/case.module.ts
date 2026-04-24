@@ -66,6 +66,11 @@ import { RaceModule } from '../race.module';
     { provide: DICE_BALANCE_LEDGER, useClass: DiceBalanceLedgerAdapter },
     { provide: CASE_BET_EVENT_PUBLISHER, useClass: BetEventPublisher },
   ],
-  exports: [CASE_LIST_CACHE, ListCasesUseCase, GetCaseBySlugUseCase, OpenCaseUseCase],
+  exports: [
+    CASE_LIST_CACHE,
+    ListCasesUseCase,
+    GetCaseBySlugUseCase,
+    OpenCaseUseCase,
+  ],
 })
 export class CaseModule {}

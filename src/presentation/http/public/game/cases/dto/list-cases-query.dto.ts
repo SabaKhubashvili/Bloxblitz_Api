@@ -55,7 +55,9 @@ export class ListCasesQueryDto {
   category?: 'amp' | 'mm2';
 }
 
-export function toCaseListQueryFilter(dto: ListCasesQueryDto): CaseListQueryFilter {
+export function toCaseListQueryFilter(
+  dto: ListCasesQueryDto,
+): CaseListQueryFilter {
   const out: CaseListQueryFilter = {};
 
   let minP = dto.minPrice;

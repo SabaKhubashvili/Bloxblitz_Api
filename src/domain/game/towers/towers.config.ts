@@ -5,7 +5,10 @@ export interface TowersRowConfig {
   gems: number;
 }
 
-export const TOWERS_DIFFICULTY_CONFIG: Record<TowersDifficulty, TowersRowConfig[]> = {
+export const TOWERS_DIFFICULTY_CONFIG: Record<
+  TowersDifficulty,
+  TowersRowConfig[]
+> = {
   [TowersDifficulty.EASY]: [{ tiles: 3, gems: 2 }],
   [TowersDifficulty.MEDIUM]: [
     { tiles: 2, gems: 1 },
@@ -26,7 +29,7 @@ export function towersGenerateRows(
   const pattern = TOWERS_DIFFICULTY_CONFIG[difficulty];
   const rows: TowersRowConfig[] = [];
   for (let i = 0; i < levels; i++) {
-    rows.push(pattern[i % pattern.length]!);
+    rows.push(pattern[i % pattern.length]);
   }
   return rows;
 }

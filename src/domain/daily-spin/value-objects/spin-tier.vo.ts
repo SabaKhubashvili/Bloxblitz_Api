@@ -17,9 +17,9 @@ export class SpinTier {
     minWager: number,
     prizes: readonly SpinPrize[],
   ) {
-    this.tier         = tier;
-    this.minWager     = minWager;
-    this.prizes       = prizes;
+    this.tier = tier;
+    this.minWager = minWager;
+    this.prizes = prizes;
     this._totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
   }
 
@@ -28,8 +28,9 @@ export class SpinTier {
     minWager: number,
     prizes: readonly SpinPrize[],
   ): SpinTier {
-    if (prizes.length === 0) throw new Error('SpinTier must have at least one prize');
-    if (minWager < 0)        throw new Error('SpinTier minWager must be non-negative');
+    if (prizes.length === 0)
+      throw new Error('SpinTier must have at least one prize');
+    if (minWager < 0) throw new Error('SpinTier minWager must be non-negative');
     return new SpinTier(tier, minWager, prizes);
   }
 

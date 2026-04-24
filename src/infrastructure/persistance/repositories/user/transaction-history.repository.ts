@@ -24,9 +24,7 @@ type TxRow = Prisma.TransactionHistoryGetPayload<object>;
 // ─── Repository ───────────────────────────────────────────────────────────────
 
 @Injectable()
-export class PrismaTransactionHistoryRepository
-  implements ITransactionHistoryRepository
-{
+export class PrismaTransactionHistoryRepository implements ITransactionHistoryRepository {
   private readonly logger = new Logger(PrismaTransactionHistoryRepository.name);
 
   constructor(private readonly prisma: PrismaService) {}
@@ -35,12 +33,12 @@ export class PrismaTransactionHistoryRepository
 
   async findPageByUsername(
     username: string,
-    page:     number,
-    limit:    number,
-    order:    TransactionHistorySortOrder,
-    filters:  TransactionHistoryFilters,
+    page: number,
+    limit: number,
+    order: TransactionHistorySortOrder,
+    filters: TransactionHistoryFilters,
   ): Promise<TransactionPage> {
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
     const where = buildWhereClause(username, filters);
 
     // Single round-trip: count + data in one $transaction
@@ -55,7 +53,7 @@ export class PrismaTransactionHistoryRepository
     ]);
 
     return {
-      items: (rows as TxRow[]).map(toDomain),
+      items: rows.map(toDomain),
       total,
     };
   }
@@ -63,14 +61,14 @@ export class PrismaTransactionHistoryRepository
   // ── findByIdAndUsername ──────────────────────────────────────────────────────
 
   async findByIdAndUsername(
-    id:       string,
+    id: string,
     username: string,
   ): Promise<TransactionRecord | null> {
     const row = await this.prisma.transactionHistory.findFirst({
       where: { id, userUsername: username },
     });
 
-    return row ? toDomain(row as TxRow) : null;
+    return row ? toDomain(row) : null;
   }
 
   // ── create ───────────────────────────────────────────────────────────────────
@@ -80,29 +78,29 @@ export class PrismaTransactionHistoryRepository
   ): Promise<TransactionRecord> {
     const row = await this.prisma.transactionHistory.create({
       data: {
-        userUsername:     data.userUsername,
-        category:         data.category  as TransactionCategory,
-        direction:        data.direction as TransactionDirection,
-        provider:         data.provider  as PaymentProviders,
-        status:           data.status    as TransactionStatus,
-        usdAmountPaid:    new Prisma.Decimal(data.usdAmountPaid),
+        userUsername: data.userUsername,
+        category: data.category as TransactionCategory,
+        direction: data.direction as TransactionDirection,
+        provider: data.provider as PaymentProviders,
+        status: data.status as TransactionStatus,
+        usdAmountPaid: new Prisma.Decimal(data.usdAmountPaid),
         cryptoAmountPaid: new Prisma.Decimal(data.cryptoAmountPaid),
-        coinAmountPaid:   new Prisma.Decimal(data.coinAmountPaid),
-        balanceAfter:     new Prisma.Decimal(data.balanceAfter),
-        assetType:        data.assetType    as AssetType,
-        assetSymbol:      data.assetSymbol  ?? null,
-        referenceType:    data.referenceType as ReferenceType,
-        referenceId:      data.referenceId,
-        metadata:         (data.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        coinAmountPaid: new Prisma.Decimal(data.coinAmountPaid),
+        balanceAfter: new Prisma.Decimal(data.balanceAfter),
+        assetType: data.assetType as AssetType,
+        assetSymbol: data.assetSymbol ?? null,
+        referenceType: data.referenceType as ReferenceType,
+        referenceId: data.referenceId,
+        metadata: (data.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       },
     });
 
     this.logger.log(
       `[TxRepo] Created transaction id="${row.id}" user="${row.userUsername}" ` +
-      `category="${row.category}" direction="${row.direction}" amount=${row.coinAmountPaid}`,
+        `category="${row.category}" direction="${row.direction}" amount=${row.coinAmountPaid}`,
     );
 
-    return toDomain(row as TxRow);
+    return toDomain(row);
   }
 }
 
@@ -116,7 +114,7 @@ export class PrismaTransactionHistoryRepository
  */
 function buildWhereClause(
   username: string,
-  filters:  TransactionHistoryFilters,
+  filters: TransactionHistoryFilters,
 ): Prisma.TransactionHistoryWhereInput {
   const where: Prisma.TransactionHistoryWhereInput = {
     userUsername: username,
@@ -141,7 +139,7 @@ function buildWhereClause(
   if (filters.from || filters.to) {
     where.createdAt = {
       ...(filters.from && { gte: filters.from }),
-      ...(filters.to   && { lte: filters.to   }),
+      ...(filters.to && { lte: filters.to }),
     };
   }
 
@@ -158,21 +156,21 @@ function buildWhereClause(
  */
 function toDomain(row: TxRow): TransactionRecord {
   return {
-    id:               row.id,
-    userUsername:     row.userUsername,
-    category:         row.category,
-    direction:        row.direction,
-    provider:         row.provider,
-    status:           row.status,
-    usdAmountPaid:    row.usdAmountPaid.toNumber(),
+    id: row.id,
+    userUsername: row.userUsername,
+    category: row.category,
+    direction: row.direction,
+    provider: row.provider,
+    status: row.status,
+    usdAmountPaid: row.usdAmountPaid.toNumber(),
     cryptoAmountPaid: row.cryptoAmountPaid.toNumber(),
-    coinAmountPaid:   row.coinAmountPaid.toNumber(),
-    balanceAfter:     row.balanceAfter.toNumber(),
-    assetType:        row.assetType,
-    assetSymbol:      row.assetSymbol ?? null,
-    referenceType:    row.referenceType,
-    referenceId:      row.referenceId,
-    metadata:         (row.metadata as Record<string, unknown> | null) ?? null,
-    createdAt:        row.createdAt,
+    coinAmountPaid: row.coinAmountPaid.toNumber(),
+    balanceAfter: row.balanceAfter.toNumber(),
+    assetType: row.assetType,
+    assetSymbol: row.assetSymbol ?? null,
+    referenceType: row.referenceType,
+    referenceId: row.referenceId,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    createdAt: row.createdAt,
   };
 }

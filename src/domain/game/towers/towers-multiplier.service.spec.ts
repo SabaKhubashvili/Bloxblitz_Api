@@ -19,7 +19,7 @@ describe('TowersMultiplierService ladder math', () => {
     const rows = towersGenerateRows(TowersDifficulty.EASY, 8);
     const ladder = computeTowersMultiplierLadder(rows, rtp);
     const pClear = (2 / 3) ** 8;
-    expect(pClear * ladder[7]!).toBeCloseTo(0.96, 2);
+    expect(pClear * ladder[7]).toBeCloseTo(0.96, 2);
   });
 
   it('fair reference max for Easy × 8 is (3/2)^8; capped payout is RTP × fair', () => {
@@ -36,7 +36,7 @@ describe('TowersMultiplierService ladder math', () => {
         const rows = towersGenerateRows(difficulty, levels);
         const ladder = computeTowersMultiplierLadder(rows, rtp);
         for (let i = 1; i < ladder.length; i++) {
-          expect(ladder[i]).toBeGreaterThan(ladder[i - 1]!);
+          expect(ladder[i]).toBeGreaterThan(ladder[i - 1]);
         }
       }
     }

@@ -13,17 +13,20 @@ interface OpenWindowInput {
 }
 
 @Injectable()
-export class OpenClaimWindowUseCase
-  implements IUseCase<OpenWindowInput, Result<number, RakebackError>>
-{
+export class OpenClaimWindowUseCase implements IUseCase<
+  OpenWindowInput,
+  Result<number, RakebackError>
+> {
   private readonly logger = new Logger(OpenClaimWindowUseCase.name);
 
   constructor(
     @Inject(RAKEBACK_REPOSITORY) private readonly repo: IRakebackRepository,
-    @Inject(TIME_PROVIDER)       private readonly time: ITimeProvider,
+    @Inject(TIME_PROVIDER) private readonly time: ITimeProvider,
   ) {}
 
-  async execute(input: OpenWindowInput): Promise<Result<number, RakebackError>> {
+  async execute(
+    input: OpenWindowInput,
+  ): Promise<Result<number, RakebackError>> {
     const now = this.time.now();
     const windowStart = now;
     const windowEnd = ClaimWindowPolicy.windowEnd(windowStart);
@@ -32,8 +35,14 @@ export class OpenClaimWindowUseCase
       `Opening ${input.type} claim window: ${windowStart.toISOString()} → ${windowEnd.toISOString()}`,
     );
 
-    const affected = await this.repo.openClaimWindow(input.type, windowStart, windowEnd);
-    this.logger.log(`${input.type} window opened — ${affected} user(s) have claimable balance`);
+    const affected = await this.repo.openClaimWindow(
+      input.type,
+      windowStart,
+      windowEnd,
+    );
+    this.logger.log(
+      `${input.type} window opened — ${affected} user(s) have claimable balance`,
+    );
 
     return Ok(affected);
   }

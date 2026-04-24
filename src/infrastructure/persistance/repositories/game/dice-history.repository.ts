@@ -1,10 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  GameType,
-  GameStatus,
-  DiceRollMode,
-  Prisma,
-} from '@prisma/client';
+import { GameType, GameStatus, DiceRollMode, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   IDiceHistoryRepository,
@@ -18,9 +13,7 @@ import type {
 export class PrismaDiceHistoryRepository implements IDiceHistoryRepository {
   private readonly logger = new Logger(PrismaDiceHistoryRepository.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findPageByUsername(
     username: string,
@@ -102,9 +95,7 @@ export class PrismaDiceHistoryRepository implements IDiceHistoryRepository {
   }
 }
 
-function toNumber(
-  d: { toNumber: () => number } | number | unknown,
-): number {
+function toNumber(d: { toNumber: () => number } | number | unknown): number {
   if (typeof d === 'number') return d;
   if (d && typeof (d as { toNumber: () => number }).toNumber === 'function') {
     return (d as { toNumber: () => number }).toNumber();

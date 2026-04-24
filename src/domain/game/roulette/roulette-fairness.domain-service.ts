@@ -15,7 +15,11 @@ export type RouletteFairnessOutcome = 'GREEN' | 'BROWN' | 'YELLOW';
  */
 @Injectable()
 export class RouletteFairnessDomainService {
-  outcomeHash(serverSeed: string, eosBlockId: string, gameIndex: number): string {
+  outcomeHash(
+    serverSeed: string,
+    eosBlockId: string,
+    gameIndex: number,
+  ): string {
     const msg = `${eosBlockId}-${gameIndex}`;
     return createHmac('sha256', serverSeed).update(msg).digest('hex');
   }

@@ -10,7 +10,8 @@ const DEFAULT_MODE = MinesSystemMode.ACTIVE;
 const MODE_CACHE_MS = 200;
 
 function parseMode(raw: unknown): MinesSystemMode | null {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw))
+    return null;
   const mode = (raw as Record<string, unknown>).mode;
   if (mode === MinesSystemMode.ACTIVE) return MinesSystemMode.ACTIVE;
   if (mode === MinesSystemMode.NEW_GAMES_DISABLED)

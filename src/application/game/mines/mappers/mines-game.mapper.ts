@@ -23,7 +23,10 @@ export class MinesGameMapper {
     };
   }
 
-  static toRevealTileOutputDto(game: MinesGame, isMine: boolean): RevealTileOutputDto {
+  static toRevealTileOutputDto(
+    game: MinesGame,
+    isMine: boolean,
+  ): RevealTileOutputDto {
     return {
       ...this.toOutputDto(game),
       isMine,

@@ -19,10 +19,10 @@ import type { GetCaseMetadataQuery } from '../dto/get-case-metadata.query';
 import type { CaseMetadataOutputDto } from '../dto/case-metadata.output-dto';
 
 @Injectable()
-export class GetCaseMetadataUseCase
-  implements
-    IUseCase<GetCaseMetadataQuery, Result<CaseMetadataOutputDto, CaseError>>
-{
+export class GetCaseMetadataUseCase implements IUseCase<
+  GetCaseMetadataQuery,
+  Result<CaseMetadataOutputDto, CaseError>
+> {
   private readonly logger = new Logger(GetCaseMetadataUseCase.name);
 
   constructor(
@@ -36,7 +36,7 @@ export class GetCaseMetadataUseCase
   async execute(
     query: GetCaseMetadataQuery,
   ): Promise<Result<CaseMetadataOutputDto, CaseError>> {
-    console.log("query.slug", query.slug);
+    console.log('query.slug', query.slug);
     try {
       const cached = await this.detailCache.get(query.slug);
       if (cached !== null && cached.isActive) {
@@ -48,7 +48,6 @@ export class GetCaseMetadataUseCase
         err,
       );
     }
-    
 
     let row: CaseMetadataRecord | null;
     try {

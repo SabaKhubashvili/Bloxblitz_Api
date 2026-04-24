@@ -20,13 +20,10 @@ import {
 } from '../ports/affiliate-read-cache.port';
 
 @Injectable()
-export class CreateOwnReferralCodeUseCase
-  implements
-    IUseCase<
-      CreateOwnReferralCodeCommand,
-      Result<CreateOwnReferralCodeOutputDto, ReferralError>
-    >
-{
+export class CreateOwnReferralCodeUseCase implements IUseCase<
+  CreateOwnReferralCodeCommand,
+  Result<CreateOwnReferralCodeOutputDto, ReferralError>
+> {
   private readonly logger = new Logger(CreateOwnReferralCodeUseCase.name);
 
   constructor(

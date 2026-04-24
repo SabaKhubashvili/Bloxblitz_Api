@@ -24,15 +24,17 @@ import { SPIN_LOCK_TTL_MS } from '../../../../shared/config/spin-prizes.config';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 @Injectable()
-export class SpinDailyWheelUseCase
-  implements IUseCase<SpinDailyWheelCommand, Result<SpinResultOutputDto, DailySpinError>>
-{
+export class SpinDailyWheelUseCase implements IUseCase<
+  SpinDailyWheelCommand,
+  Result<SpinResultOutputDto, DailySpinError>
+> {
   private readonly logger = new Logger(SpinDailyWheelUseCase.name);
 
   constructor(
-    @Inject(DAILY_SPIN_REPOSITORY) private readonly repo:    IDailySpinRepository,
-    @Inject(DAILY_SPIN_CACHE_PORT) private readonly cache:   IDailySpinCachePort,
-    @Inject(DAILY_SPIN_BALANCE_PORT) private readonly balance: IDailySpinBalancePort,
+    @Inject(DAILY_SPIN_REPOSITORY) private readonly repo: IDailySpinRepository,
+    @Inject(DAILY_SPIN_CACHE_PORT) private readonly cache: IDailySpinCachePort,
+    @Inject(DAILY_SPIN_BALANCE_PORT)
+    private readonly balance: IDailySpinBalancePort,
     private readonly getUserLevelUseCase: GetUserLevelUseCase,
   ) {}
 
@@ -40,12 +42,17 @@ export class SpinDailyWheelUseCase
     cmd: SpinDailyWheelCommand,
   ): Promise<Result<SpinResultOutputDto, DailySpinError>> {
     // ── 1. Distributed lock — prevent race conditions / double-spins ────────
-    const acquired = await this.cache.acquireSpinLock(cmd.username, SPIN_LOCK_TTL_MS);
+    const acquired = await this.cache.acquireSpinLock(
+      cmd.username,
+      SPIN_LOCK_TTL_MS,
+    );
     if (!acquired) return Err(new DailySpinConcurrentError());
 
     try {
       // ── 2. Resolve user level via existing service ───────────────────────
-      const levelResult = await this.getUserLevelUseCase.execute({ username: cmd.username });
+      const levelResult = await this.getUserLevelUseCase.execute({
+        username: cmd.username,
+      });
       if (!levelResult.ok) {
         // If level lookup fails, deny access conservatively
         return Err(new DailySpinLockedError());
@@ -58,15 +65,16 @@ export class SpinDailyWheelUseCase
       }
 
       // ── 4. Load or initialise spin state ────────────────────────────────
-      const state = (await this.repo.findStateByUsername(cmd.username))
-        ?? DailySpinState.create(cmd.username);
+      const state =
+        (await this.repo.findStateByUsername(cmd.username)) ??
+        DailySpinState.create(cmd.username);
 
       // ── 5. Resolve 30-day wager for tier calculation ─────────────────────
-      const since30d  = new Date(Date.now() - THIRTY_DAYS_MS);
-      const wager30d  = await this.repo.get30DayWager(cmd.username, since30d);
+      const since30d = new Date(Date.now() - THIRTY_DAYS_MS);
+      const wager30d = await this.repo.get30DayWager(cmd.username, since30d);
 
       // ── 6. Domain spin — validates cooldown, selects prize ───────────────
-      const now        = new Date();
+      const now = new Date();
       const spinResult = state.spin(userLevel, wager30d, now);
       if (!spinResult.ok) return spinResult;
 
@@ -74,9 +82,9 @@ export class SpinDailyWheelUseCase
 
       // ── 7. Persist state + history atomically (single Prisma transaction) ─
       await this.repo.saveSpinWithHistory(state, {
-        prizeTier:   tier.tier,
+        prizeTier: tier.tier,
         prizeAmount: prize.amount,
-        prizeLabel:  prize.label,
+        prizeLabel: prize.label,
       });
 
       // ── 8. Credit balance (Redis INCRBYFLOAT + dirty-set) ────────────────
@@ -87,7 +95,7 @@ export class SpinDailyWheelUseCase
         // compensated — do NOT roll back the spin state.
         this.logger.error(
           `[DailySpin] CRITICAL: spin persisted but balance credit failed ` +
-          `user=${cmd.username} amount=${prize.amount}`,
+            `user=${cmd.username} amount=${prize.amount}`,
           err,
         );
         // Intentionally do not return an error; the user should not be denied
@@ -95,11 +103,21 @@ export class SpinDailyWheelUseCase
       }
 
       // ── 9. Invalidate stale spin-status cache ─────────────────────────────
-      void this.cache.invalidate(cmd.username).catch((err) =>
-        this.logger.warn(`[DailySpin] Cache invalidation failed for ${cmd.username}`, err),
-      );
+      void this.cache
+        .invalidate(cmd.username)
+        .catch((err) =>
+          this.logger.warn(
+            `[DailySpin] Cache invalidation failed for ${cmd.username}`,
+            err,
+          ),
+        );
 
-      return Ok({ prizeLabel: prize.label, prizeAmount: prize.amount, prizeTier: tier.tier, nextSpinAt });
+      return Ok({
+        prizeLabel: prize.label,
+        prizeAmount: prize.amount,
+        prizeTier: tier.tier,
+        nextSpinAt,
+      });
     } finally {
       await this.cache.releaseSpinLock(cmd.username);
     }

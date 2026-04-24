@@ -34,7 +34,9 @@ export class PrismaBalanceRepository implements IBalanceRepository {
     private readonly redis: RedisService,
   ) {}
 
-  async findBalanceByUsername(username: string): Promise<UserBalanceRecord | null> {
+  async findBalanceByUsername(
+    username: string,
+  ): Promise<UserBalanceRecord | null> {
     // ── Tier 1: game-engine live Redis keys ─────────────────────────────────
     const [rawBalance, rawPetValue] = await this.tryRedisRead(username);
 
@@ -44,7 +46,8 @@ export class PrismaBalanceRepository implements IBalanceRepository {
       );
       return {
         balance: this.parseDecimal(rawBalance),
-        petValueBalance: rawPetValue !== null ? this.parseDecimal(rawPetValue) : 0,
+        petValueBalance:
+          rawPetValue !== null ? this.parseDecimal(rawPetValue) : 0,
       };
     }
 
@@ -62,18 +65,20 @@ export class PrismaBalanceRepository implements IBalanceRepository {
       return null;
     }
     const petValue = await this.prisma.userInventoryAmp.aggregate({
-      where:{
+      where: {
         userUsername: username,
       },
-      _sum:{
-        value:true
-      }
-    })
+      _sum: {
+        value: true,
+      },
+    });
 
     // Pet-value balance is Redis-only on the hot path.
     // If the key is absent (no inventory yet), we return 0 rather than running
     // a potentially expensive inventory aggregate query on every balance read.
-    const petValueBalance = petValue._sum.value ? this.parseDecimal(petValue._sum.value.toString()) : 0;
+    const petValueBalance = petValue._sum.value
+      ? this.parseDecimal(petValue._sum.value.toString())
+      : 0;
 
     return {
       balance: user.balance.toNumber(),

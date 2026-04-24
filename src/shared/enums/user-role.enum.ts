@@ -6,14 +6,14 @@
  * the DB schema and runtime code.
  */
 export enum UserRole {
-  ADMIN             = 'ADMIN',
-  OWNER             = 'OWNER',
-  MODERATOR         = 'MODERATOR',
-  SUPPORT           = 'SUPPORT',
+  ADMIN = 'ADMIN',
+  OWNER = 'OWNER',
+  MODERATOR = 'MODERATOR',
+  SUPPORT = 'SUPPORT',
   COMMUNITY_MANAGER = 'COMMUNITY_MANAGER',
-  MEMBER            = 'MEMBER',
-  WHALE             = 'WHALE',
-  BIGFLIPPER        = 'BIGFLIPPER',
+  MEMBER = 'MEMBER',
+  WHALE = 'WHALE',
+  BIGFLIPPER = 'BIGFLIPPER',
 }
 
 /** Roles that grant access to staff/admin endpoints. */

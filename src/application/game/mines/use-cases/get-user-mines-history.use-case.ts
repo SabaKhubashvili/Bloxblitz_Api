@@ -22,14 +22,17 @@ import {
 const HISTORY_PAGE_TTL = 120;
 
 @Injectable()
-export class GetUserMinesHistoryUseCase
-  implements IUseCase<GetMinesHistoryQuery, Result<MinesHistoryOutputDto, MinesError>>
-{
+export class GetUserMinesHistoryUseCase implements IUseCase<
+  GetMinesHistoryQuery,
+  Result<MinesHistoryOutputDto, MinesError>
+> {
   private readonly logger = new Logger(GetUserMinesHistoryUseCase.name);
 
   constructor(
-    @Inject(MINES_HISTORY_REPOSITORY) private readonly historyRepo: IMinesHistoryRepository,
-    @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
+    @Inject(MINES_HISTORY_REPOSITORY)
+    private readonly historyRepo: IMinesHistoryRepository,
+    @Inject(MINES_HISTORY_CACHE_PORT)
+    private readonly historyCache: IMinesHistoryCachePort,
   ) {}
 
   async execute(
@@ -39,9 +42,16 @@ export class GetUserMinesHistoryUseCase
 
     // ── Step 1: Cache-aside read ────────────────────────────────────────────
     try {
-      const cached = await this.historyCache.getPage(username, page, limit, order);
+      const cached = await this.historyCache.getPage(
+        username,
+        page,
+        limit,
+        order,
+      );
       if (cached !== null) {
-        this.logger.debug(`[MinesHistory] Cache hit — user=${username} page=${page} order=${order}`);
+        this.logger.debug(
+          `[MinesHistory] Cache hit — user=${username} page=${page} order=${order}`,
+        );
         return Ok(cached);
       }
     } catch (cacheErr) {
@@ -52,12 +62,22 @@ export class GetUserMinesHistoryUseCase
     }
 
     // ── Step 2: Authoritative read ──────────────────────────────────────────
-    let page_data: Awaited<ReturnType<IMinesHistoryRepository['findPageByUsername']>>;
+    let page_data: Awaited<
+      ReturnType<IMinesHistoryRepository['findPageByUsername']>
+    >;
 
     try {
-      page_data = await this.historyRepo.findPageByUsername(username, page, limit, order);
+      page_data = await this.historyRepo.findPageByUsername(
+        username,
+        page,
+        limit,
+        order,
+      );
     } catch (err) {
-      this.logger.error(`[MinesHistory] Repository fetch failed for ${username}`, err);
+      this.logger.error(
+        `[MinesHistory] Repository fetch failed for ${username}`,
+        err,
+      );
       return Err(new MinesHistoryFetchError());
     }
 
@@ -74,22 +94,28 @@ export class GetUserMinesHistoryUseCase
     void this.historyCache
       .setPage(username, page, limit, order, dto, HISTORY_PAGE_TTL)
       .catch((err) =>
-        this.logger.warn(`[MinesHistory] Cache write failed for ${username}`, err),
+        this.logger.warn(
+          `[MinesHistory] Cache write failed for ${username}`,
+          err,
+        ),
       );
 
     return Ok(dto);
   }
 }
 
-function toItemOutputDto(record: MinesHistoryRecord): MinesHistoryItemOutputDto {
+function toItemOutputDto(
+  record: MinesHistoryRecord,
+): MinesHistoryItemOutputDto {
   return {
     id: record.id,
     status: record.status,
     betAmount: record.betAmount,
     profit: record.profit,
-    multiplier: record.multiplier !== null
-      ? Math.round(record.multiplier * 10_000) / 10_000
-      : null,
+    multiplier:
+      record.multiplier !== null
+        ? Math.round(record.multiplier * 10_000) / 10_000
+        : null,
     // The entity stores gridSize as total cells; expose the side length for display.
     gridSize: Math.sqrt(record.gridSize),
     minesCount: record.minesCount,

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
   UniwireCreatePayoutResponse,
+  UniwireExchangeRate,
   UniwireExchangeRates,
   UniwireGetInvoiceResponse,
   UniwireRecentTransaction,
@@ -19,6 +20,15 @@ import * as crypto from 'crypto';
 import { Method } from 'axios';
 import { getUniwireInvoiceKind } from 'src/domain/uniwire/services/uniwire-helpers.service';
 import { AvailableCryptos } from '@prisma/client';
+
+/** Uniwire returns `rate_usd` as a decimal string in JSON; convert for numeric math. */
+function parseUniwireDecimal(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  const n = parseFloat(String(value));
+  return Number.isFinite(n) ? n : Number.NaN;
+}
 
 @Injectable()
 export class UniwireApiRepository implements IUniwireApiPort {
@@ -80,17 +90,60 @@ export class UniwireApiRepository implements IUniwireApiPort {
     }
   }
   async getExchangeRates(): Promise<UniwireExchangeRates> {
-    return await this.request<UniwireExchangeRates>('/v1/exchange-rates/');
+    const data = await this.request<{ result?: unknown[] }>('/v1/exchange-rates/');
+    const rows = Array.isArray(data?.result) ? data.result : [];
+    const result: UniwireExchangeRate[] = rows.map((raw) => {
+      const r = raw as Record<string, unknown>;
+      return {
+        id: String(r.id ?? ''),
+        kind: String(r.kind ?? ''),
+        symbol: String(r.symbol ?? ''),
+        rate_usd: parseUniwireDecimal(r.rate_usd),
+        rate_btc: r.rate_btc != null ? String(r.rate_btc) : '',
+        sign: r.sign != null ? String(r.sign) : '',
+      };
+    });
+    return { result };
   }
 
   async createPayout(
     params: CreatePayoutParams,
   ): Promise<UniwireCreatePayoutResponse> {
-    return this.request<UniwireCreatePayoutResponse>(
-      '/v1/payouts/',
-      params,
-      'POST',
-    );
+    const payload: Record<string, unknown> = {
+      profile_id: params.profileId,
+      kind: params.kind,
+      passthrough: params.passthrough,
+      reference_id: params.referenceId,
+      recipients: params.recipients.map((r) => {
+        const row: Record<string, string> = {
+          amount: r.amount,
+          currency: r.currency,
+          address: r.address,
+        };
+        if (r.notes != null && r.notes.length > 0) {
+          row.notes = r.notes;
+        }
+        return row;
+      }),
+    };
+    this.logger.log(`Create payout payload: ${JSON.stringify(payload)}`);
+
+    const response = await this.request<
+      | UniwireCreatePayoutResponse
+      | { result?: { id?: string; status?: string } }
+    >('/v1/payouts/', payload, 'POST');
+
+    if ('payoutId' in response && 'status' in response) {
+      return response;
+    }
+
+    const payoutId = response.result?.id;
+    const status = response.result?.status;
+    if (!payoutId || !status) {
+      throw new UniwireApiError('Unexpected payout response format');
+    }
+
+    return { payoutId, status };
   }
 
   async getTransactionConfirmations(
@@ -113,7 +166,11 @@ export class UniwireApiRepository implements IUniwireApiPort {
   async createInvoice(
     params: CreateInvoiceParams,
   ): Promise<UniwireGetInvoiceResponse> {
-    return this.request<UniwireGetInvoiceResponse>('/v1/invoices/', params, 'POST');
+    return this.request<UniwireGetInvoiceResponse>(
+      '/v1/invoices/',
+      params,
+      'POST',
+    );
   }
 
   async createDepositAddress(
@@ -129,7 +186,7 @@ export class UniwireApiRepository implements IUniwireApiPort {
     const result = await this.createInvoice({
       profile_id: profileId,
       currency: currency.toUpperCase(),
-      kind: getUniwireInvoiceKind(currency.toString()) as UniwireInvoiceKind,
+      kind: getUniwireInvoiceKind(currency.toString()),
       passthrough: {
         ...passthrough,
       },

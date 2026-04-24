@@ -40,8 +40,11 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
     RolesGuard,
 
     // ── Port bindings ───────────────────────────────────────────────────────
-    { provide: REWARD_CASES_CACHE_PORT,      useClass: RewardCasesCacheAdapter        },
-    { provide: REWARD_CASE_OPEN_REPOSITORY,  useClass: PrismaRewardCaseOpenRepository },
+    { provide: REWARD_CASES_CACHE_PORT, useClass: RewardCasesCacheAdapter },
+    {
+      provide: REWARD_CASE_OPEN_REPOSITORY,
+      useClass: PrismaRewardCaseOpenRepository,
+    },
     { provide: USER_BALANCE_REPOSITORY, useClass: UserBalanceRedisRepository },
   ],
   exports: [RewardCaseKeysService],

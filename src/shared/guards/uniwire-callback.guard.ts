@@ -1,5 +1,10 @@
 import * as crypto from 'crypto';
-import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class UniwireCallbackGuard implements CanActivate {

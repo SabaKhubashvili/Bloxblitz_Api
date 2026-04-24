@@ -205,10 +205,7 @@ export class PrismaRaceRepository implements IRaceRepository {
     if (!race) {
       throw new RaceNotFoundError();
     }
-    if (
-      race.status !== PrismaRaceStatus.ACTIVE ||
-      race.trackingPaused
-    ) {
+    if (race.status !== PrismaRaceStatus.ACTIVE || race.trackingPaused) {
       throw new RaceNotActiveError();
     }
 
@@ -328,8 +325,7 @@ export class PrismaRaceRepository implements IRaceRepository {
         data: {
           status: PrismaRaceStatus.FINISHED,
           trackingPaused: false,
-          totalPrizePool:
-            sumRewards._sum.rewardAmount ?? new Prisma.Decimal(0),
+          totalPrizePool: sumRewards._sum.rewardAmount ?? new Prisma.Decimal(0),
         },
       });
     });

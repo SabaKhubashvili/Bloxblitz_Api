@@ -8,9 +8,7 @@ import type {
 } from '../../../../domain/referral/ports/affiliate-wager-commission.repository.port';
 
 @Injectable()
-export class PrismaAffiliateWagerCommissionRepository
-  implements IAffiliateWagerCommissionRepository
-{
+export class PrismaAffiliateWagerCommissionRepository implements IAffiliateWagerCommissionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async applyCommissionIfNew(
@@ -22,7 +20,7 @@ export class PrismaAffiliateWagerCommissionRepository
     return this.prisma.$transaction(async (tx) => {
       const inserted = await tx.referralLog.createMany({
         data: [
-          { 
+          {
             referredUsername: input.bettorUsername,
             game: input.game,
             amount: wager,
@@ -49,7 +47,6 @@ export class PrismaAffiliateWagerCommissionRepository
         },
       });
 
-    
       return 'applied';
     });
   }

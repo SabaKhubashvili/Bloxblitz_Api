@@ -13,4 +13,8 @@ export interface IUserBalanceRepository {
     username: string,
     amount: number,
   ): Promise<DecrementBalanceResult>;
+  runDatabaseTransaction(
+    username: string,
+    amount: number,
+  ): Promise<DecrementBalanceResult>;
 }

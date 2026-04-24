@@ -13,19 +13,14 @@ import {
   type IAffiliateReadCachePort,
 } from '../ports/affiliate-read-cache.port';
 import { AFFILIATE_CACHE_POPULATE_LOCK_MS } from '../constants/affiliate-read-cache.ttl';
-import {
-  waitForAffiliateCacheHit,
-} from '../helpers/affiliate-cache-stampede.helper';
+import { waitForAffiliateCacheHit } from '../helpers/affiliate-cache-stampede.helper';
 import { affiliatePopulateLockToken } from '../helpers/affiliate-referrals-cache-digest.helper';
 
 @Injectable()
-export class GetUsedReferralCodeUseCase
-  implements
-    IUseCase<
-      GetUsedReferralCodeQuery,
-      Result<UsedReferralCodeOutputDto, UserNotFoundError>
-    >
-{
+export class GetUsedReferralCodeUseCase implements IUseCase<
+  GetUsedReferralCodeQuery,
+  Result<UsedReferralCodeOutputDto, UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,
@@ -65,7 +60,9 @@ export class GetUsedReferralCodeUseCase
         );
         if (again) return Ok(again);
 
-        const row = await this.affiliateRepo.getUsedReferralCode(query.username);
+        const row = await this.affiliateRepo.getUsedReferralCode(
+          query.username,
+        );
         if (!row) return Err(new UserNotFoundError(query.username));
         const dto: UsedReferralCodeOutputDto = {
           code: row.code,

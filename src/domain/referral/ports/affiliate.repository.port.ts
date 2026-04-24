@@ -65,10 +65,7 @@ export interface IAffiliateRepository {
     code: string,
   ): Promise<{ userUsername: string; referralCode: string } | null>;
 
-  createOwnedReferralCode(
-    ownerUsername: string,
-    code: string,
-  ): Promise<void>;
+  createOwnedReferralCode(ownerUsername: string, code: string): Promise<void>;
 
   updateUserUsedReferralCode(
     username: string,

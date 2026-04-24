@@ -4,8 +4,14 @@ import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import type { IRakebackRepository } from '../../../../domain/rakeback/ports/rakeback.repository.port';
 import type { IRakebackCachePort } from '../ports/rakeback-cache.port';
 import type { AccumulateRakebackCommand } from '../dto/accumulate-rakeback.command';
-import { RakebackAccumulationError, type RakebackError } from '../../../../domain/rakeback/errors/rakeback.errors';
-import { RAKEBACK_REPOSITORY, RAKEBACK_CACHE_PORT } from '../tokens/rakeback.tokens';
+import {
+  RakebackAccumulationError,
+  type RakebackError,
+} from '../../../../domain/rakeback/errors/rakeback.errors';
+import {
+  RAKEBACK_REPOSITORY,
+  RAKEBACK_CACHE_PORT,
+} from '../tokens/rakeback.tokens';
 import { RAKEBACK_ANTI_ABUSE } from '../../../../domain/rakeback/config/rakeback-anti-abuse.config';
 import {
   clampEligibleIncrement,
@@ -15,9 +21,10 @@ import {
 import { RedisService } from '../../../../infrastructure/cache/redis.service';
 
 @Injectable()
-export class AccumulateRakebackUseCase
-  implements IUseCase<AccumulateRakebackCommand, Result<void, RakebackError>>
-{
+export class AccumulateRakebackUseCase implements IUseCase<
+  AccumulateRakebackCommand,
+  Result<void, RakebackError>
+> {
   private readonly logger = new Logger(AccumulateRakebackUseCase.name);
 
   constructor(
@@ -26,7 +33,9 @@ export class AccumulateRakebackUseCase
     private readonly redis: RedisService,
   ) {}
 
-  async execute(cmd: AccumulateRakebackCommand): Promise<Result<void, RakebackError>> {
+  async execute(
+    cmd: AccumulateRakebackCommand,
+  ): Promise<Result<void, RakebackError>> {
     try {
       await this.noteRakebackEventRate(cmd.username);
 
@@ -35,7 +44,9 @@ export class AccumulateRakebackUseCase
       }
 
       const wagerDelta = round2(clampEligibleIncrement(cmd.wagerAmount));
-      const rawReturned = Number.isFinite(cmd.returnedAmount) ? Math.max(0, cmd.returnedAmount) : 0;
+      const rawReturned = Number.isFinite(cmd.returnedAmount)
+        ? Math.max(0, cmd.returnedAmount)
+        : 0;
       const wonDelta = round2(clampEligibleIncrement(rawReturned));
 
       await this.repo.ensureExists(cmd.username);
@@ -46,9 +57,14 @@ export class AccumulateRakebackUseCase
         eligibleWonDelta: wonDelta,
       });
 
-      await this.cache.invalidate(cmd.username).catch((err) =>
-        this.logger.warn(`Cache invalidation failed for ${cmd.username}`, err),
-      );
+      await this.cache
+        .invalidate(cmd.username)
+        .catch((err) =>
+          this.logger.warn(
+            `Cache invalidation failed for ${cmd.username}`,
+            err,
+          ),
+        );
 
       return Ok(undefined);
     } catch (err) {
@@ -71,7 +87,10 @@ export class AccumulateRakebackUseCase
         );
       }
     } catch (e) {
-      this.logger.debug(`Rakeback rapid-bet counter skipped for ${username}`, e);
+      this.logger.debug(
+        `Rakeback rapid-bet counter skipped for ${username}`,
+        e,
+      );
     }
   }
 }

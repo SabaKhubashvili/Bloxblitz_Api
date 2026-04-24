@@ -18,13 +18,10 @@ import { waitForAffiliateCacheHit } from '../helpers/affiliate-cache-stampede.he
 import { affiliatePopulateLockToken } from '../helpers/affiliate-referrals-cache-digest.helper';
 
 @Injectable()
-export class GetAffiliateSummaryUseCase
-  implements
-    IUseCase<
-      GetAffiliateSummaryQuery,
-      Result<AffiliateSummaryOutputDto, UserNotFoundError>
-    >
-{
+export class GetAffiliateSummaryUseCase implements IUseCase<
+  GetAffiliateSummaryQuery,
+  Result<AffiliateSummaryOutputDto, UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,
@@ -73,7 +70,11 @@ export class GetAffiliateSummaryUseCase
         const summary = await this.affiliateRepo.getAffiliateSummary(
           query.username,
         );
-        await this.affiliateReadCache.setSummary(query.username, epoch, summary);
+        await this.affiliateReadCache.setSummary(
+          query.username,
+          epoch,
+          summary,
+        );
         return Ok(summary);
       } finally {
         await this.affiliateReadCache.releasePopulateLock(lockToken);
@@ -91,7 +92,9 @@ export class GetAffiliateSummaryUseCase
     );
     if (!existsUser.ok) return Err(existsUser.error);
 
-    const summary = await this.affiliateRepo.getAffiliateSummary(query.username);
+    const summary = await this.affiliateRepo.getAffiliateSummary(
+      query.username,
+    );
     await this.affiliateReadCache.setSummary(query.username, epoch, summary);
     return Ok(summary);
   }

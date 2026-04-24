@@ -15,7 +15,6 @@ import { MineMask } from '../value-objects/mine-mask.vo';
  */
 @Injectable()
 export class MinesFairnessDomainService {
-
   generateMineMask(
     serverSeed: string,
     clientSeed: string,
@@ -60,7 +59,6 @@ export class MinesFairnessDomainService {
     gridSize: number,
     mineCount: number,
   ): number[] {
-
     const tiles = Array.from({ length: gridSize }, (_, i) => i);
     let cursor = 0;
 
@@ -69,7 +67,6 @@ export class MinesFairnessDomainService {
      * Only shuffle last N tiles to place mines efficiently
      */
     for (let i = gridSize - 1; i >= gridSize - mineCount; i--) {
-
       const j = this.getRandomIndex(
         serverSeed,
         clientSeed,
@@ -96,11 +93,9 @@ export class MinesFairnessDomainService {
     cursor: number,
     max: number,
   ): number {
-
     let round = 0;
 
     while (true) {
-
       const message = `${clientSeed}:${nonce}:${cursor}:${round}`;
 
       const hash = createHmac('sha256', serverSeed)

@@ -65,7 +65,8 @@ export class VerifyRouletteOutcomeUseCase {
         outcomeMatchesExpected: false,
         hashMatchesExpected:
           cmd.expectedOutcomeHash != null
-            ? cmd.expectedOutcomeHash.toLowerCase() === outcomeHash.toLowerCase()
+            ? cmd.expectedOutcomeHash.toLowerCase() ===
+              outcomeHash.toLowerCase()
             : undefined,
         message: `Recomputed color ${outcome} does not match expected ${cmd.expectedOutcome}.`,
       };
@@ -76,7 +77,9 @@ export class VerifyRouletteOutcomeUseCase {
       outcome,
       outcomeHash,
       outcomeMatchesExpected:
-        cmd.expectedOutcome != null ? cmd.expectedOutcome === outcome : undefined,
+        cmd.expectedOutcome != null
+          ? cmd.expectedOutcome === outcome
+          : undefined,
       hashMatchesExpected:
         cmd.expectedOutcomeHash != null
           ? cmd.expectedOutcomeHash.toLowerCase() === outcomeHash.toLowerCase()

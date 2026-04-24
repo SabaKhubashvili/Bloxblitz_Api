@@ -49,7 +49,9 @@ export class TowersGameRedisService {
     ]);
   }
 
-  async getGameByHistoryId(gameHistoryId: string): Promise<TowersGameEntity | null> {
+  async getGameByHistoryId(
+    gameHistoryId: string,
+  ): Promise<TowersGameEntity | null> {
     const raw = await this.redis.get<Record<string, unknown>>(
       RedisKeys.towers.game(gameHistoryId),
     );
@@ -67,7 +69,9 @@ export class TowersGameRedisService {
    * Use before creating a game to avoid `loadActive` → DB fallback latency.
    */
   async hasUserActivePointer(username: string): Promise<boolean> {
-    return this.redis.exists(RedisKeys.towers.userActive(username.toLowerCase()));
+    return this.redis.exists(
+      RedisKeys.towers.userActive(username.toLowerCase()),
+    );
   }
 
   async getActiveForUser(username: string): Promise<TowersGameEntity | null> {
@@ -91,7 +95,10 @@ export class TowersGameRedisService {
   }
 
   /** Best-effort: delete keys even if partial state exists. */
-  async removeByGameIdAndUser(gameHistoryId: string, username: string): Promise<void> {
+  async removeByGameIdAndUser(
+    gameHistoryId: string,
+    username: string,
+  ): Promise<void> {
     const user = username.toLowerCase();
     await Promise.all([
       this.redis.del(RedisKeys.towers.game(gameHistoryId)),
@@ -107,7 +114,10 @@ export class TowersGameRedisService {
   /**
    * Serialize reveal/cashout for a single game (short lock TTL; spin if contended).
    */
-  async runExclusiveMutation<T>(gameHistoryId: string, fn: () => Promise<T>): Promise<T> {
+  async runExclusiveMutation<T>(
+    gameHistoryId: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const key = RedisKeys.towers.lockMutation(gameHistoryId);
     const maxAttempts = 16;
     for (let a = 0; a < maxAttempts; a++) {

@@ -63,7 +63,7 @@ export class TowersGameCacheMetricsService {
     const p = (q: number) =>
       sorted.length === 0
         ? null
-        : sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]!;
+        : sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
     return {
       cacheHits: this.cacheHits,
       cacheMisses: this.cacheMisses,

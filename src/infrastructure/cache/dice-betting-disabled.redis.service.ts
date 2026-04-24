@@ -14,7 +14,9 @@ export class DiceBettingDisabledRedisService {
   /** `true` when betting is globally disabled; missing key or Redis failure → enabled (false). */
   async isBettingDisabled(): Promise<boolean> {
     try {
-      const raw = await this.redis.mainClient.get(RedisKeys.dice.bettingDisabled());
+      const raw = await this.redis.mainClient.get(
+        RedisKeys.dice.bettingDisabled(),
+      );
       return raw === '1';
     } catch (e) {
       this.log.warn(

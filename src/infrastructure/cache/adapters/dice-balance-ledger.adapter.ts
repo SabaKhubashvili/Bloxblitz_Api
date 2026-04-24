@@ -68,7 +68,9 @@ export class DiceBalanceLedgerAdapter implements IDiceBalanceLedgerPort {
       });
 
       if (!Array.isArray(result)) {
-        this.logger.error(`[DiceLedger] placeBet unexpected result for ${username}`);
+        this.logger.error(
+          `[DiceLedger] placeBet unexpected result for ${username}`,
+        );
         return { success: false, error: 'REDIS_ERROR' };
       }
 
@@ -78,7 +80,8 @@ export class DiceBalanceLedgerAdapter implements IDiceBalanceLedgerPort {
       }
 
       const nonce = result[1] as number;
-      const balanceAfter = Math.round(parseFloat(result[2] as string) * 100) / 100;
+      const balanceAfter =
+        Math.round(parseFloat(result[2] as string) * 100) / 100;
 
       this.logger.log(
         `[DiceLedger] BET_PLACED user=${username} bet=-${betAmount} nonce=${nonce} balanceAfter=${balanceAfter}`,

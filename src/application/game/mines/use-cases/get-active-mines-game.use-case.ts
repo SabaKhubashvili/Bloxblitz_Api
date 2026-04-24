@@ -15,11 +15,13 @@ export interface GetActiveMinesGameQuery {
 }
 
 @Injectable()
-export class GetActiveMinesGameUseCase
-  implements IUseCase<GetActiveMinesGameQuery, Result<MinesGameOutputDto, MinesError>>
-{
+export class GetActiveMinesGameUseCase implements IUseCase<
+  GetActiveMinesGameQuery,
+  Result<MinesGameOutputDto, MinesError>
+> {
   constructor(
-    @Inject(MINES_GAME_REPOSITORY) private readonly minesRepo: IMinesGameRepository,
+    @Inject(MINES_GAME_REPOSITORY)
+    private readonly minesRepo: IMinesGameRepository,
   ) {}
 
   async execute(

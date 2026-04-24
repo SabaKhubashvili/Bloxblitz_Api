@@ -58,14 +58,11 @@ export class BetHistoryController {
    */
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getBet(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-  ) {
+  async getBet(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const result = await this.getBetByIdUseCase.execute({
       gameId: id,
       username: user.username,
-  });
+    });
 
     if (!result.ok) throw result.error;
     return result.value;

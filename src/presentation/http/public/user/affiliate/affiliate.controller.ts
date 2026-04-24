@@ -1,13 +1,13 @@
 import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Post,
-    Query,
-    UseFilters,
-    UseGuards,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  UseFilters,
+  UseGuards,
 } from '@nestjs/common';
 
 import { ClaimReferralEarningsUseCase } from '../../../../../application/user/affiliate/use-cases/claim-referral-earnings.use-case';
@@ -19,8 +19,8 @@ import { GetUsedReferralCodeUseCase } from '../../../../../application/user/affi
 import { UseReferralCodeUseCase } from '../../../../../application/user/affiliate/use-cases/use-referral-code.use-case';
 
 import type {
-    AffiliateReferralsRange,
-    AffiliateStatsRange,
+  AffiliateReferralsRange,
+  AffiliateStatsRange,
 } from '../../../../../domain/referral/ports/affiliate.repository.port';
 
 import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
@@ -30,8 +30,8 @@ import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard';
 
 import { AffiliateCodeBodyDto } from './dto/affiliate-code-body.dto';
 import {
-    AffiliateReferralsQueryDto,
-    AffiliateReferralsRangeParam,
+  AffiliateReferralsQueryDto,
+  AffiliateReferralsRangeParam,
 } from './dto/affiliate-referrals-query.dto';
 import { AffiliateStatsQueryDto } from './dto/affiliate-stats-query.dto';
 

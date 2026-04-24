@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IRaceRepository } from '../../../domain/race/ports/race.repository.port';
 import type { IRaceCachePort } from '../../../domain/race/ports/race-cache.port';
-import { RACE_REPOSITORY, RACE_CACHE, RACE_CACHE_TTL } from '../tokens/race.tokens';
+import {
+  RACE_REPOSITORY,
+  RACE_CACHE,
+  RACE_CACHE_TTL,
+} from '../tokens/race.tokens';
 
 @Injectable()
 export class GetUserRankUseCase {

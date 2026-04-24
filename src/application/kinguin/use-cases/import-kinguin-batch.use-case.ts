@@ -37,15 +37,16 @@ export class ImportKinguinBatchUseCase {
     private readonly batchRepo: IKinguinBatchRepository,
   ) {}
 
-  async execute(cmd: ImportKinguinBatchCommand): Promise<
+  async execute(
+    cmd: ImportKinguinBatchCommand,
+  ): Promise<
     | { ok: true; value: ImportKinguinBatchResult }
     | { ok: false; error: KinguinBatchImportError }
   > {
     try {
       const totalCodes = cmd.codes.length;
-      const totalValue = Math.round(
-        cmd.codes.reduce((sum, c) => sum + c.value, 0) * 100,
-      ) / 100;
+      const totalValue =
+        Math.round(cmd.codes.reduce((sum, c) => sum + c.value, 0) * 100) / 100;
 
       const batch = await this.batchRepo.create({
         batchName: cmd.batchName,

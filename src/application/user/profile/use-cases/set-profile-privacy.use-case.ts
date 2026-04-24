@@ -9,16 +9,16 @@ import {
   UserNotFoundError,
   type UserError,
 } from '../../../../domain/user/errors/user.errors';
-import { PROFILE_REPOSITORY, PROFILE_CACHE_PORT } from '../tokens/profile.tokens';
+import {
+  PROFILE_REPOSITORY,
+  PROFILE_CACHE_PORT,
+} from '../tokens/profile.tokens';
 
 @Injectable()
-export class SetProfilePrivacyUseCase
-  implements
-    IUseCase<
-      SetProfilePrivacyCommand,
-      Result<SetProfilePrivacyOutputDto, UserError>
-    >
-{
+export class SetProfilePrivacyUseCase implements IUseCase<
+  SetProfilePrivacyCommand,
+  Result<SetProfilePrivacyOutputDto, UserError>
+> {
   private readonly logger = new Logger(SetProfilePrivacyUseCase.name);
 
   constructor(
@@ -41,18 +41,22 @@ export class SetProfilePrivacyUseCase
       command.privateProfile,
     );
 
-    void this.profileCache.invalidate(command.username).catch((err) =>
-      this.logger.warn(
-        `[SetProfilePrivacy] Cache invalidation failed for ${command.username}`,
-        err,
-      ),
-    );
-    void this.profileCache.invalidatePublic(command.username).catch((err) =>
-      this.logger.warn(
-        `[SetProfilePrivacy] Cache invalidation failed for ${command.username}`,
-        err,
-      ),
-    );
+    void this.profileCache
+      .invalidate(command.username)
+      .catch((err) =>
+        this.logger.warn(
+          `[SetProfilePrivacy] Cache invalidation failed for ${command.username}`,
+          err,
+        ),
+      );
+    void this.profileCache
+      .invalidatePublic(command.username)
+      .catch((err) =>
+        this.logger.warn(
+          `[SetProfilePrivacy] Cache invalidation failed for ${command.username}`,
+          err,
+        ),
+      );
 
     return Ok({ privateProfile: updated.privateProfile });
   }

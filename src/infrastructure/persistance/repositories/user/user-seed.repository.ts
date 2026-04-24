@@ -53,7 +53,7 @@ export class UserSeedRepository implements IUserSeedRepository {
     });
     if (!record) {
       record = await this.ProvablyFairRepository.ensureUserSeedExists(username);
-    };
+    }
     if (!record) return null;
 
     // 3. Populate cache for future reads
@@ -97,7 +97,10 @@ export class UserSeedRepository implements IUserSeedRepository {
     await this.redis.decrBy(key, 1);
   }
 
-  async incrementTotalGamesPlayed(username: string, delta: number): Promise<void> {
+  async incrementTotalGamesPlayed(
+    username: string,
+    delta: number,
+  ): Promise<void> {
     if (!Number.isFinite(delta) || delta <= 0) return;
     const rounded = Math.floor(delta);
     if (rounded <= 0) return;

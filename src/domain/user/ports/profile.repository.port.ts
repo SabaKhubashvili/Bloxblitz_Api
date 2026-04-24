@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/client";
+import { Decimal } from '@prisma/client/runtime/client';
 
 export interface UserProfileRecord {
   id: string;
@@ -12,6 +12,7 @@ export interface UserProfileRecord {
     totalWithdrawals: Decimal;
     totalProfit: Decimal;
     totalLoss: Decimal;
+    netProfit: Decimal;
     totalWagered: Decimal;
     totalGamesWon: number;
     biggestWin: Decimal;

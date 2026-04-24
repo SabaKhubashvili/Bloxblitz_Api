@@ -3,7 +3,11 @@ import type { IRaceRepository } from '../../../domain/race/ports/race.repository
 import type { IRaceCachePort } from '../../../domain/race/ports/race-cache.port';
 import type { RaceRecord } from '../../../domain/race/ports/race.repository.port';
 import type { RaceLeaderboardEntry } from '../../../domain/race/ports/race.repository.port';
-import { RACE_REPOSITORY, RACE_CACHE, RACE_CACHE_TTL } from '../tokens/race.tokens';
+import {
+  RACE_REPOSITORY,
+  RACE_CACHE,
+  RACE_CACHE_TTL,
+} from '../tokens/race.tokens';
 
 export interface CurrentRaceView {
   race: RaceRecord | null;
@@ -46,11 +50,7 @@ export class GetCurrentRaceUseCase {
     let top10 = await this.raceCache.getTop10(raceId);
     if (top10 === null) {
       top10 = await this.raceRepository.findLeaderboardTop(raceId, 10);
-      await this.raceCache.setTop10(
-        raceId,
-        top10,
-        RACE_CACHE_TTL.top10Sec,
-      );
+      await this.raceCache.setTop10(raceId, top10, RACE_CACHE_TTL.top10Sec);
     }
 
     let userRank: number | null = null;

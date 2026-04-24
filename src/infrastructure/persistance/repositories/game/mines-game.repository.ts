@@ -13,6 +13,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { MINES_CONFIG_DEFAULTS } from '../../../../domain/game/mines/mines-config';
+import { BumpGlobalUserStatisticsUseCase } from '../../user-statistics/bump-global-user-statistics.use-case';
+import { BumpUserGameStatisticsUseCase } from '../../user-statistics/bump-user-game-statistics.use-case';
 
 const activeGameKey = RedisKeys.mines.activeGame;
 const gameKey = (gameId: string) => RedisKeys.mines.game(gameId);
@@ -68,7 +70,9 @@ function toDomain(raw: RawStoredGame): MinesGame {
   });
 
   if (!gameResult.ok) {
-    throw new Error(`Failed to reconstruct MinesGame ${raw.id}: ${gameResult.error.message}`);
+    throw new Error(
+      `Failed to reconstruct MinesGame ${raw.id}: ${gameResult.error.message}`,
+    );
   }
 
   return gameResult.value;
@@ -103,6 +107,8 @@ export class MinesGameRepository implements IMinesGameRepository {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
+    private readonly bumpUserGame: BumpUserGameStatisticsUseCase,
+    private readonly bumpGlobal: BumpGlobalUserStatisticsUseCase,
   ) {}
 
   async findActiveByusername(username: string): Promise<MinesGame | null> {
@@ -264,6 +270,28 @@ export class MinesGameRepository implements IMinesGameRepository {
             profit: profit,
             multiplier: game.calculateMultiplier(),
           },
+        });
+        const u = game.username.trim().toLowerCase();
+        const stake = game.betAmount.amount;
+        const netP =
+          typeof profit === 'number' && Number.isFinite(profit) ? profit : 0;
+        const won = game.status === GameStatus.WON;
+        const playedAt = new Date();
+        this.bumpUserGame.scheduleBump({
+          username: u,
+          gameType: GameType.MINES,
+          stake,
+          won,
+          netProfit: netP,
+          playedAt,
+        });
+        this.bumpGlobal.scheduleBump({
+          username: u,
+          gameType: GameType.MINES,
+          stake,
+          won,
+          netProfit: netP,
+          playedAt,
         });
       }
     } catch (err) {

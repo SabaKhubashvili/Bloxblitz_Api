@@ -38,7 +38,11 @@ export class UniwireAddressNotFoundError extends DomainError {
 export class UniwireProfileNotFoundError extends DomainError {
   readonly code = 'UNIWIRE_PROFILE_NOT_FOUND';
   constructor(username?: string) {
-    super(username ? `No Uniwire profile linked for user: ${username}` : 'Uniwire profile not found');
+    super(
+      username
+        ? `No Uniwire profile linked for user: ${username}`
+        : 'Uniwire profile not found',
+    );
   }
 }
 
@@ -52,6 +56,10 @@ export class UniwireApiError extends DomainError {
 export class UniwireExchangeRateUnavailableError extends DomainError {
   readonly code = 'UNIWIRE_EXCHANGE_RATE_UNAVAILABLE';
   constructor(symbol?: string) {
-    super(symbol ? `Exchange rate unavailable for ${symbol}` : 'Exchange rate unavailable');
+    super(
+      symbol
+        ? `Exchange rate unavailable for ${symbol}`
+        : 'Exchange rate unavailable',
+    );
   }
 }

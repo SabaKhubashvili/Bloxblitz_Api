@@ -80,7 +80,10 @@ export class CasesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.OWNER)
   @HttpCode(HttpStatus.CREATED)
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCaseHttpDto) {
+  async create(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateCaseHttpDto,
+  ) {
     const result = await this.createCaseUseCase.execute({
       actorUsername: 'admin',
       slug: dto.slug,

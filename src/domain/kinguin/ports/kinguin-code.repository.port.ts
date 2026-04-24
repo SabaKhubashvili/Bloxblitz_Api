@@ -22,9 +22,20 @@ export interface RedeemCodeData {
 
 export interface IKinguinCodeRepository {
   findByCode(codeHash: string): Promise<KinguinCodeRecord | null>;
-  redeemCode(id: string, batchId: string | null, data: RedeemCodeData): Promise<void>;
+  redeemCode(
+    id: string,
+    batchId: string | null,
+    data: RedeemCodeData,
+  ): Promise<void>;
   disableCode(codeHash: string): Promise<boolean>;
-  createMany(codes: Array<{ code: string; value: number; expiresAt?: Date; batchId: string }>): Promise<void>;
+  createMany(
+    codes: Array<{
+      code: string;
+      value: number;
+      expiresAt?: Date;
+      batchId: string;
+    }>,
+  ): Promise<void>;
   findByBatch(params: {
     batchId: string;
     page: number;

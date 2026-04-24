@@ -7,7 +7,10 @@ export function round2(n: number): number {
 }
 
 /** Net loss from eligible totals only (non-negative). */
-export function netLossFromEligible(eligibleWager: number, eligibleWon: number): number {
+export function netLossFromEligible(
+  eligibleWager: number,
+  eligibleWon: number,
+): number {
   const w = Math.max(0, round2(eligibleWager));
   const o = Math.max(0, round2(eligibleWon));
   return Math.max(0, round2(w - o));
@@ -66,7 +69,10 @@ export function applyDailyPositiveAccrualCap(
   const posWeekly = pos(delta.weekly);
   const posMonthly = pos(delta.monthly);
   const posSum = round2(posDaily + posWeekly + posMonthly);
-  const remaining = Math.max(0, round2(maxDaily - Math.max(0, round2(dayTotalSoFar))));
+  const remaining = Math.max(
+    0,
+    round2(maxDaily - Math.max(0, round2(dayTotalSoFar))),
+  );
 
   if (posSum <= 0 || posSum <= remaining) {
     return {

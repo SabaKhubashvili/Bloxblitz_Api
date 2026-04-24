@@ -24,9 +24,7 @@ import { AuthModule } from '../auth.module';
 import { GetPublicProfileUseCase } from 'src/application/user/profile/use-cases/get-public-profile.use-case';
 
 @Module({
-  imports: [
-    AuthModule,
-  ],
+  imports: [AuthModule],
   controllers: [ProfileController],
   providers: [
     JwtAuthGuard,

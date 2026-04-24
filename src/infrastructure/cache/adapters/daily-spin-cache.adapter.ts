@@ -19,7 +19,10 @@ export class DailySpinCacheAdapter implements IDailySpinCachePort {
         RedisKeys.dailySpin.status(username),
       );
     } catch (err) {
-      this.logger.warn(`[DailySpinCache] getStatus failed for ${username}`, err);
+      this.logger.warn(
+        `[DailySpinCache] getStatus failed for ${username}`,
+        err,
+      );
       return null;
     }
   }
@@ -36,7 +39,10 @@ export class DailySpinCacheAdapter implements IDailySpinCachePort {
         ttlSeconds,
       );
     } catch (err) {
-      this.logger.warn(`[DailySpinCache] setStatus failed for ${username}`, err);
+      this.logger.warn(
+        `[DailySpinCache] setStatus failed for ${username}`,
+        err,
+      );
     }
   }
 
@@ -44,7 +50,10 @@ export class DailySpinCacheAdapter implements IDailySpinCachePort {
     try {
       await this.redis.del(RedisKeys.dailySpin.status(username));
     } catch (err) {
-      this.logger.warn(`[DailySpinCache] invalidate failed for ${username}`, err);
+      this.logger.warn(
+        `[DailySpinCache] invalidate failed for ${username}`,
+        err,
+      );
     }
   }
 
@@ -52,7 +61,10 @@ export class DailySpinCacheAdapter implements IDailySpinCachePort {
     try {
       return await this.redis.lock(RedisKeys.dailySpin.lock(username), ttlMs);
     } catch (err) {
-      this.logger.warn(`[DailySpinCache] acquireSpinLock failed for ${username}`, err);
+      this.logger.warn(
+        `[DailySpinCache] acquireSpinLock failed for ${username}`,
+        err,
+      );
       return false;
     }
   }
@@ -61,7 +73,10 @@ export class DailySpinCacheAdapter implements IDailySpinCachePort {
     try {
       await this.redis.unlock(RedisKeys.dailySpin.lock(username));
     } catch (err) {
-      this.logger.warn(`[DailySpinCache] releaseSpinLock failed for ${username}`, err);
+      this.logger.warn(
+        `[DailySpinCache] releaseSpinLock failed for ${username}`,
+        err,
+      );
     }
   }
 }

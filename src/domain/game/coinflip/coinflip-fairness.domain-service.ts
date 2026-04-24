@@ -11,7 +11,11 @@ export class CoinflipFairnessDomainService {
     return parseInt(hashHex.substring(0, 8), 16) / 0xffff_ffff;
   }
 
-  computeOutcomeHash(serverSeed: string, nonce: string, eosBlockId: string): string {
+  computeOutcomeHash(
+    serverSeed: string,
+    nonce: string,
+    eosBlockId: string,
+  ): string {
     return createHmac('sha256', serverSeed)
       .update(`${nonce}:${eosBlockId}`)
       .digest('hex');
@@ -21,7 +25,11 @@ export class CoinflipFairnessDomainService {
     return createHash('sha256').update(serverSeed, 'utf8').digest('hex');
   }
 
-  deriveRandomValue(serverSeed: string, nonce: string, eosBlockId: string): number {
+  deriveRandomValue(
+    serverSeed: string,
+    nonce: string,
+    eosBlockId: string,
+  ): number {
     const h = this.computeOutcomeHash(serverSeed, nonce, eosBlockId);
     return this.hashToFloat(h);
   }

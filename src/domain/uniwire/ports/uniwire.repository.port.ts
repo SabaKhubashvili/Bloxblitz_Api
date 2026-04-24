@@ -1,6 +1,10 @@
-import { AvailableCryptos, CryptoTransaction, TransactionStatus } from "@prisma/client";
-import { UniwireInvoiceKind } from "./uniwire-api.ports";
-import { UniwireRecentTransaction } from "../entities/uniwire.entity";
+import {
+  AvailableCryptos,
+  CryptoTransaction,
+  TransactionStatus,
+} from '@prisma/client';
+import { UniwireInvoiceKind } from './uniwire-api.ports';
+import { UniwireRecentTransaction } from '../entities/uniwire.entity';
 
 /**
  * Database record shapes for Uniwire persistence.
@@ -33,22 +37,42 @@ export interface UniwireInvoiceRecord {
  * Implementations live in the infrastructure layer.
  */
 export interface IUniwireRepository {
-  /** Find Uniwire profile linked to a user. */
-  findInvoiceByUsernameAndCurrency(username: string, currency: string): Promise<UniwireInvoiceRecord | null>;
+  /** Create a payout record. */
+  createPayout(
+    data: Omit<UniwirePayoutRecord, 'id' | 'createdAt' | 'updatedAt'> & {
+      balanceAfter: number;
+    },
+  ): Promise<UniwirePayoutRecord>;
 
+  /** Find Uniwire profile linked to a user. */
+  findInvoiceByUsernameAndCurrency(
+    username: string,
+    currency: string,
+  ): Promise<UniwireInvoiceRecord | null>;
 
   /** Get recent transactions for a user and currency. */
-  getRecentTransactions(username: string, currency: AvailableCryptos, limit?: number): Promise<UniwireRecentTransaction[]>;
+  getRecentTransactions(
+    username: string,
+    currency: AvailableCryptos,
+    limit?: number,
+  ): Promise<UniwireRecentTransaction[]>;
 
   /** Save an invoice record. */
-  createInvoice(data: Omit<UniwireInvoiceRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<UniwireInvoiceRecord>;
-
+  createInvoice(
+    data: Omit<UniwireInvoiceRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<UniwireInvoiceRecord>;
 
   /** Create a transaction record for a pending invoice. */
-  createInvoiceTransactionPending(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void>;
+  createInvoiceTransactionPending(
+    data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<void>;
 
   /** Create a transaction record for a confirmed invoice. */
-  updateInvoiceTransactionConfirmed(data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<void>;
+  updateInvoiceTransactionConfirmed(
+    data: Omit<UniwireTransactionRecord, 'id' | 'createdAt' | 'updatedAt'> & {
+      balanceAfter: number;
+    },
+  ): Promise<void>;
 }
 
 export interface UniwireTransactionRecord {

@@ -45,17 +45,22 @@ import {
 } from '../../../../infrastructure/queue/game-save/game-save.job-data';
 
 @Injectable()
-export class CreateMinesGameUseCase
-  implements IUseCase<CreateMinesGameCommand, Result<MinesGameOutputDto, MinesError>>
-{
+export class CreateMinesGameUseCase implements IUseCase<
+  CreateMinesGameCommand,
+  Result<MinesGameOutputDto, MinesError>
+> {
   private readonly logger = new Logger(CreateMinesGameUseCase.name);
 
   constructor(
-    @Inject(MINES_CONFIG_PORT)     private readonly minesConfig: IMinesConfigPort,
-    @Inject(MINES_GAME_REPOSITORY) private readonly minesRepo: IMinesGameRepository,
-    @Inject(MINES_BALANCE_LEDGER)  private readonly ledger: IMinesBalanceLedgerPort,
-    @Inject(USER_SEED_REPOSITORY)  private readonly seedRepo: IUserSeedRepository,
-    @Inject(BET_EVENT_PUBLISHER)   private readonly betPublisher: IBetEventPublisherPort,
+    @Inject(MINES_CONFIG_PORT) private readonly minesConfig: IMinesConfigPort,
+    @Inject(MINES_GAME_REPOSITORY)
+    private readonly minesRepo: IMinesGameRepository,
+    @Inject(MINES_BALANCE_LEDGER)
+    private readonly ledger: IMinesBalanceLedgerPort,
+    @Inject(USER_SEED_REPOSITORY)
+    private readonly seedRepo: IUserSeedRepository,
+    @Inject(BET_EVENT_PUBLISHER)
+    private readonly betPublisher: IBetEventPublisherPort,
     @Inject(MINES_SYSTEM_STATE_PROVIDER)
     private readonly minesSystemState: MinesSystemStateProvider,
     private readonly fairnessService: MinesFairnessDomainService,
@@ -99,11 +104,10 @@ export class CreateMinesGameUseCase
       return Err(new MinesPlayerBannedError());
     }
     if (moderation?.status === 'LIMITED') {
-      if (
-        moderation.maxBetAmount != null &&
-        bet > moderation.maxBetAmount
-      ) {
-        return Err(new MinesBetAboveModerationCapError(moderation.maxBetAmount));
+      if (moderation.maxBetAmount != null && bet > moderation.maxBetAmount) {
+        return Err(
+          new MinesBetAboveModerationCapError(moderation.maxBetAmount),
+        );
       }
       if (
         moderation.maxGamesPerHour != null &&
@@ -146,7 +150,8 @@ export class CreateMinesGameUseCase
     });
 
     if (!betResult.success) {
-      if (betResult.error === 'ACTIVE_GAME_EXISTS') return Err(new ActiveGameExistsError());
+      if (betResult.error === 'ACTIVE_GAME_EXISTS')
+        return Err(new ActiveGameExistsError());
       return Err(new InsufficientBalanceError());
     }
 

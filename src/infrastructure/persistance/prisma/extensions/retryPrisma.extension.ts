@@ -25,7 +25,7 @@ export function makeRetryExtension(prismaService: PrismaService) {
 
               if (err.code && transientErrors.includes(err.code)) {
                 console.warn(
-                  `⚠️ Transient DB error on ${model}.${operation}, retrying (${attempt}/3)...`
+                  `⚠️ Transient DB error on ${model}.${operation}, retrying (${attempt}/3)...`,
                 );
                 await new Promise((res) => setTimeout(res, 500 * attempt));
                 continue;
@@ -36,7 +36,7 @@ export function makeRetryExtension(prismaService: PrismaService) {
                 err.message.includes('Server has closed the connection')
               ) {
                 console.warn(
-                  `⚠️ DB connection closed during ${model}.${operation}, retrying (${attempt}/3)...`
+                  `⚠️ DB connection closed during ${model}.${operation}, retrying (${attempt}/3)...`,
                 );
                 await prismaService.connectWithRetry(); // 👈 Reconnect here
                 continue;

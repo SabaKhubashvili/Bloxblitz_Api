@@ -19,7 +19,8 @@ function buildRakebackQueuePayload(event: BetPlacedEvent): string | null {
   if (!gameType) return null;
   if (!isLost) return null;
   const returnedAmount =
-    typeof event.returnedAmount === 'number' && Number.isFinite(event.returnedAmount)
+    typeof event.returnedAmount === 'number' &&
+    Number.isFinite(event.returnedAmount)
       ? Math.max(0, event.returnedAmount)
       : 0;
 
@@ -48,7 +49,9 @@ export class BetEventPublisher implements IBetEventPublisherPort {
         this.redis.pubClient.publish(BET_PLACED_CHANNEL, pubPayload),
       ];
       if (rakebackPayload) {
-        ops.push(this.redis.lpush(RedisKeys.queue.rakebackWagers(), rakebackPayload));
+        ops.push(
+          this.redis.lpush(RedisKeys.queue.rakebackWagers(), rakebackPayload),
+        );
       } else {
         this.logger.warn(
           `Skipping rakeback queue (need gameId, amount>0, game): user=${event.username} game=${event.game}`,

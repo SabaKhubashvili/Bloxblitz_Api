@@ -55,11 +55,22 @@ export class RedeemKinguinCodeUseCase {
 
   async execute(cmd: RedeemKinguinCodeCommand): Promise<
     | { ok: true; value: RedeemKinguinCodeResult }
-    | { ok: false; error: KinguinCodeNotFoundError | KinguinCodeAlreadyRedeemedError | KinguinCodeDisabledError | KinguinCodeExpiredError | KinguinCodeRedemptionInProgressError }
+    | {
+        ok: false;
+        error:
+          | KinguinCodeNotFoundError
+          | KinguinCodeAlreadyRedeemedError
+          | KinguinCodeDisabledError
+          | KinguinCodeExpiredError
+          | KinguinCodeRedemptionInProgressError;
+      }
   > {
     const codeHash = hashCode(cmd.code.trim());
 
-    const acquired = await this.cache.acquireCodeLock(codeHash, CODE_LOCK_TTL_MS);
+    const acquired = await this.cache.acquireCodeLock(
+      codeHash,
+      CODE_LOCK_TTL_MS,
+    );
     if (!acquired) {
       return Err(new KinguinCodeRedemptionInProgressError());
     }
@@ -75,12 +86,16 @@ export class RedeemKinguinCodeUseCase {
       if (record.status === 'DISABLED') {
         return Err(new KinguinCodeDisabledError());
       }
-      if (record.status === 'EXPIRED' || (record.expiresAt && record.expiresAt < new Date())) {
+      if (
+        record.status === 'EXPIRED' ||
+        (record.expiresAt && record.expiresAt < new Date())
+      ) {
         return Err(new KinguinCodeExpiredError());
       }
 
       const creditsBefore = await this.balance.getBalance(cmd.username);
-      const creditsAfter = Math.round((creditsBefore + record.value) * 100) / 100;
+      const creditsAfter =
+        Math.round((creditsBefore + record.value) * 100) / 100;
 
       await this.codeRepo.redeemCode(record.id, record.batchId, {
         username: cmd.username,

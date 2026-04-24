@@ -33,12 +33,21 @@ export class DiceHistoryCacheAdapter implements IDiceHistoryCachePort {
   ): Promise<DiceHistoryOutputDto | null> {
     try {
       const version = await this.getVersion(username);
-      const key = RedisKeys.cache.diceHistoryPage(username, version, page, limit, order);
+      const key = RedisKeys.cache.diceHistoryPage(
+        username,
+        version,
+        page,
+        limit,
+        order,
+      );
       const raw = await this.redis.mainClient.get(key);
       if (!raw) return null;
       return JSON.parse(raw) as DiceHistoryOutputDto;
     } catch (err) {
-      this.logger.warn(`[DiceHistoryCache] getPage() failed — user=${username}`, err);
+      this.logger.warn(
+        `[DiceHistoryCache] getPage() failed — user=${username}`,
+        err,
+      );
       return null;
     }
   }
@@ -53,19 +62,37 @@ export class DiceHistoryCacheAdapter implements IDiceHistoryCachePort {
   ): Promise<void> {
     try {
       const version = await this.getVersion(username);
-      const key = RedisKeys.cache.diceHistoryPage(username, version, page, limit, order);
-      await this.redis.mainClient.set(key, JSON.stringify(data), { EX: ttlSeconds });
+      const key = RedisKeys.cache.diceHistoryPage(
+        username,
+        version,
+        page,
+        limit,
+        order,
+      );
+      await this.redis.mainClient.set(key, JSON.stringify(data), {
+        EX: ttlSeconds,
+      });
     } catch (err) {
-      this.logger.warn(`[DiceHistoryCache] setPage() failed — user=${username}`, err);
+      this.logger.warn(
+        `[DiceHistoryCache] setPage() failed — user=${username}`,
+        err,
+      );
     }
   }
 
   async invalidate(username: string): Promise<void> {
     try {
-      await this.redis.mainClient.incr(RedisKeys.cache.diceHistoryVersion(username));
-      this.logger.debug(`[DiceHistoryCache] Invalidated history cache — user=${username}`);
+      await this.redis.mainClient.incr(
+        RedisKeys.cache.diceHistoryVersion(username),
+      );
+      this.logger.debug(
+        `[DiceHistoryCache] Invalidated history cache — user=${username}`,
+      );
     } catch (err) {
-      this.logger.warn(`[DiceHistoryCache] invalidate() failed — user=${username}`, err);
+      this.logger.warn(
+        `[DiceHistoryCache] invalidate() failed — user=${username}`,
+        err,
+      );
     }
   }
 }

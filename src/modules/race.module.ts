@@ -21,7 +21,10 @@ import { RaceLeaderboardZsetService } from '../infrastructure/cache/race-leaderb
 import { FinishRaceUseCase } from '../application/race/use-cases/finish-race.use-case';
 import { CreateRaceWithRewardsUseCase } from '../application/race/use-cases/create-race-with-rewards.use-case';
 
-import { RACE_CACHE, RACE_REPOSITORY } from '../application/race/tokens/race.tokens';
+import {
+  RACE_CACHE,
+  RACE_REPOSITORY,
+} from '../application/race/tokens/race.tokens';
 
 import { RaceController } from '../presentation/http/public/race/race.controller';
 import { JwtAuthGuard } from '../shared/guards/jwt-auth.guard';

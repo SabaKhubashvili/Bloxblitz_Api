@@ -1,5 +1,5 @@
 export enum RakebackType {
-  DAILY   = 'DAILY',
-  WEEKLY  = 'WEEKLY',
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
   MONTHLY = 'MONTHLY',
 }

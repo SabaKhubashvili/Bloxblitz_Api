@@ -54,7 +54,9 @@ export class VerifyCaseOpenUseCase {
     const clientSeed = cmd.clientSeed?.trim();
 
     if (!slug || !serverSeed || !clientSeed) {
-      throw new BadRequestException('slug, serverSeed, and clientSeed are required');
+      throw new BadRequestException(
+        'slug, serverSeed, and clientSeed are required',
+      );
     }
     if (!Number.isInteger(cmd.nonce) || cmd.nonce < 0) {
       throw new BadRequestException('nonce must be a non-negative integer');

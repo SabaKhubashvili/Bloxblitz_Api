@@ -21,27 +21,36 @@ import {
 const CLAIM_LOCK_TTL_MS = 5_000;
 
 @Injectable()
-export class ClaimRakebackUseCase
-  implements IUseCase<ClaimRakebackCommand, Result<ClaimResultOutputDto, RakebackError>>
-{
+export class ClaimRakebackUseCase implements IUseCase<
+  ClaimRakebackCommand,
+  Result<ClaimResultOutputDto, RakebackError>
+> {
   private readonly logger = new Logger(ClaimRakebackUseCase.name);
 
   constructor(
-    @Inject(RAKEBACK_REPOSITORY)   private readonly repo: IRakebackRepository,
-    @Inject(RAKEBACK_CACHE_PORT)   private readonly cache: IRakebackCachePort,
-    @Inject(RAKEBACK_BALANCE_PORT) private readonly balance: IRakebackBalancePort,
-    @Inject(TIME_PROVIDER)         private readonly time: ITimeProvider,
+    @Inject(RAKEBACK_REPOSITORY) private readonly repo: IRakebackRepository,
+    @Inject(RAKEBACK_CACHE_PORT) private readonly cache: IRakebackCachePort,
+    @Inject(RAKEBACK_BALANCE_PORT)
+    private readonly balance: IRakebackBalancePort,
+    @Inject(TIME_PROVIDER) private readonly time: ITimeProvider,
   ) {}
 
-  async execute(cmd: ClaimRakebackCommand): Promise<Result<ClaimResultOutputDto, RakebackError>> {
-    const acquired = await this.cache.acquireClaimLock(cmd.username, CLAIM_LOCK_TTL_MS);
+  async execute(
+    cmd: ClaimRakebackCommand,
+  ): Promise<Result<ClaimResultOutputDto, RakebackError>> {
+    const acquired = await this.cache.acquireClaimLock(
+      cmd.username,
+      CLAIM_LOCK_TTL_MS,
+    );
     if (!acquired) return Err(new RakebackClaimInProgressError());
 
     try {
       const rakeback =
         (await this.repo.findByUsername(cmd.username)) ??
         (await this.repo.ensureExists(cmd.username));
-      this.logger.log(`Claiming rakeback for user ${cmd.username} of type ${cmd.type}, ${JSON.stringify(rakeback)}`);
+      this.logger.log(
+        `Claiming rakeback for user ${cmd.username} of type ${cmd.type}, ${JSON.stringify(rakeback)}`,
+      );
 
       const now = this.time.now();
       const balanceBefore = await this.balance.getBalance(cmd.username);
@@ -63,9 +72,11 @@ export class ClaimRakebackUseCase
 
       await this.balance.creditBalance(cmd.username, amount);
 
-      void this.cache.invalidate(cmd.username).catch((err) =>
-        this.logger.warn(`Cache invalidation after claim failed`, err),
-      );
+      void this.cache
+        .invalidate(cmd.username)
+        .catch((err) =>
+          this.logger.warn(`Cache invalidation after claim failed`, err),
+        );
 
       return Ok({
         type: cmd.type,

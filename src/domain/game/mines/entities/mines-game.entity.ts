@@ -38,11 +38,11 @@ export interface CashoutResult {
 }
 
 export enum AvailableGridSizes {
-  "4X4" = 4,
-  "5X5" = 5,
-  "6X6" = 6,
-  "8X8" = 8,
-  "10X10" = 10,
+  '4X4' = 4,
+  '5X5' = 5,
+  '6X6' = 6,
+  '8X8' = 8,
+  '10X10' = 10,
 }
 export class MinesGame {
   readonly id: EntityId;
@@ -119,9 +119,12 @@ export class MinesGame {
   }
 
   revealTile(tileIndex: number): Result<RevealResult, MinesError> {
-    if (this._status !== GameStatus.ACTIVE) return Err(new GameNotActiveError());
-    if (tileIndex < 0 || tileIndex >= this.gridSize) return Err(new InvalidTileIndexError());
-    if (this._revealedTiles.has(tileIndex)) return Err(new TileAlreadyRevealedError());
+    if (this._status !== GameStatus.ACTIVE)
+      return Err(new GameNotActiveError());
+    if (tileIndex < 0 || tileIndex >= this.gridSize)
+      return Err(new InvalidTileIndexError());
+    if (this._revealedTiles.has(tileIndex))
+      return Err(new TileAlreadyRevealedError());
 
     this._revealedTiles = new Set([...this._revealedTiles, tileIndex]);
     const isMine = this.mineMask.hasMineAt(tileIndex);
@@ -134,7 +137,8 @@ export class MinesGame {
   }
 
   cashout(): Result<CashoutResult, MinesError> {
-    if (this._status !== GameStatus.ACTIVE) return Err(new GameNotActiveError());
+    if (this._status !== GameStatus.ACTIVE)
+      return Err(new GameNotActiveError());
     if (this._revealedTiles.size === 0) return Err(new NoTilesRevealedError());
 
     const multiplier = this.calculateMultiplier();

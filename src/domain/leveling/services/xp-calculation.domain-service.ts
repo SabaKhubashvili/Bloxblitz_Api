@@ -17,8 +17,9 @@ export class XpCalculationDomainService {
    */
   static xpRequiredForLevel(level: number): number {
     if (level <= 0) return 0;
-    return LEVELING_CONFIG.XP_BASE * level
-      + LEVELING_CONFIG.XP_SCALE * level * level;
+    return (
+      LEVELING_CONFIG.XP_BASE * level + LEVELING_CONFIG.XP_SCALE * level * level
+    );
   }
 
   /**
@@ -29,7 +30,9 @@ export class XpCalculationDomainService {
     if (totalXp <= 0) return 0;
     const b = LEVELING_CONFIG.XP_BASE;
     const s = LEVELING_CONFIG.XP_SCALE;
-    const rawLevel = Math.floor((-b + Math.sqrt(b * b + 4 * s * totalXp)) / (2 * s));
+    const rawLevel = Math.floor(
+      (-b + Math.sqrt(b * b + 4 * s * totalXp)) / (2 * s),
+    );
     return Math.max(0, Math.min(100, rawLevel));
   }
 
@@ -64,14 +67,14 @@ export class XpCalculationDomainService {
       return { currentLevelXp: overflow, nextLevelXp: 0, progress: 1 };
     }
 
-    const currentFloor   = XpCalculationDomainService.xpRequiredForLevel(level);
-    const nextFloor      = XpCalculationDomainService.xpRequiredForLevel(level + 1);
-    const nextLevelXp    = nextFloor - currentFloor;
+    const currentFloor = XpCalculationDomainService.xpRequiredForLevel(level);
+    const nextFloor = XpCalculationDomainService.xpRequiredForLevel(level + 1);
+    const nextLevelXp = nextFloor - currentFloor;
     // Clamp XP within [0, nextLevelXp] so stale/inflated totalXp never
     // produces a negative gap or an XP value larger than the tier window.
-    const rawProgress    = totalXp - currentFloor;
+    const rawProgress = totalXp - currentFloor;
     const currentLevelXp = Math.max(0, Math.min(rawProgress, nextLevelXp));
-    const progress       = nextLevelXp > 0 ? currentLevelXp / nextLevelXp : 1;
+    const progress = nextLevelXp > 0 ? currentLevelXp / nextLevelXp : 1;
     return { currentLevelXp, nextLevelXp, progress };
   }
 }

@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AffiliateWagerCommissionManager } from '../../../application/user/affiliate/services/affiliate-wager-commission.manager';
 import { InternalMicroserviceSecretGuard } from './guards/internal-microservice-secret.guard';
 import { PostInternalAffiliateWagerCommissionBodyDto } from './dto/post-internal-affiliate-wager-commission.body.dto';

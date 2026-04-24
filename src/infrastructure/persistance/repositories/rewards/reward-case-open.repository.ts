@@ -34,7 +34,10 @@ export class PrismaRewardCaseOpenRepository implements IRewardCaseOpenRepository
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true },
       });
-      if (latestOpen && Date.now() - latestOpen.createdAt.getTime() < cooldownMs) {
+      if (
+        latestOpen &&
+        Date.now() - latestOpen.createdAt.getTime() < cooldownMs
+      ) {
         throw new Error('CASE_GLOBAL_COOLDOWN');
       }
 

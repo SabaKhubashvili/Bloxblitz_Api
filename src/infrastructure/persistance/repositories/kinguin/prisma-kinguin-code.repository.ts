@@ -105,7 +105,12 @@ export class PrismaKinguinCodeRepository implements IKinguinCodeRepository {
   }
 
   async createMany(
-    codes: Array<{ code: string; value: number; expiresAt?: Date; batchId: string }>,
+    codes: Array<{
+      code: string;
+      value: number;
+      expiresAt?: Date;
+      batchId: string;
+    }>,
   ): Promise<void> {
     await this.prisma.kinguinPromoCode.createMany({
       data: codes.map((c) => ({
@@ -126,9 +131,7 @@ export class PrismaKinguinCodeRepository implements IKinguinCodeRepository {
   }): Promise<{ items: KinguinCodeRecord[]; total: number }> {
     const where: Prisma.KinguinPromoCodeWhereInput = {
       batchId: params.batchId,
-      ...(params.status
-        ? { status: params.status as KinguinCodeStatus }
-        : {}),
+      ...(params.status ? { status: params.status as KinguinCodeStatus } : {}),
     };
     const skip = (params.page - 1) * params.limit;
     const [rows, total] = await this.prisma.$transaction([

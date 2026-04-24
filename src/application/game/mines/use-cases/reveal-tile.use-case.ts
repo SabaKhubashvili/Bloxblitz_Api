@@ -31,17 +31,22 @@ import { MinesModerationRedisService } from '../../../../infrastructure/cache/mi
 
 /** Reveal responses include `nextRevealMultiplier` (next gem payout mult) on the output DTO. */
 @Injectable()
-export class RevealTileUseCase
-  implements IUseCase<RevealTileCommand, Result<RevealTileOutputDto, MinesError>>
-{
+export class RevealTileUseCase implements IUseCase<
+  RevealTileCommand,
+  Result<RevealTileOutputDto, MinesError>
+> {
   private readonly logger = new Logger(RevealTileUseCase.name);
 
   constructor(
-    @Inject(MINES_GAME_REPOSITORY)    private readonly minesRepo: IMinesGameRepository,
-    @Inject(MINES_CACHE_PORT)         private readonly minesCache: IMinesCachePort,
-    @Inject(MINES_BALANCE_LEDGER)     private readonly ledger: IMinesBalanceLedgerPort,
-    @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
-    @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
+    @Inject(MINES_GAME_REPOSITORY)
+    private readonly minesRepo: IMinesGameRepository,
+    @Inject(MINES_CACHE_PORT) private readonly minesCache: IMinesCachePort,
+    @Inject(MINES_BALANCE_LEDGER)
+    private readonly ledger: IMinesBalanceLedgerPort,
+    @Inject(MINES_HISTORY_CACHE_PORT)
+    private readonly historyCache: IMinesHistoryCachePort,
+    @Inject(BET_EVENT_PUBLISHER)
+    private readonly betEventPublisher: IBetEventPublisherPort,
     @Inject(MINES_SYSTEM_STATE_PROVIDER)
     private readonly minesSystemState: MinesSystemStateProvider,
     private readonly grantWagerXp: GrantWagerXpUseCase,
@@ -96,33 +101,44 @@ export class RevealTileUseCase
         );
 
         // Game closed (AUTO_WIN) — invalidate history cache.
-        void this.historyCache.invalidate(cmd.username).catch((err) =>
-          this.logger.warn(`[RevealTile] History cache invalidation failed — user=${cmd.username}`, err),
-        );
+        void this.historyCache
+          .invalidate(cmd.username)
+          .catch((err) =>
+            this.logger.warn(
+              `[RevealTile] History cache invalidation failed — user=${cmd.username}`,
+              err,
+            ),
+          );
 
         setImmediate(() => {
-          void this.betEventPublisher.publishBetPlaced({
-            type: 'bet',
-            game: 'mines',
-            gameId: game.id.value,
-            username: cmd.username,
-            profilePicture: game.profilePicture,
-            multiplier: cashoutResult.value.multiplier,
-            amount: game.betAmount.amount,
-            returnedAmount: cashoutResult.value.profit.amount,
-            level: 1,
-            profit: cashoutResult.value.profit.amount,
-            createdAt: Date.now(),
-          });
           const xpAmount = Math.floor(game.betAmount.amount * MINES_XP_RATE);
-          void this.grantWagerXp.execute({
-            username: cmd.username,
-            xpAmount,
-            wager: game.betAmount.amount,
-            gameId: game.id.value,
-            source: XpSource.GAME_WIN,
-            grantContext: 'mines.reveal.auto_win',
-          });
+          this.grantWagerXp
+            .execute({
+              username: cmd.username,
+              xpAmount,
+              wager: game.betAmount.amount,
+              gameId: game.id.value,
+              source: XpSource.GAME_WIN,
+              grantContext: 'mines.reveal.auto_win',
+            })
+            .then((result) => {
+              if (result && !result.ok) {
+                return;
+              }
+              void this.betEventPublisher.publishBetPlaced({
+                type: 'bet',
+                game: 'mines',
+                gameId: game.id.value,
+                username: cmd.username,
+                profilePicture: game.profilePicture,
+                multiplier: cashoutResult.value.multiplier,
+                amount: game.betAmount.amount,
+                returnedAmount: cashoutResult.value.profit.amount,
+                level: result?.value?.currentLevel ?? 1,
+                profit: cashoutResult.value.profit.amount,
+                createdAt: Date.now(),
+              });
+            });
         });
 
         return Ok(MinesGameMapper.toRevealTileOutputDto(game, false));
@@ -141,34 +157,47 @@ export class RevealTileUseCase
       );
 
       setImmediate(() => {
-        void this.betEventPublisher.publishBetPlaced({
-          type: 'bet',
-          game: 'mines',
-          gameId: game.id.value,
-          username: cmd.username,
-          profilePicture: game.profilePicture,
-          multiplier: 0,
-          amount: game.betAmount.amount,
-          returnedAmount: 0,
-          level: 1,
-          profit: -game.betAmount.amount,
-          createdAt: Date.now(),
-        });
         const xpAmount = Math.floor(game.betAmount.amount * MINES_XP_RATE);
-        void this.grantWagerXp.execute({
-          username: cmd.username,
-          xpAmount,
-          wager: game.betAmount.amount,
-          gameId: game.id.value,
-          source: XpSource.GAME_LOSE,
-          grantContext: 'mines.reveal.terminal_lose',
-        });
+        void this.grantWagerXp
+          .execute({
+            username: cmd.username,
+            xpAmount,
+            wager: game.betAmount.amount,
+            gameId: game.id.value,
+            source: XpSource.GAME_LOSE,
+            grantContext: 'mines.reveal.terminal_lose',
+          })
+          .then((result) => {
+            if (result && !result.ok) {
+              return;
+            }
+            void this.betEventPublisher.publishBetPlaced({
+              type: 'bet',
+              game: 'mines',
+              gameId: game.id.value,
+              username: cmd.username,
+              profilePicture: game.profilePicture,
+              multiplier: 0,
+              amount: game.betAmount.amount,
+              returnedAmount: 0,
+              level: result?.value?.currentLevel ?? 1,
+              profit: -game.betAmount.amount,
+              createdAt: Date.now(),
+            });
+          });
       });
-      void this.historyCache.invalidate(cmd.username).catch((err) =>
-        this.logger.warn(`[RevealTile] History cache invalidation failed — user=${cmd.username}`, err),
-      );
+      void this.historyCache
+        .invalidate(cmd.username)
+        .catch((err) =>
+          this.logger.warn(
+            `[RevealTile] History cache invalidation failed — user=${cmd.username}`,
+            err,
+          ),
+        );
     }
 
-    return Ok(MinesGameMapper.toRevealTileOutputDto(game, revealResult.value.isMine));
+    return Ok(
+      MinesGameMapper.toRevealTileOutputDto(game, revealResult.value.isMine),
+    );
   }
 }

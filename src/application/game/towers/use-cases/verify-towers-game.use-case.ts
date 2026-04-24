@@ -29,8 +29,8 @@ export interface VerifyTowersGameOutputDto {
 function rowsEqual(a: number[][], b: number[][]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
-    const ra = [...a[i]!].sort((x, y) => x - y);
-    const rb = [...b[i]!].sort((x, y) => x - y);
+    const ra = [...a[i]].sort((x, y) => x - y);
+    const rb = [...b[i]].sort((x, y) => x - y);
     if (ra.length !== rb.length) return false;
     for (let j = 0; j < ra.length; j++) {
       if (ra[j] !== rb[j]) return false;

@@ -20,13 +20,10 @@ import {
 } from '../ports/affiliate-read-cache.port';
 
 @Injectable()
-export class ClaimReferralEarningsUseCase
-  implements
-    IUseCase<
-      ClaimReferralEarningsCommand,
-      Result<AffiliateClaimOutputDto, ReferralError | UserNotFoundError>
-    >
-{
+export class ClaimReferralEarningsUseCase implements IUseCase<
+  ClaimReferralEarningsCommand,
+  Result<AffiliateClaimOutputDto, ReferralError | UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,
@@ -36,7 +33,9 @@ export class ClaimReferralEarningsUseCase
 
   async execute(
     cmd: ClaimReferralEarningsCommand,
-  ): Promise<Result<AffiliateClaimOutputDto, ReferralError | UserNotFoundError>> {
+  ): Promise<
+    Result<AffiliateClaimOutputDto, ReferralError | UserNotFoundError>
+  > {
     const existsUser = await ensureUserExistsForAffiliate(
       this.affiliateRepo,
       cmd.username,

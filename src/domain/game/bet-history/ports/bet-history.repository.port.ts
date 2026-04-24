@@ -40,5 +40,8 @@ export interface IBetHistoryRepository {
    * requesting user. Returns null if the bet does not exist or the username
    * does not match.
    */
-  findByIdAndUsername(gameId: string, username: string): Promise<BetHistoryRecord | null>;
+  findByIdAndUsername(
+    gameId: string,
+    username: string,
+  ): Promise<BetHistoryRecord | null>;
 }

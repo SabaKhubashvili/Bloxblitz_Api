@@ -51,14 +51,17 @@ export function towersDeriveGemTileIndices(params: {
       i + 1,
     );
     cursor++;
-    const tmp = idx[i]!;
+    const tmp = idx[i];
     idx[i] = idx[j]!;
     idx[j] = tmp;
   }
   return idx.slice(0, gems).sort((a, b) => a - b);
 }
 
-export function towersIsGemPick(gemIndices: number[], tileIndex: number): boolean {
+export function towersIsGemPick(
+  gemIndices: number[],
+  tileIndex: number,
+): boolean {
   return gemIndices.includes(tileIndex);
 }
 

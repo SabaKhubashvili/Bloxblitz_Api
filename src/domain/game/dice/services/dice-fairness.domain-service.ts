@@ -33,12 +33,18 @@ export class DiceFairnessDomainService {
     return Math.round(result * 100) / 100;
   }
 
-  calculateMultiplierUnder(chance: number, houseEdgePercent: number = 1): number {
+  calculateMultiplierUnder(
+    chance: number,
+    houseEdgePercent: number = 1,
+  ): number {
     const effectiveChance = Math.max(0.01, Math.min(99.99, chance));
     return (100 - houseEdgePercent) / effectiveChance;
   }
-  
-  calculateMultiplierOver(chance: number, houseEdgePercent: number = 1): number {
+
+  calculateMultiplierOver(
+    chance: number,
+    houseEdgePercent: number = 1,
+  ): number {
     const effectiveChance = Math.max(0.01, Math.min(99.99, chance));
     return (100 - houseEdgePercent) / effectiveChance;
   }
@@ -46,7 +52,11 @@ export class DiceFairnessDomainService {
   /**
    * Determine if roll wins based on mode
    */
-  isWin(rollResult: number, chance: number, rollMode: 'OVER' | 'UNDER'): boolean {
+  isWin(
+    rollResult: number,
+    chance: number,
+    rollMode: 'OVER' | 'UNDER',
+  ): boolean {
     if (rollMode === 'UNDER') {
       return rollResult < chance;
     }

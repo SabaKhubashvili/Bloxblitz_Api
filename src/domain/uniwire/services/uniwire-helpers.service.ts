@@ -18,5 +18,7 @@ export function getUniwireInvoiceKind(currency: string): UniwireInvoiceKind {
 }
 
 export function isSupportedCurrency(currency: string): boolean {
-  return Object.values(UniwireInvoiceKind).includes(getUniwireInvoiceKind(currency) as UniwireInvoiceKind);
+  return Object.values(UniwireInvoiceKind).includes(
+    getUniwireInvoiceKind(currency),
+  );
 }

@@ -31,7 +31,7 @@ export class InternalMicroserviceSecretGuard implements CanActivate {
 
     if (provided !== expected) {
       throw new NotFoundException(
-        `Cannot ${method.toUpperCase()} to /api/v1/internal/affiliate/wager-commission`
+        `Cannot ${method.toUpperCase()} to /api/v1/internal/affiliate/wager-commission`,
       );
     }
 

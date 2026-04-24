@@ -46,7 +46,10 @@ export class VerifyDiceGameUseCase {
     );
     const won = this.fairness.isWin(rollResult, cmd.chance, cmd.rollMode);
 
-    if (cmd.expectedRollResult != null && Number.isFinite(cmd.expectedRollResult)) {
+    if (
+      cmd.expectedRollResult != null &&
+      Number.isFinite(cmd.expectedRollResult)
+    ) {
       const matches = cmd.expectedRollResult === rollResult;
       if (!matches) {
         return {

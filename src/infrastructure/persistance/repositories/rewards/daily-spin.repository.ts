@@ -23,8 +23,8 @@ function toNumber(d: Prisma.Decimal | number): number {
 
 function toDomain(row: PrismaSpinState): DailySpinState {
   const props: DailySpinStateProps = {
-    id:         row.id,
-    username:   row.userUsername,
+    id: row.id,
+    username: row.userUsername,
     lastSpinAt: row.lastSpinAt,
     nextSpinAt: row.nextSpinAt,
   };
@@ -50,15 +50,18 @@ export class PrismaDailySpinRepository implements IDailySpinRepository {
    * Atomically upserts the spin state and creates a history record inside a
    * single Prisma interactive transaction, preventing partial writes.
    */
-  async saveSpinWithHistory(state: DailySpinState, data: SaveSpinData): Promise<void> {
+  async saveSpinWithHistory(
+    state: DailySpinState,
+    data: SaveSpinData,
+  ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.dailySpinState.upsert({
-        where:  { userUsername: state.username },
+        where: { userUsername: state.username },
         create: {
-          id:          state.id,
+          id: state.id,
           userUsername: state.username,
-          lastSpinAt:  state.lastSpinAt!,
-          nextSpinAt:  state.nextSpinAt!,
+          lastSpinAt: state.lastSpinAt!,
+          nextSpinAt: state.nextSpinAt!,
         },
         update: {
           lastSpinAt: state.lastSpinAt!,
@@ -69,9 +72,9 @@ export class PrismaDailySpinRepository implements IDailySpinRepository {
       await tx.dailySpinHistory.create({
         data: {
           userUsername: state.username,
-          prizeTier:    data.prizeTier,
-          prizeAmount:  data.prizeAmount,
-          prizeLabel:   data.prizeLabel,
+          prizeTier: data.prizeTier,
+          prizeAmount: data.prizeAmount,
+          prizeLabel: data.prizeLabel,
         },
       });
     });
@@ -83,19 +86,19 @@ export class PrismaDailySpinRepository implements IDailySpinRepository {
     limit: number,
   ): Promise<DailySpinHistoryRecord[]> {
     const rows = await this.prisma.dailySpinHistory.findMany({
-      where:   { userUsername: username },
+      where: { userUsername: username },
       orderBy: { createdAt: 'desc' },
-      skip:    (page - 1) * limit,
-      take:    limit,
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     return rows.map((r) => ({
-      id:           r.id,
+      id: r.id,
       userUsername: r.userUsername,
-      prizeTier:    r.prizeTier,
-      prizeAmount:  toNumber(r.prizeAmount),
-      prizeLabel:   r.prizeLabel,
-      createdAt:    r.createdAt,
+      prizeTier: r.prizeTier,
+      prizeAmount: toNumber(r.prizeAmount),
+      prizeLabel: r.prizeLabel,
+      createdAt: r.createdAt,
     }));
   }
 

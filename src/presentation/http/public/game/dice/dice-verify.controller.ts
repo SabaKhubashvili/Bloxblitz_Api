@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseFilters } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseFilters,
+} from '@nestjs/common';
 import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter';
 import { VerifyDiceGameUseCase } from '../../../../../application/game/dice/use-cases/verify-dice-game.use-case';
 import { VerifyDiceHttpDto } from './dto/verify-dice.dto';

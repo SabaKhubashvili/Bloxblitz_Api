@@ -21,9 +21,6 @@ import { CreateMinesHttpDto } from './dto/create-mines-game.dto';
 import { RevealTileHttpDto } from './dto/reveal-mines-tile.dto';
 import { VerifyMinesGameHttpDto } from './dto/verify-mines-game.dto';
 
-
-
-
 @Controller('games/mines')
 @UseGuards(JwtAuthGuard)
 @UseFilters(DomainExceptionFilter)
@@ -38,7 +35,10 @@ export class MinesController {
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateMinesHttpDto) {
+  async create(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateMinesHttpDto,
+  ) {
     const result = await this.createGameUseCase.execute({
       username: user.username,
       profilePicture: user.profilePicture,
@@ -53,7 +53,10 @@ export class MinesController {
 
   @Post('reveal')
   @HttpCode(HttpStatus.OK)
-  async reveal(@CurrentUser() user: JwtPayload, @Body() dto: RevealTileHttpDto) {
+  async reveal(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: RevealTileHttpDto,
+  ) {
     const result = await this.revealTileUseCase.execute({
       username: user.username,
       tileIndex: dto.tileIndex,
@@ -66,7 +69,9 @@ export class MinesController {
   @Post('cashout')
   @HttpCode(HttpStatus.OK)
   async cashout(@CurrentUser() user: JwtPayload) {
-    const result = await this.cashoutUseCase.execute({ username: user.username });
+    const result = await this.cashoutUseCase.execute({
+      username: user.username,
+    });
 
     if (!result.ok) throw result.error;
     return result.value;
@@ -74,7 +79,9 @@ export class MinesController {
 
   @Get('active')
   async getActive(@CurrentUser() user: JwtPayload) {
-    const result = await this.getActiveGameUseCase.execute({ username: user.username });
+    const result = await this.getActiveGameUseCase.execute({
+      username: user.username,
+    });
 
     if (!result.ok) throw result.error;
     return result.value;

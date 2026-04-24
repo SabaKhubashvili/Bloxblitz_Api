@@ -7,4 +7,3 @@ export interface GetMinesHistoryQuery {
   /** Sort direction for `createdAt`. Defaults to `'desc'` (newest first). */
   order: MinesHistorySortOrder;
 }
-

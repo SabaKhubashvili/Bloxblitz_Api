@@ -1,5 +1,5 @@
 export interface TierInfoOutputDto {
-  readonly level:      number;
+  readonly level: number;
   readonly tierNumber: number;
-  readonly tierName:   string;
+  readonly tierName: string;
 }

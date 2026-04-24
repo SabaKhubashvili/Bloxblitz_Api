@@ -18,5 +18,8 @@ export function affiliateReferralsQueryDigest(input: {
 }
 
 export function affiliatePopulateLockToken(parts: string[]): string {
-  return createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 40);
+  return createHash('sha256')
+    .update(parts.join('|'))
+    .digest('hex')
+    .slice(0, 40);
 }

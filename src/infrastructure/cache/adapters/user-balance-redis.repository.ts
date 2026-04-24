@@ -5,6 +5,7 @@ import type {
   DecrementBalanceResult,
   IUserBalanceRepository,
 } from '../../../application/balance/ports/user-balance.repository.port';
+import { PrismaService } from '../../../infrastructure/persistance/prisma/prisma.service';
 
 /**
  * Redis implementation of {@link IUserBalanceRepository}.
@@ -95,7 +96,10 @@ export class UserBalanceRedisRepository implements IUserBalanceRepository {
     return 'OK'
   `;
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(
+    private readonly redis: RedisService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async increment(username: string, amount: number): Promise<void> {
     const rounded = Math.round(amount * 100) / 100;
@@ -130,10 +134,13 @@ export class UserBalanceRedisRepository implements IUserBalanceRepository {
     }
 
     try {
-      const out = await this.redis.eval(UserBalanceRedisRepository.LUA_DECREMENT, {
-        keys: [RedisKeys.user.balance.user(username)],
-        arguments: [rounded.toString(), username],
-      });
+      const out = await this.redis.eval(
+        UserBalanceRedisRepository.LUA_DECREMENT,
+        {
+          keys: [RedisKeys.user.balance.user(username)],
+          arguments: [rounded.toString(), username],
+        },
+      );
 
       const tag = String(out ?? '');
       if (tag === 'OK') {
@@ -150,5 +157,23 @@ export class UserBalanceRedisRepository implements IUserBalanceRepository {
       );
       throw err;
     }
+  }
+  async runDatabaseTransaction(
+    username: string,
+    amount: number,
+  ): Promise<DecrementBalanceResult> {
+    const result = await this.prisma.user.update({
+      where: { username },
+      data: { balance: { decrement: amount } },
+    });
+
+    if (result.balance.toNumber() < 0) {
+      return { ok: false, reason: 'insufficient_funds' };
+    }
+    await this.redis.set(
+      RedisKeys.user.balance.user(username),
+      result.balance.toString(),
+    );
+    return { ok: true };
   }
 }

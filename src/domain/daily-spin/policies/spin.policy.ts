@@ -1,5 +1,5 @@
 import { SpinPrize } from '../value-objects/spin-prize.vo';
-import { SpinTier }  from '../value-objects/spin-tier.vo';
+import { SpinTier } from '../value-objects/spin-tier.vo';
 import {
   SPIN_TIERS,
   SPIN_COOLDOWN_MS,
@@ -18,12 +18,12 @@ import {
  */
 export class SpinPolicy {
   /** Eagerly built once from the externalized config; never mutated. */
-  private static readonly _tiers: readonly SpinTier[] =
-    SpinPolicy.buildTiers();
+  private static readonly _tiers: readonly SpinTier[] = SpinPolicy.buildTiers();
 
   /** Sorted descending by minWager for O(n) tier resolution. */
-  private static readonly _tiersDesc: readonly SpinTier[] =
-    [...SpinPolicy._tiers].sort((a, b) => b.minWager - a.minWager);
+  private static readonly _tiersDesc: readonly SpinTier[] = [
+    ...SpinPolicy._tiers,
+  ].sort((a, b) => b.minWager - a.minWager);
 
   private static buildTiers(): readonly SpinTier[] {
     return SPIN_TIERS.map((cfg: SpinTierConfig) =>

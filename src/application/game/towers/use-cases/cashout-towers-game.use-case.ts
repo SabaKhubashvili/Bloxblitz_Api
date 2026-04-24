@@ -30,10 +30,10 @@ function roundMoney(n: number): number {
 }
 
 @Injectable()
-export class CashoutTowersGameUseCase
-  implements
-    IUseCase<{ username: string }, Result<TowersCashoutResponseDto, TowersError>>
-{
+export class CashoutTowersGameUseCase implements IUseCase<
+  { username: string },
+  Result<TowersCashoutResponseDto, TowersError>
+> {
   private readonly logger = new Logger(CashoutTowersGameUseCase.name);
 
   constructor(
@@ -135,9 +135,7 @@ export class CashoutTowersGameUseCase
     return Ok(boxed.value.dto);
   }
 
-  private async runCashoutLocked(
-    user: string,
-  ): Promise<
+  private async runCashoutLocked(user: string): Promise<
     Result<
       {
         dto: TowersCashoutResponseDto;
@@ -150,7 +148,7 @@ export class CashoutTowersGameUseCase
       TowersError
     >
   > {
-    let entity =
+    const entity =
       (await this.cache.getActiveForUser(user)) ??
       (await this.repo.findActiveByUser(user));
     if (entity) {
@@ -201,6 +199,7 @@ export class CashoutTowersGameUseCase
           towersRowId: entity.id,
           gameHistoryId: entity.gameHistoryId,
           username: user,
+          betAmount: entity.betAmount,
           towersPatch: patch,
           parentStatus: GameStatus.CASHED_OUT,
           netProfit: roundMoney(payout - entity.betAmount),
@@ -214,6 +213,7 @@ export class CashoutTowersGameUseCase
         towersRowId: entity.id,
         gameHistoryId: entity.gameHistoryId,
         username: user,
+        betAmount: entity.betAmount,
         towersPatch: patch,
         parentStatus: GameStatus.CASHED_OUT,
         netProfit: roundMoney(payout - entity.betAmount),

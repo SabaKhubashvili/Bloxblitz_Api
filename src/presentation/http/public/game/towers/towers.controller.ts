@@ -57,7 +57,7 @@ export class TowersController {
   @Get('active')
   @UseGuards(OptionalJwtAuthGuard)
   async active(@Req() req: Request) {
-    const user = req['user'] as JwtPayload | undefined; 
+    const user = req['user'] as JwtPayload | undefined;
     const result = await this.getActiveTowersGame.execute({
       username: user?.username,
     });

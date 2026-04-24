@@ -7,7 +7,9 @@ export class UserLevelVO {
 
   static of(raw: number): UserLevelVO {
     if (!Number.isInteger(raw) || raw < 0 || raw > 100) {
-      throw new RangeError(`User level must be an integer between 0 and 100, got ${raw}`);
+      throw new RangeError(
+        `User level must be an integer between 0 and 100, got ${raw}`,
+      );
     }
     return new UserLevelVO(raw);
   }

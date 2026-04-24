@@ -55,7 +55,7 @@ export class DailySpinBalanceAdapter implements IDailySpinBalancePort {
 
     try {
       await this.redis.eval(lua, {
-        keys:      [RedisKeys.user.balance.user(username)],
+        keys: [RedisKeys.user.balance.user(username)],
         arguments: [rounded.toString(), username],
       });
     } catch (err) {

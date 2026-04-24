@@ -39,7 +39,8 @@ export class CreateRaceHttpDto {
 
 export class WagerOnActiveRaceHttpDto {
   @IsString()
-  @Matches(/^\d+(\.\d+)?$/, { message: 'amount must be a positive decimal string' })
+  @Matches(/^\d+(\.\d+)?$/, {
+    message: 'amount must be a positive decimal string',
+  })
   amount!: string;
 }
-

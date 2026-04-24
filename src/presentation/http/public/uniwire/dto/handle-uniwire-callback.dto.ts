@@ -9,11 +9,15 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { UniwireCallbackStatus, UniwireNetwork } from 'src/domain/uniwire/entities/uniwire.entity';
-
+import {
+  UniwireCallbackStatus,
+  UniwireNetwork,
+} from 'src/domain/uniwire/entities/uniwire.entity';
 
 export class AmountCurrencyDto {
-  @Transform(({ value }) => value !== null && value !== undefined ? String(value) : value)
+  @Transform(({ value }) =>
+    value !== null && value !== undefined ? String(value) : value,
+  )
   @IsString()
   amount: string;
 
@@ -37,7 +41,7 @@ export class InvoiceAmountDto {
   received?: AmountCurrencyDto;
 
   @ValidateNested()
-  @Type(()=> AmountCurrencyDto)
+  @Type(() => AmountCurrencyDto)
   @IsOptional()
   invoiced?: AmountCurrencyDto;
 
@@ -64,7 +68,6 @@ export class TransactionAmountDto {
   @Type(() => TransactionPaidDto)
   paid: TransactionPaidDto;
 }
-
 
 export class TransactionSummaryDto {
   @IsUUID()
@@ -151,7 +154,6 @@ export class InvoiceDto {
   transactions?: TransactionSummaryDto[];
 }
 
-
 export class TransactionDto {
   @IsUUID()
   id: string;
@@ -190,7 +192,7 @@ export class TransactionDto {
   status?: string;
 
   @IsEnum(UniwireNetwork)
-  @IsOptional()     
+  @IsOptional()
   network?: UniwireNetwork;
 
   @IsOptional()

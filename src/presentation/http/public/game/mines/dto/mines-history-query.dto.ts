@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 
 export enum SortOrder {
   DESC = 'desc',
-  ASC  = 'asc',
+  ASC = 'asc',
 }
 
 export class MinesHistoryQueryDto {

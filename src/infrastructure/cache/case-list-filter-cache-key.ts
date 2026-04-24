@@ -6,9 +6,7 @@ const SEARCH_MAX = 160;
 /** Strip control chars; normalize case for stable keys (matches case-insensitive search). */
 export function sanitizeSearchForCacheKey(raw: string): string {
   const t = raw.trim().toLowerCase();
-  return t
-    .replace(/[\u0000-\u001F\u007F]/g, '')
-    .slice(0, SEARCH_MAX);
+  return t.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, SEARCH_MAX);
 }
 
 function roundMoney(n: number): number {

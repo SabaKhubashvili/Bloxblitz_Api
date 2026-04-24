@@ -24,10 +24,10 @@ export class PrismaLevelingRepository implements ILevelingRepository {
 
   async findByUsername(username: string): Promise<LevelProgress | null> {
     const user = await this.prisma.user.findUnique({
-      where:  { username },
+      where: { username },
       select: {
-        username:     true,
-        totalXP:      true,
+        username: true,
+        totalXP: true,
         currentLevel: true,
         xpMultiplier: true,
       },
@@ -36,8 +36,8 @@ export class PrismaLevelingRepository implements ILevelingRepository {
     if (!user) return null;
 
     return LevelProgressMapper.toDomain({
-      username:     user.username,
-      totalXP:      user.totalXP,
+      username: user.username,
+      totalXP: user.totalXP,
       currentLevel: user.currentLevel,
       xpMultiplier: user.xpMultiplier.toNumber(),
     });
@@ -56,9 +56,9 @@ export class PrismaLevelingRepository implements ILevelingRepository {
       await this.prisma.xpEvent.create({
         data: {
           userUsername: event.username,
-          amount:       event.amount,
-          source:       event.source as PrismaXpSource,
-          referenceId:  event.referenceId ?? null,
+          amount: event.amount,
+          source: event.source as PrismaXpSource,
+          referenceId: event.referenceId ?? null,
         },
       });
     } catch (err) {
@@ -75,7 +75,7 @@ export class PrismaLevelingRepository implements ILevelingRepository {
     const result = await this.prisma.xpEvent.aggregate({
       where: {
         userUsername: username,
-        createdAt:   { gte: since },
+        createdAt: { gte: since },
       },
       _sum: { amount: true },
     });
@@ -87,8 +87,8 @@ export class PrismaLevelingRepository implements ILevelingRepository {
   private async persist(levelProgress: LevelProgress): Promise<void> {
     await this.prisma.user.update({
       where: { username: levelProgress.username },
-      data:  {
-        totalXP:      levelProgress.totalXp,
+      data: {
+        totalXP: levelProgress.totalXp,
         currentLevel: levelProgress.currentLevel,
       },
     });

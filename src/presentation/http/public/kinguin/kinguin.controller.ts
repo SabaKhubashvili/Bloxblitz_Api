@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Req, UseGuards, UseFilters } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  UseFilters,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
 import { DomainExceptionFilter } from '../../../../shared/filters/domain-exception.filter';

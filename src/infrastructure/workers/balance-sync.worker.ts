@@ -86,7 +86,7 @@ export class BalanceSyncWorker {
       this.logger.log(`Raw balance: ${JSON.stringify(raw)}`);
       let balance: number;
       try {
-        const parsed = JSON.parse(raw as string) as unknown;
+        const parsed = JSON.parse(raw) as unknown;
         if (typeof parsed === 'number') {
           balance = parsed;
         } else if (
@@ -99,7 +99,7 @@ export class BalanceSyncWorker {
           balance = Number.NaN;
         }
       } catch {
-        const n = parseFloat(raw as string);
+        const n = parseFloat(raw);
         balance = isNaN(n) ? 0 : n;
       }
       if (typeof balance !== 'number' || isNaN(balance)) continue;
@@ -119,10 +119,7 @@ export class BalanceSyncWorker {
             data: { balance },
           })
           .catch((err) =>
-            this.logger.error(
-              `Failed to sync balance for ${username}`,
-              err,
-            ),
+            this.logger.error(`Failed to sync balance for ${username}`, err),
           ),
       ),
     );

@@ -18,9 +18,10 @@ export interface CreateCaseOutputDto {
 }
 
 @Injectable()
-export class CreateCaseUseCase
-  implements IUseCase<CreateCaseCommand, Result<CreateCaseOutputDto, CaseError>>
-{
+export class CreateCaseUseCase implements IUseCase<
+  CreateCaseCommand,
+  Result<CreateCaseOutputDto, CaseError>
+> {
   private readonly logger = new Logger(CreateCaseUseCase.name);
 
   constructor(
@@ -51,9 +52,14 @@ export class CreateCaseUseCase
         items: cmd.items,
       });
 
-      void this.listCache.invalidate().catch((e) =>
-        this.logger.warn('[Cases] list cache invalidate failed after create', e),
-      );
+      void this.listCache
+        .invalidate()
+        .catch((e) =>
+          this.logger.warn(
+            '[Cases] list cache invalidate failed after create',
+            e,
+          ),
+        );
 
       this.logger.log(
         `[Cases] created slug=${cmd.slug} id=${id} by=${cmd.actorUsername}`,

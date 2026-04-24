@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  TOWERS_ALLOWED_LEVELS,
-} from '../../../domain/game/towers/towers.config';
+import { TOWERS_ALLOWED_LEVELS } from '../../../domain/game/towers/towers.config';
 import { TowersDifficulty } from '../../../domain/game/towers/towers.enums';
 import type {
   TowersRuntimeConfig,
@@ -28,11 +26,15 @@ function isPosNum(n: unknown): n is number {
 }
 
 function parseConfig(raw: unknown): TowersRuntimeConfig | null {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw))
+    return null;
   const o = raw as Record<string, unknown>;
   if (!isPosNum(o.minBet) || !isPosNum(o.maxBet)) return null;
   if (o.minBet > o.maxBet) return null;
-  if (!Array.isArray(o.allowedDifficulties) || o.allowedDifficulties.length === 0) {
+  if (
+    !Array.isArray(o.allowedDifficulties) ||
+    o.allowedDifficulties.length === 0
+  ) {
     return null;
   }
   const allowed = new Set(Object.values(TowersDifficulty));
@@ -41,10 +43,9 @@ function parseConfig(raw: unknown): TowersRuntimeConfig | null {
       typeof d === 'string' && allowed.has(d as TowersDifficulty),
   );
   if (diffs.length === 0) return null;
-  if (!Array.isArray(o.allowedLevels) || o.allowedLevels.length === 0) return null;
-  const allowedLevelSet = new Set(
-    TOWERS_ALLOWED_LEVELS as readonly number[],
-  );
+  if (!Array.isArray(o.allowedLevels) || o.allowedLevels.length === 0)
+    return null;
+  const allowedLevelSet = new Set(TOWERS_ALLOWED_LEVELS as readonly number[]);
   const levels = o.allowedLevels
     .filter((x): x is number => typeof x === 'number' && Number.isInteger(x))
     .filter((x) => allowedLevelSet.has(x));

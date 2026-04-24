@@ -32,7 +32,9 @@ export class VerifyCoinflipGameUseCase {
     const nonce = cmd.nonce?.trim();
 
     if (!serverSeed || !eosBlockId || !nonce) {
-      throw new BadRequestException('serverSeed, eosBlockId, and nonce are required');
+      throw new BadRequestException(
+        'serverSeed, eosBlockId, and nonce are required',
+      );
     }
 
     const recomputedHash = this.fairness.computeOutcomeHash(

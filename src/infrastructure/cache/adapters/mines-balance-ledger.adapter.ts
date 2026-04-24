@@ -127,16 +127,23 @@ export class MinesBalanceLedgerAdapter implements IMinesBalanceLedgerPort {
     }
 
     if (!Array.isArray(result)) {
-      this.logger.error(`[Ledger] placeBet unexpected result type for ${username}`);
+      this.logger.error(
+        `[Ledger] placeBet unexpected result type for ${username}`,
+      );
       return { success: false, error: 'REDIS_ERROR' };
     }
 
     if (result[0] === 0) {
       const code = result[1] as string;
-      this.logger.warn(`[Ledger] placeBet rejected — user=${username} reason=${code}`);
+      this.logger.warn(
+        `[Ledger] placeBet rejected — user=${username} reason=${code}`,
+      );
       return {
         success: false,
-        error: code === 'ACTIVE_GAME_EXISTS' ? 'ACTIVE_GAME_EXISTS' : 'INSUFFICIENT_BALANCE',
+        error:
+          code === 'ACTIVE_GAME_EXISTS'
+            ? 'ACTIVE_GAME_EXISTS'
+            : 'INSUFFICIENT_BALANCE',
       };
     }
 

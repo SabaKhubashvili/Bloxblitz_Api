@@ -32,8 +32,8 @@ import { DailySpinHistoryQueryDto } from './dto/daily-spin.http-dto';
 @UseFilters(DomainExceptionFilter)
 export class DailySpinController {
   constructor(
-    private readonly spinDailyWheelUseCase:      SpinDailyWheelUseCase,
-    private readonly getDailySpinStatusUseCase:  GetDailySpinStatusUseCase,
+    private readonly spinDailyWheelUseCase: SpinDailyWheelUseCase,
+    private readonly getDailySpinStatusUseCase: GetDailySpinStatusUseCase,
     private readonly getDailySpinHistoryUseCase: GetDailySpinHistoryUseCase,
   ) {}
 
@@ -46,7 +46,9 @@ export class DailySpinController {
   @Post('spin')
   @HttpCode(HttpStatus.OK)
   async spin(@CurrentUser() user: JwtPayload) {
-    const result = await this.spinDailyWheelUseCase.execute({ username: user.username });
+    const result = await this.spinDailyWheelUseCase.execute({
+      username: user.username,
+    });
     if (!result.ok) throw result.error;
     return result.value;
   }
@@ -59,7 +61,9 @@ export class DailySpinController {
    */
   @Get('status')
   async getStatus(@CurrentUser() user: JwtPayload) {
-    const result = await this.getDailySpinStatusUseCase.execute({ username: user.username });
+    const result = await this.getDailySpinStatusUseCase.execute({
+      username: user.username,
+    });
     if (!result.ok) throw result.error;
     return result.value;
   }
@@ -76,8 +80,8 @@ export class DailySpinController {
   ) {
     const result = await this.getDailySpinHistoryUseCase.execute({
       username: user.username,
-      page:     query.page,
-      limit:    query.limit,
+      page: query.page,
+      limit: query.limit,
     });
     if (!result.ok) throw result.error;
     return result.value;

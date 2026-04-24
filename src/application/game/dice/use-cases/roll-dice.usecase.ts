@@ -113,11 +113,7 @@ export class RollDiceUseCase implements IUseCase<
 
     const moderation = await this.diceModeration.getSnapshot(cmd.username);
     if (moderation?.status === 'BANNED') {
-      return this.reject(
-        cmd,
-        new DicePlayerBannedError(),
-        'player_banned',
-      );
+      return this.reject(cmd, new DicePlayerBannedError(), 'player_banned');
     }
     if (moderation?.status === 'LIMITED' && moderation.maxBetAmount != null) {
       if (bet > moderation.maxBetAmount) {
@@ -129,10 +125,7 @@ export class RollDiceUseCase implements IUseCase<
       }
     }
 
-    if (
-      cmd.chance < config.minChance ||
-      cmd.chance > config.maxChance
-    ) {
+    if (cmd.chance < config.minChance || cmd.chance > config.maxChance) {
       return this.reject(
         cmd,
         new InvalidChanceError(config.minChance, config.maxChance),
@@ -243,9 +236,14 @@ export class RollDiceUseCase implements IUseCase<
       await this.historyRepo.saveBet(betPayload);
     }
 
-    void this.historyCache.invalidate(cmd.username).catch((err) =>
-      this.logger.warn(`[Dice] history cache invalidate failed user=${cmd.username}`, err),
-    );
+    void this.historyCache
+      .invalidate(cmd.username)
+      .catch((err) =>
+        this.logger.warn(
+          `[Dice] history cache invalidate failed user=${cmd.username}`,
+          err,
+        ),
+      );
 
     this.logger.log(
       `[Dice] user=${cmd.username} roll=${rollResult} chance=${cmd.chance} ` +
@@ -291,7 +289,9 @@ export class RollDiceUseCase implements IUseCase<
             gameId: betId,
             profilePicture: cmd.profilePicture ?? '',
             amount: bet,
-            returnedAmount: won ? Math.round(bet * roundedMultiplier * 100) / 100 : 0,
+            returnedAmount: won
+              ? Math.round(bet * roundedMultiplier * 100) / 100
+              : 0,
             level: response?.value?.currentLevel ?? 1,
             multiplier: roundedMultiplier,
             profit: roundedProfit,

@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 const CODE_REGEX = /^[A-Za-z0-9_-]+$/;
 
@@ -12,8 +18,7 @@ export class AffiliateCodeBodyDto {
   @MinLength(3)
   @MaxLength(32)
   @Matches(CODE_REGEX, {
-    message:
-      'code must contain only letters, numbers, underscores, or hyphens',
+    message: 'code must contain only letters, numbers, underscores, or hyphens',
   })
   code!: string;
 }

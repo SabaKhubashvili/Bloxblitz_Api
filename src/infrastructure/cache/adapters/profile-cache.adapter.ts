@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis.service';
 import { RedisKeys } from '../redis.keys';
 import type { IProfileCachePort } from '../../../application/user/profile/ports/profile-cache.port';
-import type { PrivateProfileOutputDto, ProfileOutputDto, PublicProfileOutputDto } from '../../../application/user/profile/dto/profile.output-dto';
+import type {
+  PrivateProfileOutputDto,
+  ProfileOutputDto,
+  PublicProfileOutputDto,
+} from '../../../application/user/profile/dto/profile.output-dto';
 
 @Injectable()
 export class ProfileCacheAdapter implements IProfileCachePort {
@@ -49,23 +53,37 @@ export class ProfileCacheAdapter implements IProfileCachePort {
     try {
       await this.redis.del(key);
     } catch (err) {
-      this.logger.warn(`[ProfileCache] invalidate() failed for ${username}`, err);
+      this.logger.warn(
+        `[ProfileCache] invalidate() failed for ${username}`,
+        err,
+      );
     }
   }
 
-  async getPublic(username: string): Promise<Omit<PublicProfileOutputDto,'isOnline'> | PrivateProfileOutputDto | null> {
+  async getPublic(
+    username: string,
+  ): Promise<
+    Omit<PublicProfileOutputDto, 'isOnline'> | PrivateProfileOutputDto | null
+  > {
     const key = RedisKeys.cache.publicUserProfile(username);
     try {
       const raw = await this.redis.mainClient.get(key);
       if (!raw) return null;
       return JSON.parse(raw) as PublicProfileOutputDto;
     } catch (err) {
-      this.logger.warn(`[ProfileCache] getPublic() failed for ${username}`, err);
+      this.logger.warn(
+        `[ProfileCache] getPublic() failed for ${username}`,
+        err,
+      );
       return null;
     }
   }
 
-  async setPublic(username: string, data: PublicProfileOutputDto | PrivateProfileOutputDto, ttlSeconds?: number): Promise<void> {
+  async setPublic(
+    username: string,
+    data: PublicProfileOutputDto | PrivateProfileOutputDto,
+    ttlSeconds?: number,
+  ): Promise<void> {
     const key = RedisKeys.cache.publicUserProfile(username);
     try {
       const payload = JSON.stringify(data);
@@ -75,7 +93,10 @@ export class ProfileCacheAdapter implements IProfileCachePort {
         await this.redis.mainClient.set(key, payload);
       }
     } catch (err) {
-      this.logger.warn(`[ProfileCache] setPublic() failed for ${username}`, err);
+      this.logger.warn(
+        `[ProfileCache] setPublic() failed for ${username}`,
+        err,
+      );
     }
   }
 
@@ -84,7 +105,10 @@ export class ProfileCacheAdapter implements IProfileCachePort {
     try {
       await this.redis.del(key);
     } catch (err) {
-      this.logger.warn(`[ProfileCache] invalidatePublic() failed for ${username}`, err);
+      this.logger.warn(
+        `[ProfileCache] invalidatePublic() failed for ${username}`,
+        err,
+      );
     }
   }
 
@@ -95,7 +119,10 @@ export class ProfileCacheAdapter implements IProfileCachePort {
       if (!raw) return null;
       return JSON.parse(raw) as boolean;
     } catch (err) {
-      this.logger.warn(`[ProfileCache] getOnlineStatus() failed for ${username}`, err);
+      this.logger.warn(
+        `[ProfileCache] getOnlineStatus() failed for ${username}`,
+        err,
+      );
       return null;
     }
   }

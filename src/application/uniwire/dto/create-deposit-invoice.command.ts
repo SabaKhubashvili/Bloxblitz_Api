@@ -1,5 +1,5 @@
-import { AvailableCryptos } from "@prisma/client";
-import { UniwireInvoiceKind } from "src/domain/uniwire/ports/uniwire-api.ports";
+import { AvailableCryptos } from '@prisma/client';
+import { UniwireInvoiceKind } from 'src/domain/uniwire/ports/uniwire-api.ports';
 
 export interface CreateDepositInvoiceCommand {
   readonly username: string;

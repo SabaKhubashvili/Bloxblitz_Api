@@ -8,38 +8,52 @@ import {
   UserNotFoundError,
   type UserError,
 } from '../../../../domain/user/errors/user.errors';
-import { PROFILE_REPOSITORY, PROFILE_CACHE_PORT } from '../tokens/profile.tokens';
+import {
+  PROFILE_REPOSITORY,
+  PROFILE_CACHE_PORT,
+} from '../tokens/profile.tokens';
 import { XpCalculationDomainService } from '../../../../domain/leveling/services/xp-calculation.domain-service';
 import { GetProfileQuery } from '../dto/get-profile.query';
-import { PrivateProfileOutputDto, PublicProfileOutputDto } from '../dto/profile.output-dto';
+import {
+  PrivateProfileOutputDto,
+  PublicProfileOutputDto,
+} from '../dto/profile.output-dto';
 import { UserRoles } from '@prisma/client';
 
 const CACHE_TTL_SECONDS = 60;
 
 @Injectable()
-export class GetPublicProfileUseCase
-  implements IUseCase<GetProfileQuery, Result<PublicProfileOutputDto | PrivateProfileOutputDto, UserError>>
-{
+export class GetPublicProfileUseCase implements IUseCase<
+  GetProfileQuery,
+  Result<PublicProfileOutputDto | PrivateProfileOutputDto, UserError>
+> {
   private readonly logger = new Logger(GetPublicProfileUseCase.name);
 
   constructor(
-    @Inject(PROFILE_REPOSITORY) private readonly profileRepo: IProfileRepository,
-    @Inject(PROFILE_CACHE_PORT) private readonly profileCache: IProfileCachePort,
-
+    @Inject(PROFILE_REPOSITORY)
+    private readonly profileRepo: IProfileRepository,
+    @Inject(PROFILE_CACHE_PORT)
+    private readonly profileCache: IProfileCachePort,
   ) {}
 
   async execute(
     query: GetProfileQuery,
-  ): Promise<Result<PublicProfileOutputDto | PrivateProfileOutputDto, UserError>> {
-    const onlineStatus = await this.profileCache.getOnlineStatus(query.username);
+  ): Promise<
+    Result<PublicProfileOutputDto | PrivateProfileOutputDto, UserError>
+  > {
+    const onlineStatus = await this.profileCache.getOnlineStatus(
+      query.username,
+    );
     if (onlineStatus !== null) {
-      this.logger.debug(`[GetPublicProfile] Online status for ${query.username}: ${onlineStatus}`);
+      this.logger.debug(
+        `[GetPublicProfile] Online status for ${query.username}: ${onlineStatus}`,
+      );
     }
     try {
       const cached = await this.profileCache.getPublic(query.username);
       if (cached !== null) {
         this.logger.debug(`[GetPublicProfile] Cache hit for ${query.username}`);
-        return Ok({...cached, isOnline: onlineStatus ?? false});
+        return Ok({ ...cached, isOnline: onlineStatus ?? false });
       }
     } catch (cacheErr) {
       this.logger.warn(
@@ -57,39 +71,50 @@ export class GetPublicProfileUseCase
       return Err(new UserNotFoundError(query.username));
     }
 
-    const { nextLevelXp, progress, currentLevelXp } = XpCalculationDomainService.xpProgressInLevel(
-      record.totalXP,
-      record.currentLevel,
-    );
+    const { nextLevelXp, progress, currentLevelXp } =
+      XpCalculationDomainService.xpProgressInLevel(
+        record.totalXP,
+        record.currentLevel,
+      );
 
-    const dto: Omit<PublicProfileOutputDto,'isOnline'> | PrivateProfileOutputDto = record.settings?.privateProfile ? {
-      privateProfile: true,
-      username: record.username,
-      profile_picture: record.profile_picture,
-      currentLevel: record.currentLevel,
-      totalXP: record.totalXP,
-      progressPercentage: progress,
-      xpNeededForNextLevel: nextLevelXp,
-    } : {
-      id: record.id,
-      username: record.username,
-      role: UserRoles.MEMBER,
-      profile_picture: record.profile_picture,
-      created_at: record.created_at.toISOString(),
-      statistics: {
-        totalWagered: record.statistics?.totalWagered.toNumber() || 0,
-        totalGamesWon: record.statistics?.totalGamesWon || 0,
-        biggestWin: record.statistics?.biggestWin.toNumber() || 0,
-        totalGamesPlayed: record.statistics?.totalGamesPlayed || 0,
-      },
-      currentLevel: record.currentLevel,
-      totalXP: currentLevelXp,
-      progressPercentage: progress,
-      xpNeededForNextLevel: nextLevelXp,
-      leaderboardRank,
-      winRate: record.statistics?.totalGamesWon ? ((record.statistics?.totalGamesWon / record.statistics?.totalGamesPlayed * 100)).toFixed(2) : "0",
-      privateProfile: false,
-    };
+    const dto:
+      | Omit<PublicProfileOutputDto, 'isOnline'>
+      | PrivateProfileOutputDto = record.settings?.privateProfile
+      ? {
+          privateProfile: true,
+          username: record.username,
+          profile_picture: record.profile_picture,
+          currentLevel: record.currentLevel,
+          totalXP: record.totalXP,
+          progressPercentage: progress,
+          xpNeededForNextLevel: nextLevelXp,
+        }
+      : {
+          id: record.id,
+          username: record.username,
+          role: UserRoles.MEMBER,
+          profile_picture: record.profile_picture,
+          created_at: record.created_at.toISOString(),
+          statistics: {
+            totalWagered: record.statistics?.totalWagered.toNumber() || 0,
+            totalGamesWon: record.statistics?.totalGamesWon || 0,
+            biggestWin: record.statistics?.biggestWin.toNumber() || 0,
+            totalGamesPlayed: record.statistics?.totalGamesPlayed || 0,
+          },
+          currentLevel: record.currentLevel,
+          totalXP: currentLevelXp,
+          progressPercentage: progress,
+          xpNeededForNextLevel: nextLevelXp,
+          leaderboardRank,
+          winRate: record.statistics?.totalGamesWon
+            ? (
+                (record.statistics?.totalGamesWon /
+                  record.statistics?.totalGamesPlayed) *
+                100
+              ).toFixed(2)
+            : '0',
+          privateProfile: false,
+        };
 
     void this.profileCache
       .setPublic(query.username, dto, CACHE_TTL_SECONDS)
@@ -100,6 +125,11 @@ export class GetPublicProfileUseCase
         ),
       );
 
-    return Ok({...dto, isOnline: record.settings?.privateProfile ? false : (onlineStatus ?? false)});
+    return Ok({
+      ...dto,
+      isOnline: record.settings?.privateProfile
+        ? false
+        : (onlineStatus ?? false),
+    });
   }
 }

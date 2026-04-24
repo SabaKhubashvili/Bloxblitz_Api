@@ -113,7 +113,9 @@ export function mapTowersPrismaToEntity(
 export class TowersGameRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findActiveByUser(userUsername: string): Promise<TowersGameEntity | null> {
+  async findActiveByUser(
+    userUsername: string,
+  ): Promise<TowersGameEntity | null> {
     const user = userUsername.toLowerCase();
     const row = await this.prisma.towersGameHistory.findFirst({
       where: {
@@ -317,7 +319,10 @@ export class TowersGameRepository {
             ? { currentMultiplier: params.towersPatch.currentMultiplier }
             : {}),
           ...(params.towersPatch.picks !== undefined
-            ? { picks: params.towersPatch.picks as unknown as Prisma.InputJsonValue }
+            ? {
+                picks: params.towersPatch
+                  .picks as unknown as Prisma.InputJsonValue,
+              }
             : {}),
         },
       });

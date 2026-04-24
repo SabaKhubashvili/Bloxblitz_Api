@@ -16,7 +16,9 @@ describe('rakeback-loss-accrual.policy', () => {
     });
 
     it('accepts at threshold', () => {
-      expect(isEligibleRakebackWager(RAKEBACK_ANTI_ABUSE.MIN_RAKEBACK_BET)).toBe(true);
+      expect(
+        isEligibleRakebackWager(RAKEBACK_ANTI_ABUSE.MIN_RAKEBACK_BET),
+      ).toBe(true);
     });
   });
 
@@ -65,7 +67,9 @@ describe('rakeback-loss-accrual.policy', () => {
 
   describe('clampEligibleIncrement', () => {
     it('caps huge values', () => {
-      expect(clampEligibleIncrement(1e12)).toBe(RAKEBACK_ANTI_ABUSE.MAX_ELIGIBLE_INCREMENT);
+      expect(clampEligibleIncrement(1e12)).toBe(
+        RAKEBACK_ANTI_ABUSE.MAX_ELIGIBLE_INCREMENT,
+      );
     });
   });
 

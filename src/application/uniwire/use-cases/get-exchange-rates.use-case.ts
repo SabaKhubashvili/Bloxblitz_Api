@@ -3,7 +3,10 @@ import { Ok, Err } from '../../../domain/shared/types/result.type';
 import { UNIWIRE_API_PORT } from '../tokens/uniwire.tokens';
 import type { IUniwireApiPort } from '../../../domain/uniwire/ports/uniwire-api.ports';
 import type { UniwireExchangeRate } from '../../../domain/uniwire/entities/uniwire.entity';
-import { UniwireApiError, UniwireExchangeRateUnavailableError } from '../../../domain/uniwire/errors/uniwire.errors';
+import {
+  UniwireApiError,
+  UniwireExchangeRateUnavailableError,
+} from '../../../domain/uniwire/errors/uniwire.errors';
 
 export type GetExchangeRatesResult =
   | { ok: true; value: readonly UniwireExchangeRate[] }

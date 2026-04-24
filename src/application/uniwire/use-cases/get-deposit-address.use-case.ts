@@ -1,12 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Ok, Err } from '../../../domain/shared/types/result.type';
 import { UNIWIRE_API_PORT, UNIWIRE_REPOSITORY } from '../tokens/uniwire.tokens';
-import type { IUniwireApiPort, UniwireInvoiceKind } from '../../../domain/uniwire/ports/uniwire-api.ports';
+import type {
+  IUniwireApiPort,
+  UniwireInvoiceKind,
+} from '../../../domain/uniwire/ports/uniwire-api.ports';
 import type { IUniwireRepository } from '../../../domain/uniwire/ports/uniwire.repository.port';
 import type { GetDepositAddressQuery } from '../dto/get-deposit-address.query';
-import type {
-  UniwireInvoiceResult,
-} from '../../../domain/uniwire/entities/uniwire.entity';
+import type { UniwireInvoiceResult } from '../../../domain/uniwire/entities/uniwire.entity';
 import {
   UniwireApiError,
   UniwireAddressNotFoundError,
@@ -42,13 +43,17 @@ export class GetDepositAddressUseCase {
       query.currency,
     );
     if (invoice) {
-      const recentTransactions = await this.repo.getRecentTransactions(query.username, this.currencyToCrypto(query.currency), 4);
+      const recentTransactions = await this.repo.getRecentTransactions(
+        query.username,
+        this.currencyToCrypto(query.currency),
+        4,
+      );
       return {
         ok: true,
         value: {
           currency: this.currencyToCrypto(query.currency),
           address: invoice.address,
-          recentTransactions
+          recentTransactions,
         },
       };
     }
@@ -58,7 +63,7 @@ export class GetDepositAddressUseCase {
         this.currencyToCrypto(query.currency),
         { currency: query.currency, username: query.username },
       );
-      
+
       if (!result?.address || !result?.invoiceId) {
         return Err(new UniwireAddressNotFoundError());
       }
@@ -67,16 +72,16 @@ export class GetDepositAddressUseCase {
         invoiceId: result.invoiceId,
         profileId: result.profileId ?? '',
         currency: this.currencyToCrypto(query.currency),
-        kind: getUniwireInvoiceKind(query.currency) as UniwireInvoiceKind,
+        kind: getUniwireInvoiceKind(query.currency),
         address: result.address,
-        lastUsedAt: new Date()
+        lastUsedAt: new Date(),
       });
 
       return Ok({
         currency: this.currencyToCrypto(query.currency),
         address: result.address,
         network: result.network,
-        recentTransactions: []
+        recentTransactions: [],
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

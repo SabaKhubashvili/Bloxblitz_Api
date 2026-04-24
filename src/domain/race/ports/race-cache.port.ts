@@ -23,9 +23,10 @@ export interface IRaceCachePort {
    * Redis-only snapshot for minimal race status. Returns null when the key is absent.
    * When present, DTO is re-validated against embedded window/status (no DB).
    */
-  getRaceStatusSnapshot(): Promise<
-    { isActive: boolean; totalPrizePool: number } | null
-  >;
+  getRaceStatusSnapshot(): Promise<{
+    isActive: boolean;
+    totalPrizePool: number;
+  } | null>;
 
   setRaceStatusRecord(
     record: RaceStatusCacheRecord,

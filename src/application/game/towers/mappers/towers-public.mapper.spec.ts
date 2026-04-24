@@ -20,7 +20,9 @@ const FORBIDDEN_REVEAL_KEYS = [
   'nonce',
 ] as const;
 
-function minimalEntity(overrides: Partial<TowersGameEntity> = {}): TowersGameEntity {
+function minimalEntity(
+  overrides: Partial<TowersGameEntity> = {},
+): TowersGameEntity {
   const rowConfigs = [{ tiles: 3, gems: 2 }];
   return {
     id: 'row-1',

@@ -28,7 +28,11 @@ export class KinguinBalanceAdapter implements IKinguinBalancePort {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as number;
-        if (typeof parsed === 'number' && Number.isFinite(parsed) && parsed >= 0) {
+        if (
+          typeof parsed === 'number' &&
+          Number.isFinite(parsed) &&
+          parsed >= 0
+        ) {
           return parsed;
         }
       } catch {
@@ -52,7 +56,7 @@ export class KinguinBalanceAdapter implements IKinguinBalancePort {
       : 0;
   }
 
-  async creditBalance(username: string, amount: number): Promise<void> {
+  async creditBalance(username: string, amount: number): Promise<number> {
     const roundedAmount = Math.round(amount * 100) / 100;
     const key = RedisKeys.user.balance.user(username);
 
@@ -78,6 +82,7 @@ export class KinguinBalanceAdapter implements IKinguinBalancePort {
       );
     }
 
+    let newBal = 0;
     const lua = `
       local balanceKey = KEYS[1]
       local credit     = tonumber(ARGV[1])
@@ -100,9 +105,11 @@ export class KinguinBalanceAdapter implements IKinguinBalancePort {
       redis.call('SADD', 'user:balance:dirty', username)
       return tostring(newBal)
     `;
-    await this.redis.eval(lua, {
+    const result = await this.redis.eval(lua, {
       keys: [key],
       arguments: [roundedAmount.toString(), username],
     });
+    newBal = Number(result);
+    return Math.round(newBal * 100) / 100;
   }
 }

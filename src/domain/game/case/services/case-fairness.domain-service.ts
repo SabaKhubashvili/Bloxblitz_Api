@@ -42,6 +42,6 @@ export class CaseFairnessDomainService {
       acc += row.weight;
       if (ticket < acc) return row.id;
     }
-    return sorted[sorted.length - 1]!.id;
+    return sorted[sorted.length - 1].id;
   }
 }

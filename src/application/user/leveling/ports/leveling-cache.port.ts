@@ -2,6 +2,10 @@ import type { LevelProgress } from '../../../../domain/leveling/entities/level-p
 
 export interface ILevelingCachePort {
   getUserLevel(username: string): Promise<LevelProgress | null>;
-  setUserLevel(username: string, levelProgress: LevelProgress, ttlSeconds?: number): Promise<void>;
+  setUserLevel(
+    username: string,
+    levelProgress: LevelProgress,
+    ttlSeconds?: number,
+  ): Promise<void>;
   invalidateUserLevel(username: string): Promise<void>;
 }

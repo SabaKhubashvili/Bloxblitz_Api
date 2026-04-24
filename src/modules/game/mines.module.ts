@@ -49,18 +49,13 @@ import { MinesHistoryController } from '../../presentation/http/public/game/mine
 
 // Shared guards
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard }   from '../../shared/guards/roles.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
 import { ProvablyFairModule } from '../user/provably-fair.module';
 import { RaceModule } from '../race.module';
 
 @Module({
-  imports: [
-    AuthModule,
-    LevelingModule,
-    ProvablyFairModule,
-    RaceModule,
-  ],
+  imports: [AuthModule, LevelingModule, ProvablyFairModule, RaceModule],
   controllers: [MinesController, MinesHistoryController],
   providers: [
     // Use cases — game flow
@@ -83,19 +78,22 @@ import { RaceModule } from '../race.module';
     RolesGuard,
 
     // Port bindings — game flow
-    { provide: MINES_CONFIG_PORT,       useClass: MinesConfigRedisAdapter },
+    { provide: MINES_CONFIG_PORT, useClass: MinesConfigRedisAdapter },
     {
       provide: MINES_SYSTEM_STATE_PROVIDER,
       useClass: MinesSystemStateRedisAdapter,
     },
     { provide: MINES_GAME_REPOSITORY, useClass: MinesGameRepository },
-    { provide: MINES_CACHE_PORT,      useClass: MinesGameStateCacheAdapter },
-    { provide: MINES_BALANCE_LEDGER,  useClass: MinesBalanceLedgerAdapter },
-    { provide: BET_EVENT_PUBLISHER,   useClass: BetEventPublisher },
-    { provide: USER_SEED_REPOSITORY,  useClass: UserSeedRepository },
+    { provide: MINES_CACHE_PORT, useClass: MinesGameStateCacheAdapter },
+    { provide: MINES_BALANCE_LEDGER, useClass: MinesBalanceLedgerAdapter },
+    { provide: BET_EVENT_PUBLISHER, useClass: BetEventPublisher },
+    { provide: USER_SEED_REPOSITORY, useClass: UserSeedRepository },
 
     // Port bindings — history
-    { provide: MINES_HISTORY_REPOSITORY, useClass: PrismaMinesHistoryRepository },
+    {
+      provide: MINES_HISTORY_REPOSITORY,
+      useClass: PrismaMinesHistoryRepository,
+    },
     { provide: MINES_HISTORY_CACHE_PORT, useClass: MinesHistoryCacheAdapter },
   ],
   exports: [

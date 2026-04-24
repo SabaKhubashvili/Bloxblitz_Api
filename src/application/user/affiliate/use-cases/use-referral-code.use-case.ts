@@ -23,13 +23,10 @@ import {
 const REFERRAL_USE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
 
 @Injectable()
-export class UseReferralCodeUseCase
-  implements
-    IUseCase<
-      UseReferralCodeCommand,
-      Result<UsedReferralCodeOutputDto, ReferralError | UserNotFoundError>
-    >
-{
+export class UseReferralCodeUseCase implements IUseCase<
+  UseReferralCodeCommand,
+  Result<UsedReferralCodeOutputDto, ReferralError | UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,
@@ -39,7 +36,9 @@ export class UseReferralCodeUseCase
 
   async execute(
     cmd: UseReferralCodeCommand,
-  ): Promise<Result<UsedReferralCodeOutputDto, ReferralError | UserNotFoundError>> {
+  ): Promise<
+    Result<UsedReferralCodeOutputDto, ReferralError | UserNotFoundError>
+  > {
     const normalized = normalizeReferralCode(cmd.code);
     if (!normalized.ok) return normalized;
 
@@ -48,10 +47,7 @@ export class UseReferralCodeUseCase
     const selfReferral = await this.affiliateRepo.findReferralByOwnerUsername(
       cmd.username,
     );
-    if (
-      selfReferral &&
-      selfReferral.referralCode.toLowerCase() === codeToUse
-    ) {
+    if (selfReferral && selfReferral.referralCode.toLowerCase() === codeToUse) {
       return Err(new ReferralSelfReferralError());
     }
 

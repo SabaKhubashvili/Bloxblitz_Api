@@ -57,10 +57,7 @@ export class RewardCasesCacheAdapter implements IRewardCasesCachePort {
         ttlMs,
       );
     } catch (err) {
-      this.logger.warn(
-        '[RewardCasesCache] acquireDefinitionsLock failed',
-        err,
-      );
+      this.logger.warn('[RewardCasesCache] acquireDefinitionsLock failed', err);
       return false;
     }
   }
@@ -69,10 +66,7 @@ export class RewardCasesCacheAdapter implements IRewardCasesCachePort {
     try {
       await this.redis.unlock(RedisKeys.rewardCases.definitionsLock());
     } catch (err) {
-      this.logger.warn(
-        '[RewardCasesCache] releaseDefinitionsLock failed',
-        err,
-      );
+      this.logger.warn('[RewardCasesCache] releaseDefinitionsLock failed', err);
     }
   }
 

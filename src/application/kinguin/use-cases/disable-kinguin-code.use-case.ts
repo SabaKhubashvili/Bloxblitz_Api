@@ -20,7 +20,9 @@ export class DisableKinguinCodeUseCase {
     private readonly codeRepo: IKinguinCodeRepository,
   ) {}
 
-  async execute(cmd: DisableKinguinCodeCommand): Promise<
+  async execute(
+    cmd: DisableKinguinCodeCommand,
+  ): Promise<
     | { ok: true; value: undefined }
     | { ok: false; error: KinguinCodeNotFoundError }
   > {

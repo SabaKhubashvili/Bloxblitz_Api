@@ -28,7 +28,11 @@ export class RakebackBalanceAdapter implements IRakebackBalancePort {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as unknown;
-        if (typeof parsed === 'number' && Number.isFinite(parsed) && parsed >= 0) {
+        if (
+          typeof parsed === 'number' &&
+          Number.isFinite(parsed) &&
+          parsed >= 0
+        ) {
           return Math.round(parsed * 100) / 100;
         }
       } catch {

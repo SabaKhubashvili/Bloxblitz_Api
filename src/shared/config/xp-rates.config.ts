@@ -72,11 +72,11 @@ export const GAME_XP_RATES = {
 } as const satisfies Record<string, GameXpRate>;
 
 /** Convenience accessor — avoids magic strings at call sites. */
-export const MINES_XP_RATE  = GAME_XP_RATES.MINES.xpPerCoin;
-export const DICE_XP_RATE   = GAME_XP_RATES.DICE.xpPerCoin;
-export const CRASH_XP_RATE  = GAME_XP_RATES.CRASH.xpPerCoin;
+export const MINES_XP_RATE = GAME_XP_RATES.MINES.xpPerCoin;
+export const DICE_XP_RATE = GAME_XP_RATES.DICE.xpPerCoin;
+export const CRASH_XP_RATE = GAME_XP_RATES.CRASH.xpPerCoin;
 export const COINFLIP_XP_RATE = GAME_XP_RATES.COINFLIP.xpPerCoin;
-export const CASE_XP_RATE     = GAME_XP_RATES.CASE.xpPerCoin;
+export const CASE_XP_RATE = GAME_XP_RATES.CASE.xpPerCoin;
 export const ROULETTE_XP_RATE = GAME_XP_RATES.ROULETTE.xpPerCoin;
 export const TOWERS_XP_RATE = GAME_XP_RATES.TOWERS.xpPerCoin;
 

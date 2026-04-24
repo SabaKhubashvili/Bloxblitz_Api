@@ -31,11 +31,13 @@ export class BalanceCacheAdapter implements IBalanceCachePort {
       const raw = await this.redis.mainClient.get(key);
       if (!raw) return null;
 
-      const parsed = JSON.parse(raw) as number
+      const parsed = JSON.parse(raw) as number;
       console.log(parsed);
-      
+
       if (
-        typeof parsed !== 'number' || !Number.isFinite(parsed) || parsed < 0
+        typeof parsed !== 'number' ||
+        !Number.isFinite(parsed) ||
+        parsed < 0
       ) {
         this.logger.warn(
           `[BalanceCache] Malformed cache entry for ${username}, evicting`,
@@ -62,7 +64,11 @@ export class BalanceCacheAdapter implements IBalanceCachePort {
 
       const parsed = JSON.parse(raw) as number;
 
-      if (typeof parsed !== 'number' || !Number.isFinite(parsed) || parsed < 0) {
+      if (
+        typeof parsed !== 'number' ||
+        !Number.isFinite(parsed) ||
+        parsed < 0
+      ) {
         this.logger.warn(
           `[BalanceCache] Malformed pet value cache for ${username}, evicting`,
         );

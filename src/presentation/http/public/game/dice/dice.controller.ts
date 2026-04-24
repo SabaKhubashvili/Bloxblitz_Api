@@ -30,9 +30,10 @@ export class DiceController {
   @Post('roll')
   @HttpCode(HttpStatus.OK)
   async roll(@CurrentUser() user: JwtPayload, @Body() dto: RollDiceHttpDto) {
-    const rollMode = typeof dto.rollMode === 'string'
-      ? (dto.rollMode.toUpperCase() as 'OVER' | 'UNDER')
-      : dto.rollMode;
+    const rollMode =
+      typeof dto.rollMode === 'string'
+        ? (dto.rollMode.toUpperCase() as 'OVER' | 'UNDER')
+        : dto.rollMode;
 
     const result = await this.rollDiceUseCase.execute({
       username: user.username,

@@ -21,9 +21,7 @@ function parseHashEnabled(raw: string | undefined): boolean {
 }
 
 @Injectable()
-export class RouletteAdminWagerGateRedisAdapter
-  implements RouletteAdminWagerGateProvider
-{
+export class RouletteAdminWagerGateRedisAdapter implements RouletteAdminWagerGateProvider {
   private readonly log = new Logger(RouletteAdminWagerGateRedisAdapter.name);
   private readonly key = RedisKeys.roulette.adminConfigHash();
   private cache: { state: RouletteAdminWagerGateState; at: number } | null =

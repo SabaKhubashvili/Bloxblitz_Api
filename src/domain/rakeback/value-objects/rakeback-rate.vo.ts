@@ -22,21 +22,21 @@
  */
 
 const TIER_RATES: readonly number[] = [
-  0.0030, // Iron         0–9
-  0.0040, // Bronze      10–19
-  0.0050, // Silver      20–29
-  0.0060, // Gold        30–39
+  0.003, // Iron         0–9
+  0.004, // Bronze      10–19
+  0.005, // Silver      20–29
+  0.006, // Gold        30–39
   0.0075, // Amethyst    40–49
-  0.0090, // Sapphire    50–59
-  0.0110, // Emerald     60–69
+  0.009, // Sapphire    50–59
+  0.011, // Emerald     60–69
   0.0135, // Topaz       70–79
   0.0165, // Spinel      80–89
-  0.0200, // Alexandrite 90+
+  0.02, // Alexandrite 90+
 ];
 
-const DAILY_SPLIT   = 0.50;
-const WEEKLY_SPLIT  = 0.30;
-const MONTHLY_SPLIT = 0.20;
+const DAILY_SPLIT = 0.5;
+const WEEKLY_SPLIT = 0.3;
+const MONTHLY_SPLIT = 0.2;
 
 export class RakebackRates {
   private constructor(
@@ -47,7 +47,10 @@ export class RakebackRates {
 
   /** Returns tier-scaled rates for the given user level (0–100). */
   static forLevel(level: number): RakebackRates {
-    const tierIndex = Math.min(Math.floor(Math.max(level, 0) / 10), TIER_RATES.length - 1);
+    const tierIndex = Math.min(
+      Math.floor(Math.max(level, 0) / 10),
+      TIER_RATES.length - 1,
+    );
     const total = TIER_RATES[tierIndex];
     return new RakebackRates(
       total * DAILY_SPLIT,

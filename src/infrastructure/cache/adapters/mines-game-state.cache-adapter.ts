@@ -42,7 +42,10 @@ export class MinesGameStateCacheAdapter implements IMinesCachePort {
     return this.redis.get<RawGameState>(gameKey(gameId));
   }
 
-  async updateGame(gameId: string, updates: Record<string, unknown>): Promise<void> {
+  async updateGame(
+    gameId: string,
+    updates: Record<string, unknown>,
+  ): Promise<void> {
     const key = gameKey(gameId);
     const current = await this.redis.get<RawGameState>(key);
     if (!current) return;

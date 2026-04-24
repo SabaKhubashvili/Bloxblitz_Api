@@ -2,7 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IRaceRepository } from '../../../domain/race/ports/race.repository.port';
 import type { IRaceCachePort } from '../../../domain/race/ports/race-cache.port';
 import type { RaceLeaderboardEntry } from '../../../domain/race/ports/race.repository.port';
-import { RACE_REPOSITORY, RACE_CACHE, RACE_CACHE_TTL } from '../tokens/race.tokens';
+import {
+  RACE_REPOSITORY,
+  RACE_CACHE,
+  RACE_CACHE_TTL,
+} from '../tokens/race.tokens';
 
 @Injectable()
 export class GetLeaderboardUseCase {
@@ -29,11 +33,7 @@ export class GetLeaderboardUseCase {
     const rows = await this.raceRepository.findLeaderboardTop(raceId, limit);
 
     if (limit === 10 && rows.length >= 0) {
-      await this.raceCache.setTop10(
-        raceId,
-        rows,
-        RACE_CACHE_TTL.top10Sec,
-      );
+      await this.raceCache.setTop10(raceId, rows, RACE_CACHE_TTL.top10Sec);
     }
 
     return rows;

@@ -19,9 +19,7 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { AuthModule } from '../auth.module';
 
 @Module({
-  imports: [
-    AuthModule,
-  ],
+  imports: [AuthModule],
   controllers: [BetHistoryController],
   providers: [
     // Use cases
@@ -34,9 +32,6 @@ import { AuthModule } from '../auth.module';
     // Port bindings
     { provide: BET_HISTORY_REPOSITORY, useClass: PrismaBetHistoryRepository },
   ],
-  exports: [
-    GetUserBetHistoryUseCase,
-    GetBetByIdUseCase,
-  ],
+  exports: [GetUserBetHistoryUseCase, GetBetByIdUseCase],
 })
 export class BetHistoryModule {}

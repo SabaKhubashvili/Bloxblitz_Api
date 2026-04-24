@@ -54,7 +54,9 @@ export class TowersPersistenceError extends DomainError {
 /** No provably-fair seed row (same semantics as Mines/Dice user seed guard). */
 export class TowersUserSeedNotFoundError extends DomainError {
   readonly code = 'TOWERS_USER_SEED_NOT_FOUND';
-  constructor(message = 'User fairness seeds not found. Open Provably Fair to initialize.') {
+  constructor(
+    message = 'User fairness seeds not found. Open Provably Fair to initialize.',
+  ) {
     super(message);
   }
 }
@@ -69,7 +71,9 @@ export class TowersNewGamesDisabledError extends DomainError {
 /** Roulette admin `gameEnabled` is off (hash `roulette:admin:config`). */
 export class TowersRouletteGameDisabledError extends DomainError {
   readonly code = 'TOWERS_ROULETTE_GAME_DISABLED';
-  constructor(message = 'Roulette is disabled. New Towers games are not available.') {
+  constructor(
+    message = 'Roulette is disabled. New Towers games are not available.',
+  ) {
     super(message);
   }
 }

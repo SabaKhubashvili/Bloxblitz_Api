@@ -188,27 +188,32 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
   private resolveHttpStatus(error: DomainError): HttpStatus {
     // ── User errors ───────────────────────────────────────────────────────────
-    if (error instanceof UserNotFoundError)  return HttpStatus.NOT_FOUND;
-    if (error instanceof BalanceFetchError)  return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof UserNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof BalanceFetchError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Mines errors ──────────────────────────────────────────────────────────
-    if (error instanceof InsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
-    if (error instanceof ActiveGameExistsError)    return HttpStatus.CONFLICT;
-    if (error instanceof GameNotFoundError)        return HttpStatus.NOT_FOUND;
-    if (error instanceof UserSeedNotFoundError)    return HttpStatus.NOT_FOUND;
-    if (error instanceof GameNotActiveError)       return HttpStatus.CONFLICT;
-    if (error instanceof MinesRoundNotFoundError)  return HttpStatus.NOT_FOUND;
-    if (error instanceof MinesHistoryFetchError)   return HttpStatus.INTERNAL_SERVER_ERROR;
-    if (error instanceof MinesPlayerBannedError)   return HttpStatus.FORBIDDEN;
+    if (error instanceof InsufficientBalanceError)
+      return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof ActiveGameExistsError) return HttpStatus.CONFLICT;
+    if (error instanceof GameNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof UserSeedNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof GameNotActiveError) return HttpStatus.CONFLICT;
+    if (error instanceof MinesRoundNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof MinesHistoryFetchError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof MinesPlayerBannedError) return HttpStatus.FORBIDDEN;
     if (error instanceof NewGamesDisabledError) return HttpStatus.FORBIDDEN;
-    if (error instanceof MinesPausedError)       return HttpStatus.LOCKED;
+    if (error instanceof MinesPausedError) return HttpStatus.LOCKED;
 
     // ── Dice errors ─────────────────────────────────────────────────────────────
-    if (error instanceof DiceInsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
-    if (error instanceof DiceUserSeedNotFoundError)    return HttpStatus.NOT_FOUND;
-    if (error instanceof DiceHistoryFetchError)       return HttpStatus.INTERNAL_SERVER_ERROR;
-    if (error instanceof DicePlayerBannedError)        return HttpStatus.FORBIDDEN;
-    if (error instanceof DiceBettingDisabledError)    return HttpStatus.FORBIDDEN;
+    if (error instanceof DiceInsufficientBalanceError)
+      return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof DiceUserSeedNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof DiceHistoryFetchError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof DicePlayerBannedError) return HttpStatus.FORBIDDEN;
+    if (error instanceof DiceBettingDisabledError) return HttpStatus.FORBIDDEN;
     if (
       error instanceof DiceInvalidChanceError ||
       error instanceof InvalidBetAmountError ||
@@ -221,10 +226,10 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return HttpStatus.BAD_REQUEST;
     }
     if (
-      error instanceof InvalidMineCountError   ||
-      error instanceof InvalidTileIndexError   ||
+      error instanceof InvalidMineCountError ||
+      error instanceof InvalidTileIndexError ||
       error instanceof TileAlreadyRevealedError ||
-      error instanceof NoTilesRevealedError     ||
+      error instanceof NoTilesRevealedError ||
       error instanceof MinesInvalidBetAmountError ||
       error instanceof MinesBetBelowMinimumError ||
       error instanceof MinesBetAboveMaximumError ||
@@ -236,52 +241,71 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
     // ── Leveling errors ───────────────────────────────────────────────────────
     if (error instanceof LevelingUserNotFoundError) return HttpStatus.NOT_FOUND;
-    if (error instanceof InvalidXpAmountError)      return HttpStatus.BAD_REQUEST;
-    if (error instanceof InvalidLevelError)         return HttpStatus.BAD_REQUEST;
-    if (error instanceof LevelingPersistenceError)  return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof InvalidXpAmountError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidLevelError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof LevelingPersistenceError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Rakeback errors ─────────────────────────────────────────────────────
-    if (error instanceof RakebackNotFoundError)        return HttpStatus.NOT_FOUND;
-    if (error instanceof ZeroRakebackBalanceError)     return HttpStatus.BAD_REQUEST;
-    if (error instanceof RakebackNotUnlockedError)     return HttpStatus.FORBIDDEN;
-    if (error instanceof RakebackWindowClosedError)    return HttpStatus.FORBIDDEN;
-    if (error instanceof RakebackAlreadyClaimedError)  return HttpStatus.CONFLICT;
-    if (error instanceof RakebackClaimInProgressError) return HttpStatus.CONFLICT;
-    if (error instanceof RakebackAccumulationError)    return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof RakebackNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof ZeroRakebackBalanceError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof RakebackNotUnlockedError) return HttpStatus.FORBIDDEN;
+    if (error instanceof RakebackWindowClosedError) return HttpStatus.FORBIDDEN;
+    if (error instanceof RakebackAlreadyClaimedError)
+      return HttpStatus.CONFLICT;
+    if (error instanceof RakebackClaimInProgressError)
+      return HttpStatus.CONFLICT;
+    if (error instanceof RakebackAccumulationError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Kinguin errors ─────────────────────────────────────────────────────
-    if (error instanceof KinguinCodeNotFoundError)           return HttpStatus.NOT_FOUND;
-    if (error instanceof KinguinCodeAlreadyRedeemedError)   return HttpStatus.BAD_REQUEST;
-    if (error instanceof KinguinCodeExpiredError)           return HttpStatus.BAD_REQUEST;
-    if (error instanceof KinguinCodeDisabledError)          return HttpStatus.BAD_REQUEST;
-    if (error instanceof KinguinCodeRedemptionInProgressError) return HttpStatus.CONFLICT;
+    if (error instanceof KinguinCodeNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof KinguinCodeAlreadyRedeemedError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeExpiredError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeDisabledError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof KinguinCodeRedemptionInProgressError)
+      return HttpStatus.CONFLICT;
 
     // ── Uniwire errors ─────────────────────────────────────────────────────
-    if (error instanceof UniwireProfileNotFoundError)     return HttpStatus.NOT_FOUND;
-    if (error instanceof UniwirePayoutNotFoundError)       return HttpStatus.NOT_FOUND;
-    if (error instanceof UniwireTransactionNotFoundError)  return HttpStatus.NOT_FOUND;
-    if (error instanceof UniwireAddressNotFoundError)      return HttpStatus.NOT_FOUND;
-    if (error instanceof UniwirePayoutFailedError)        return HttpStatus.BAD_REQUEST;
-    if (error instanceof UniwireTransactionNotConfirmedError) return HttpStatus.BAD_REQUEST;
-    if (error instanceof UniwireExchangeRateUnavailableError) return HttpStatus.SERVICE_UNAVAILABLE;
-    if (error instanceof UniwireApiError)                  return HttpStatus.BAD_GATEWAY;
+    if (error instanceof UniwireProfileNotFoundError)
+      return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwirePayoutNotFoundError)
+      return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwireTransactionNotFoundError)
+      return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwireAddressNotFoundError)
+      return HttpStatus.NOT_FOUND;
+    if (error instanceof UniwirePayoutFailedError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof UniwireTransactionNotConfirmedError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof UniwireExchangeRateUnavailableError)
+      return HttpStatus.SERVICE_UNAVAILABLE;
+    if (error instanceof UniwireApiError) return HttpStatus.BAD_GATEWAY;
 
     // ── Provably Fair errors ───────────────────────────────────────────────────
-    if (error instanceof ProvablyFairNotFoundError)         return HttpStatus.NOT_FOUND;
-    if (error instanceof RotateClientSeedFailedError)       return HttpStatus.BAD_REQUEST;
+    if (error instanceof ProvablyFairNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof RotateClientSeedFailedError)
+      return HttpStatus.BAD_REQUEST;
 
     // ── Cases ─────────────────────────────────────────────────────────────────
-    if (error instanceof CaseNotFoundError)            return HttpStatus.NOT_FOUND;
-    if (error instanceof CaseInactiveError)            return HttpStatus.FORBIDDEN;
-    if (error instanceof CaseEmptyPoolError)           return HttpStatus.CONFLICT;
-    if (error instanceof CaseInsufficientBalanceError) return HttpStatus.PAYMENT_REQUIRED;
-    if (error instanceof CaseUserSeedNotFoundError)   return HttpStatus.NOT_FOUND;
-    if (error instanceof CaseInvalidQuantityError)     return HttpStatus.BAD_REQUEST;
-    if (error instanceof CasePersistenceError)       return HttpStatus.INTERNAL_SERVER_ERROR;
-    if (error instanceof CaseSlugTakenError)          return HttpStatus.CONFLICT;
-    if (error instanceof CaseUnknownPetsError)        return HttpStatus.BAD_REQUEST;
-    if (error instanceof CaseInvalidItemsError)       return HttpStatus.BAD_REQUEST;
-    if (error instanceof CaseCooldownError)           return HttpStatus.TOO_MANY_REQUESTS;
+    if (error instanceof CaseNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof CaseInactiveError) return HttpStatus.FORBIDDEN;
+    if (error instanceof CaseEmptyPoolError) return HttpStatus.CONFLICT;
+    if (error instanceof CaseInsufficientBalanceError)
+      return HttpStatus.PAYMENT_REQUIRED;
+    if (error instanceof CaseUserSeedNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof CaseInvalidQuantityError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof CasePersistenceError)
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    if (error instanceof CaseSlugTakenError) return HttpStatus.CONFLICT;
+    if (error instanceof CaseUnknownPetsError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof CaseInvalidItemsError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof CaseCooldownError) return HttpStatus.TOO_MANY_REQUESTS;
 
     // ── Towers ──────────────────────────────────────────────────────────────────
     if (error instanceof TowersInsufficientBalanceError)
@@ -307,23 +331,30 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return HttpStatus.INTERNAL_SERVER_ERROR;
 
     // ── Race ────────────────────────────────────────────────────────────────────
-    if (error instanceof RaceNotFoundError)          return HttpStatus.NOT_FOUND;
-    if (error instanceof RaceNotActiveError)         return HttpStatus.CONFLICT;
-    if (error instanceof RaceAlreadyFinishedError)   return HttpStatus.CONFLICT;
-    if (error instanceof InvalidRaceWagerError)      return HttpStatus.BAD_REQUEST;
-    if (error instanceof InvalidRaceRewardsError)    return HttpStatus.BAD_REQUEST;
-    if (error instanceof InvalidRaceTimeRangeError)  return HttpStatus.BAD_REQUEST;
-    if (error instanceof RaceTimeOverlapError)       return HttpStatus.CONFLICT;
+    if (error instanceof RaceNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof RaceNotActiveError) return HttpStatus.CONFLICT;
+    if (error instanceof RaceAlreadyFinishedError) return HttpStatus.CONFLICT;
+    if (error instanceof InvalidRaceWagerError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidRaceRewardsError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof InvalidRaceTimeRangeError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof RaceTimeOverlapError) return HttpStatus.CONFLICT;
 
     // ── Referral / affiliate ───────────────────────────────────────────────────
-    if (error instanceof ReferralCodeNotFoundError)       return HttpStatus.NOT_FOUND;
-    if (error instanceof ReferralUseCooldownError)        return HttpStatus.TOO_MANY_REQUESTS;
-    if (error instanceof ReferralSelfReferralError)      return HttpStatus.BAD_REQUEST;
-    if (error instanceof ReferralAlreadyCreatedError)    return HttpStatus.CONFLICT;
-    if (error instanceof ReferralCodeTakenError)       return HttpStatus.CONFLICT;
-    if (error instanceof ReferralNothingToClaimError)    return HttpStatus.BAD_REQUEST;
-    if (error instanceof ReferralBelowMinimumClaimError) return HttpStatus.BAD_REQUEST;
-    if (error instanceof ReferralInvalidCodeFormatError) return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralCodeNotFoundError) return HttpStatus.NOT_FOUND;
+    if (error instanceof ReferralUseCooldownError)
+      return HttpStatus.TOO_MANY_REQUESTS;
+    if (error instanceof ReferralSelfReferralError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralAlreadyCreatedError)
+      return HttpStatus.CONFLICT;
+    if (error instanceof ReferralCodeTakenError) return HttpStatus.CONFLICT;
+    if (error instanceof ReferralNothingToClaimError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralBelowMinimumClaimError)
+      return HttpStatus.BAD_REQUEST;
+    if (error instanceof ReferralInvalidCodeFormatError)
+      return HttpStatus.BAD_REQUEST;
 
     // ── Fallback ──────────────────────────────────────────────────────────────
     return HttpStatus.INTERNAL_SERVER_ERROR;

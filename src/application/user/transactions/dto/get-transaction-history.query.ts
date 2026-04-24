@@ -1,4 +1,4 @@
-import { TransactionHistorySortOrder } from "src/domain/user/ports/transaction-history.repository.port";
+import { TransactionHistorySortOrder } from 'src/domain/user/ports/transaction-history.repository.port';
 
 /**
  * Internal use-case input for fetching a paginated transaction history.
@@ -9,7 +9,7 @@ export interface GetTransactionHistoryQuery {
   /** Authenticated user — injected from JWT, never from the request body. */
   readonly username: string;
 
-  readonly page:  number;
+  readonly page: number;
   readonly limit: number;
 
   /** Sort direction for `createdAt`. Defaults to `'desc'` (newest first). */

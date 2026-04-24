@@ -9,7 +9,10 @@ import {
   UserNotFoundError,
   type UserError,
 } from '../../../../domain/user/errors/user.errors';
-import { PROFILE_REPOSITORY, PROFILE_CACHE_PORT } from '../tokens/profile.tokens';
+import {
+  PROFILE_REPOSITORY,
+  PROFILE_CACHE_PORT,
+} from '../tokens/profile.tokens';
 import { XpCalculationDomainService } from '../../../../domain/leveling/services/xp-calculation.domain-service';
 
 const CACHE_TTL_SECONDS = 60;
@@ -17,14 +20,17 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 @Injectable()
-export class GetProfileUseCase
-  implements IUseCase<GetProfileQuery, Result<ProfileOutputDto, UserError>>
-{
+export class GetProfileUseCase implements IUseCase<
+  GetProfileQuery,
+  Result<ProfileOutputDto, UserError>
+> {
   private readonly logger = new Logger(GetProfileUseCase.name);
 
   constructor(
-    @Inject(PROFILE_REPOSITORY) private readonly profileRepo: IProfileRepository,
-    @Inject(PROFILE_CACHE_PORT) private readonly profileCache: IProfileCachePort,
+    @Inject(PROFILE_REPOSITORY)
+    private readonly profileRepo: IProfileRepository,
+    @Inject(PROFILE_CACHE_PORT)
+    private readonly profileCache: IProfileCachePort,
   ) {}
 
   async execute(
@@ -50,14 +56,21 @@ export class GetProfileUseCase
 
     const now = Date.now();
     const [wagerLast7Days, wagerLast30Days] = await Promise.all([
-      this.profileRepo.sumWagerSince(query.username, new Date(now - SEVEN_DAYS_MS)),
-      this.profileRepo.sumWagerSince(query.username, new Date(now - THIRTY_DAYS_MS)),
+      this.profileRepo.sumWagerSince(
+        query.username,
+        new Date(now - SEVEN_DAYS_MS),
+      ),
+      this.profileRepo.sumWagerSince(
+        query.username,
+        new Date(now - THIRTY_DAYS_MS),
+      ),
     ]);
 
-    const { nextLevelXp, progress } = XpCalculationDomainService.xpProgressInLevel(
-      record.totalXP,
-      record.currentLevel,
-    );
+    const { nextLevelXp, progress } =
+      XpCalculationDomainService.xpProgressInLevel(
+        record.totalXP,
+        record.currentLevel,
+      );
 
     const dto: ProfileOutputDto = {
       id: record.id,

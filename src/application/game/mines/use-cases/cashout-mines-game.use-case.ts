@@ -30,17 +30,22 @@ import { IncrementRaceWagerUseCase } from '../../../race/use-cases/increment-rac
 import { MinesModerationRedisService } from '../../../../infrastructure/cache/mines-moderation.redis.service';
 
 @Injectable()
-export class CashoutMinesGameUseCase
-  implements IUseCase<CashoutMinesGameCommand, Result<CashoutOutputDto, MinesError>>
-{
+export class CashoutMinesGameUseCase implements IUseCase<
+  CashoutMinesGameCommand,
+  Result<CashoutOutputDto, MinesError>
+> {
   private readonly logger = new Logger(CashoutMinesGameUseCase.name);
 
   constructor(
-    @Inject(MINES_GAME_REPOSITORY)    private readonly minesRepo: IMinesGameRepository,
-    @Inject(MINES_CACHE_PORT)         private readonly minesCache: IMinesCachePort,
-    @Inject(MINES_BALANCE_LEDGER)     private readonly ledger: IMinesBalanceLedgerPort,
-    @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
-    @Inject(BET_EVENT_PUBLISHER) private readonly betEventPublisher: IBetEventPublisherPort,
+    @Inject(MINES_GAME_REPOSITORY)
+    private readonly minesRepo: IMinesGameRepository,
+    @Inject(MINES_CACHE_PORT) private readonly minesCache: IMinesCachePort,
+    @Inject(MINES_BALANCE_LEDGER)
+    private readonly ledger: IMinesBalanceLedgerPort,
+    @Inject(MINES_HISTORY_CACHE_PORT)
+    private readonly historyCache: IMinesHistoryCachePort,
+    @Inject(BET_EVENT_PUBLISHER)
+    private readonly betEventPublisher: IBetEventPublisherPort,
     @Inject(MINES_SYSTEM_STATE_PROVIDER)
     private readonly minesSystemState: MinesSystemStateProvider,
     private readonly grantWagerXp: GrantWagerXpUseCase,
@@ -48,7 +53,9 @@ export class CashoutMinesGameUseCase
     private readonly minesModeration: MinesModerationRedisService,
   ) {}
 
-  async execute(cmd: CashoutMinesGameCommand): Promise<Result<CashoutOutputDto, MinesError>> {
+  async execute(
+    cmd: CashoutMinesGameCommand,
+  ): Promise<Result<CashoutOutputDto, MinesError>> {
     if (await this.minesSystemState.isPaused()) {
       this.logger.warn(
         {
@@ -69,7 +76,8 @@ export class CashoutMinesGameUseCase
 
     // Credit winnings FIRST — if this throws the game remains active so the
     // user can retry.  Only after a successful credit do we close the game.
-    const grossPayout = Math.round(cashoutResult.value.profit.amount * 100) / 100;
+    const grossPayout =
+      Math.round(cashoutResult.value.profit.amount * 100) / 100;
     if (grossPayout < 0.01) {
       this.logger.warn(
         `[Cashout] negligible payout — user=${cmd.username} game=${game.id.value} gross=${grossPayout}`,
@@ -99,9 +107,14 @@ export class CashoutMinesGameUseCase
     }
 
     // Invalidate history cache so the next history request reflects this round.
-    void this.historyCache.invalidate(cmd.username).catch((err) =>
-      this.logger.warn(`[Cashout] History cache invalidation failed — user=${cmd.username}`, err),
-    );
+    void this.historyCache
+      .invalidate(cmd.username)
+      .catch((err) =>
+        this.logger.warn(
+          `[Cashout] History cache invalidation failed — user=${cmd.username}`,
+          err,
+        ),
+      );
 
     // Rakeback + XP: fire-and-forget; rakeback must not depend on XP success.
     setImmediate(() => {
@@ -135,6 +148,11 @@ export class CashoutMinesGameUseCase
         });
     });
 
-    return Ok(MinesGameMapper.toCashoutOutputDto(game, cashoutResult.value.profit.amount));
+    return Ok(
+      MinesGameMapper.toCashoutOutputDto(
+        game,
+        cashoutResult.value.profit.amount,
+      ),
+    );
   }
 }

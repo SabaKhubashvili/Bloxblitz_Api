@@ -1,6 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { IUseCase } from '../../../../shared/use-case.interface';
-import { Result, Ok, Err } from '../../../../../domain/shared/types/result.type';
+import {
+  Result,
+  Ok,
+  Err,
+} from '../../../../../domain/shared/types/result.type';
 import { Money } from '../../../../../domain/shared/value-objects/money.vo';
 import type { IBalanceRepository } from '../../../../../domain/user/ports/balance.repository.port';
 import type { IBalanceCachePort } from '../../ports/balance-cache.port';
@@ -11,7 +15,10 @@ import {
   BalanceFetchError,
   type UserError,
 } from '../../../../../domain/user/errors/user.errors';
-import { BALANCE_REPOSITORY, BALANCE_CACHE_PORT } from '../../../tokens/user.tokens';
+import {
+  BALANCE_REPOSITORY,
+  BALANCE_CACHE_PORT,
+} from '../../../tokens/user.tokens';
 
 /**
  * How long (seconds) the read-through cache entry lives.
@@ -25,14 +32,17 @@ import { BALANCE_REPOSITORY, BALANCE_CACHE_PORT } from '../../../tokens/user.tok
  */
 
 @Injectable()
-export class GetBalanceUseCase
-  implements IUseCase<GetBalanceCommand, Result<GetBalanceOutputDto, UserError>>
-{
+export class GetBalanceUseCase implements IUseCase<
+  GetBalanceCommand,
+  Result<GetBalanceOutputDto, UserError>
+> {
   private readonly logger = new Logger(GetBalanceUseCase.name);
 
   constructor(
-    @Inject(BALANCE_REPOSITORY) private readonly balanceRepo: IBalanceRepository,
-    @Inject(BALANCE_CACHE_PORT) private readonly balanceCache: IBalanceCachePort,
+    @Inject(BALANCE_REPOSITORY)
+    private readonly balanceRepo: IBalanceRepository,
+    @Inject(BALANCE_CACHE_PORT)
+    private readonly balanceCache: IBalanceCachePort,
   ) {}
 
   async execute(
@@ -45,7 +55,9 @@ export class GetBalanceUseCase
     // On a hit we return immediately — zero DB or game-engine Redis queries.
     try {
       const cachedUserBalance = await this.balanceCache.get(cmd.username);
-      const cachedPetValueBalance = await this.balanceCache.getPetValueBalance(cmd.username);
+      const cachedPetValueBalance = await this.balanceCache.getPetValueBalance(
+        cmd.username,
+      );
       userBalance = cachedUserBalance?.balance ?? null;
       petValueBalance = cachedPetValueBalance?.petValueBalance ?? null;
 
@@ -66,7 +78,9 @@ export class GetBalanceUseCase
     // balance key ("user:balance:{u}"), then falls back to PostgreSQL.
     // This ensures we always serve the freshest value without touching the DB
     // when the user has been active recently.
-    let record: Awaited<ReturnType<IBalanceRepository['findBalanceByUsername']>>;
+    let record: Awaited<
+      ReturnType<IBalanceRepository['findBalanceByUsername']>
+    >;
 
     try {
       record = await this.balanceRepo.findBalanceByUsername(cmd.username);
@@ -107,10 +121,10 @@ export class GetBalanceUseCase
     // ── Step 4: Populate cache (fire-and-forget) ────────────────────────────
     // We do NOT await this — a cache write failure must never block the response.
     void this.balanceCache
-    .set(
-        cmd.username,
-        { balance: balance.amount, petValueBalance: petValueBalanceVo.amount },
-      )
+      .set(cmd.username, {
+        balance: balance.amount,
+        petValueBalance: petValueBalanceVo.amount,
+      })
       .catch((err) =>
         this.logger.warn(
           `[GetBalance] Cache write failed for ${cmd.username}, ` +

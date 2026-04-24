@@ -48,9 +48,9 @@ export interface TransactionHistoryItemOutputDto {
  * Paginated wrapper returned by GET /user/transactions.
  */
 export interface TransactionHistoryOutputDto {
-  readonly items:      TransactionHistoryItemOutputDto[];
-  readonly total:      number;
-  readonly page:       number;
-  readonly limit:      number;
+  readonly items: TransactionHistoryItemOutputDto[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
   readonly totalPages: number;
 }

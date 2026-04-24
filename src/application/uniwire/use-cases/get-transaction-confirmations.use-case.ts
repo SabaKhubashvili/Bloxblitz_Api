@@ -20,12 +20,16 @@ export class GetTransactionConfirmationsUseCase {
     private readonly api: IUniwireApiPort,
   ) {}
 
-  async execute(cmd: GetTransactionConfirmationsCommand): Promise<GetTransactionConfirmationsResult> {
+  async execute(
+    cmd: GetTransactionConfirmationsCommand,
+  ): Promise<GetTransactionConfirmationsResult> {
     if (!cmd.transactionIds?.length) {
       return Ok([]);
     }
     try {
-      const confirmations = await this.api.getTransactionConfirmations(cmd.transactionIds);
+      const confirmations = await this.api.getTransactionConfirmations(
+        cmd.transactionIds,
+      );
       return Ok(confirmations ?? []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

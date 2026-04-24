@@ -1,6 +1,6 @@
 import { Result, Ok, Err } from '../../shared/types/result.type';
 import { SpinPrize } from '../value-objects/spin-prize.vo';
-import { SpinTier }  from '../value-objects/spin-tier.vo';
+import { SpinTier } from '../value-objects/spin-tier.vo';
 import { SpinPolicy } from '../policies/spin.policy';
 import {
   DailySpinLockedError,
@@ -42,8 +42,8 @@ export class DailySpinState {
   nextSpinAt: Date | null;
 
   private constructor(props: DailySpinStateProps) {
-    this.id        = props.id;
-    this.username  = props.username;
+    this.id = props.id;
+    this.username = props.username;
     this.lastSpinAt = props.lastSpinAt;
     this.nextSpinAt = props.nextSpinAt;
   }
@@ -82,11 +82,15 @@ export class DailySpinState {
     }
 
     if (SpinPolicy.isCooldownActive(this.lastSpinAt, now)) {
-      return Err(new DailySpinCooldownActiveError(SpinPolicy.nextSpinAt(this.lastSpinAt!)));
+      return Err(
+        new DailySpinCooldownActiveError(
+          SpinPolicy.nextSpinAt(this.lastSpinAt!),
+        ),
+      );
     }
 
-    const tier       = SpinPolicy.resolveTier(wager30d);
-    const prize      = SpinPolicy.selectPrize(tier);
+    const tier = SpinPolicy.resolveTier(wager30d);
+    const prize = SpinPolicy.selectPrize(tier);
     const nextSpinAt = SpinPolicy.nextSpinAt(now);
 
     // Mutate state — repository will persist this

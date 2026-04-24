@@ -21,7 +21,9 @@ function apiStatus(s: TowersGameStatus): string {
   }
 }
 
-export function toTowersGamePublicDto(entity: TowersGameEntity): TowersGamePublicDto {
+export function toTowersGamePublicDto(
+  entity: TowersGameEntity,
+): TowersGamePublicDto {
   const active = entity.status === TowersGameStatus.ACTIVE;
   const nextIdx = entity.currentRowIndex;
   const ladder = entity.multiplierLadder;
@@ -46,7 +48,9 @@ export function toTowersGamePublicDto(entity: TowersGameEntity): TowersGamePubli
 }
 
 /** Full board layout for UI after a terminal; no cryptographic material. */
-export function toTowersBoardRevealDto(entity: TowersGameEntity): TowersBoardRevealDto {
+export function toTowersBoardRevealDto(
+  entity: TowersGameEntity,
+): TowersBoardRevealDto {
   return {
     gemIndicesByRow: towersDeriveAllGemIndicesByRow({
       serverSeed: entity.serverSeed,

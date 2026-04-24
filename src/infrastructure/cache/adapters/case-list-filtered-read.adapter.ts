@@ -54,11 +54,7 @@ export class CaseListFilteredReadAdapter implements ICaseListFilteredReadPort {
         );
         const rows = await loadFromDb();
         try {
-          await this.redis.set(
-            key,
-            rows,
-            CASE_FILTERED_LIST_CACHE_TTL_SECONDS,
-          );
+          await this.redis.set(key, rows, CASE_FILTERED_LIST_CACHE_TTL_SECONDS);
         } catch (err) {
           this.logger.warn('[CaseListFiltered] set failed', err);
         }

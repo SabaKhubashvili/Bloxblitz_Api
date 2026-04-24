@@ -12,15 +12,15 @@ interface TierEntry {
  */
 const TIER_MAP: ReadonlyArray<TierEntry> = [
   { min: 90, name: 'Alexandrite', tier: Tier.ALEXANDRITE },
-  { min: 80, name: 'Spinel',      tier: Tier.SPINEL      },
-  { min: 70, name: 'Topaz',       tier: Tier.TOPAZ       },
-  { min: 60, name: 'Emerald',     tier: Tier.EMERALD     },
-  { min: 50, name: 'Sapphire',    tier: Tier.SAPPHIRE    },
-  { min: 40, name: 'Amethyst',    tier: Tier.AMETHYST    },
-  { min: 30, name: 'Gold',        tier: Tier.GOLD        },
-  { min: 20, name: 'Silver',      tier: Tier.SILVER      },
-  { min: 10, name: 'Bronze',      tier: Tier.BRONZE      },
-  { min:  0, name: 'Iron',        tier: Tier.IRON        },
+  { min: 80, name: 'Spinel', tier: Tier.SPINEL },
+  { min: 70, name: 'Topaz', tier: Tier.TOPAZ },
+  { min: 60, name: 'Emerald', tier: Tier.EMERALD },
+  { min: 50, name: 'Sapphire', tier: Tier.SAPPHIRE },
+  { min: 40, name: 'Amethyst', tier: Tier.AMETHYST },
+  { min: 30, name: 'Gold', tier: Tier.GOLD },
+  { min: 20, name: 'Silver', tier: Tier.SILVER },
+  { min: 10, name: 'Bronze', tier: Tier.BRONZE },
+  { min: 0, name: 'Iron', tier: Tier.IRON },
 ];
 
 export function resolveLevelName(level: number): string {

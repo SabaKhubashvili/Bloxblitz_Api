@@ -12,34 +12,34 @@ import { Type } from 'class-transformer';
 
 export enum TransactionSortOrder {
   DESC = 'desc',
-  ASC  = 'asc',
+  ASC = 'asc',
 }
 
 // ── Enum mirrors (kept here so the presentation layer has no Prisma imports) ──
 
 export enum TransactionCategoryFilter {
-  CRYPTO        = 'CRYPTO',
+  CRYPTO = 'CRYPTO',
   KINGUIN_REDEEM = 'KINGUIN_REDEEM',
-  PET           = 'PET',
-  REFUND        = 'REFUND',
+  PET = 'PET',
+  REFUND = 'REFUND',
 }
 
 export enum TransactionDirectionFilter {
-  IN  = 'IN',
+  IN = 'IN',
   OUT = 'OUT',
 }
 
 export enum TransactionStatusFilter {
-  PENDING   = 'PENDING',
+  PENDING = 'PENDING',
   COMPLETED = 'COMPLETED',
-  FAILED    = 'FAILED',
-  CANCELED  = 'CANCELED',
+  FAILED = 'FAILED',
+  CANCELED = 'CANCELED',
 }
 
 export enum TransactionAssetTypeFilter {
-  CRYPTO     = 'CRYPTO',
-  GIFT_CARD  = 'GIFT_CARD',
-  ITEM       = 'ITEM',
+  CRYPTO = 'CRYPTO',
+  GIFT_CARD = 'GIFT_CARD',
+  ITEM = 'ITEM',
 }
 
 // ── Query DTO ─────────────────────────────────────────────────────────────────

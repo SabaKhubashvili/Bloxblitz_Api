@@ -22,7 +22,7 @@ export interface TransactionRecord {
   /** PENDING | COMPLETED | FAILED | CANCELED */
   readonly status: string;
 
-  readonly usdAmountPaid:    number;
+  readonly usdAmountPaid: number;
   readonly cryptoAmountPaid: number;
 
   /** In-game coin amount — the human-facing value. */
@@ -64,13 +64,13 @@ export type TransactionHistorySortOrder = 'desc' | 'asc';
  */
 export interface TransactionHistoryFilters {
   /** Restrict to a single transaction category. */
-  readonly category?:  string;
+  readonly category?: string;
 
   /** Restrict to IN (credits) or OUT (debits). */
   readonly direction?: string;
 
   /** Restrict to a settlement status. */
-  readonly status?:    string;
+  readonly status?: string;
 
   /** Restrict to an asset type. */
   readonly assetType?: string;
@@ -82,7 +82,7 @@ export interface TransactionHistoryFilters {
   readonly from?: Date;
 
   /** Inclusive upper bound for `createdAt`. */
-  readonly to?:   Date;
+  readonly to?: Date;
 }
 
 // ─── Port (repository interface) ─────────────────────────────────────────────
@@ -97,10 +97,10 @@ export interface ITransactionHistoryRepository {
    */
   findPageByUsername(
     username: string,
-    page:     number,
-    limit:    number,
-    order:    TransactionHistorySortOrder,
-    filters:  TransactionHistoryFilters,
+    page: number,
+    limit: number,
+    order: TransactionHistorySortOrder,
+    filters: TransactionHistoryFilters,
   ): Promise<TransactionPage>;
 
   /**
@@ -108,7 +108,7 @@ export interface ITransactionHistoryRepository {
    * Returns `null` when no transaction exists for that `(id, username)` pair.
    */
   findByIdAndUsername(
-    id:       string,
+    id: string,
     username: string,
   ): Promise<TransactionRecord | null>;
 
@@ -118,5 +118,7 @@ export interface ITransactionHistoryRepository {
    *
    * Returns the newly created record (with the generated `id` and `createdAt`).
    */
-  create(data: Omit<TransactionRecord, 'id' | 'createdAt'>): Promise<TransactionRecord>;
+  create(
+    data: Omit<TransactionRecord, 'id' | 'createdAt'>,
+  ): Promise<TransactionRecord>;
 }

@@ -16,7 +16,8 @@ describe('RakebackRates.calculateFromLoss', () => {
     const rates = RakebackRates.forLevel(level);
     expect(fromLoss.daily).toBe(Math.round(netLoss * rates.daily * 100) / 100);
     expect(fromLoss.total).toBe(
-      Math.round((fromLoss.daily + fromLoss.weekly + fromLoss.monthly) * 100) / 100,
+      Math.round((fromLoss.daily + fromLoss.weekly + fromLoss.monthly) * 100) /
+        100,
     );
   });
 

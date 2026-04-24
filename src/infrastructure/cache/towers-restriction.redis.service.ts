@@ -100,13 +100,13 @@ export class TowersRestrictionRedisService {
 
     const windows: Array<{ w: TowersWagerWindow; max: number }> = [];
     if (this.isPositive(snap.dailyWagerLimit)) {
-      windows.push({ w: 'DAILY', max: snap.dailyWagerLimit! });
+      windows.push({ w: 'DAILY', max: snap.dailyWagerLimit });
     }
     if (this.isPositive(snap.weeklyWagerLimit)) {
-      windows.push({ w: 'WEEKLY', max: snap.weeklyWagerLimit! });
+      windows.push({ w: 'WEEKLY', max: snap.weeklyWagerLimit });
     }
     if (this.isPositive(snap.monthlyWagerLimit)) {
-      windows.push({ w: 'MONTHLY', max: snap.monthlyWagerLimit! });
+      windows.push({ w: 'MONTHLY', max: snap.monthlyWagerLimit });
     }
 
     if (windows.length === 0) {

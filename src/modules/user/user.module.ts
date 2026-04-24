@@ -16,15 +16,12 @@ import { BalanceCacheAdapter } from '../../infrastructure/cache/adapters/balance
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard }   from '../../shared/guards/roles.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
 import { WalletModule } from './wallet/wallet.module';
 
 @Module({
-  imports: [
-    AuthModule,
-    WalletModule
-  ],
+  imports: [AuthModule, WalletModule],
   providers: [
     // Guards
     JwtAuthGuard,

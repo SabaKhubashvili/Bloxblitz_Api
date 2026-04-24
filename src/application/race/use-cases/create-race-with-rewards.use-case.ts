@@ -25,7 +25,7 @@ export class CreateRaceWithRewardsUseCase {
     const sorted = [...input.rewards].sort((a, b) => a.position - b.position);
     const seen = new Set<number>();
     for (let i = 0; i < sorted.length; i++) {
-      const r = sorted[i]!;
+      const r = sorted[i];
       if (r.position < 1 || r.position > 10 || seen.has(r.position)) {
         throw new InvalidRaceRewardsError();
       }

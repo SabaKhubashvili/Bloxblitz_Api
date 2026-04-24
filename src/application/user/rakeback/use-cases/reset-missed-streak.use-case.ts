@@ -13,16 +13,19 @@ import { RAKEBACK_REPOSITORY } from '../tokens/rakeback.tokens';
  * but exists as a separate entry-point for explicit invocation.
  */
 @Injectable()
-export class ResetMissedStreakUseCase
-  implements IUseCase<{ type: RakebackType }, Result<number, RakebackError>>
-{
+export class ResetMissedStreakUseCase implements IUseCase<
+  { type: RakebackType },
+  Result<number, RakebackError>
+> {
   private readonly logger = new Logger(ResetMissedStreakUseCase.name);
 
   constructor(
     @Inject(RAKEBACK_REPOSITORY) private readonly repo: IRakebackRepository,
   ) {}
 
-  async execute(input: { type: RakebackType }): Promise<Result<number, RakebackError>> {
+  async execute(input: {
+    type: RakebackType;
+  }): Promise<Result<number, RakebackError>> {
     const affected = await this.repo.resetMissedStreaks(input.type);
     this.logger.log(`Reset ${affected} missed ${input.type} streak(s)`);
     return Ok(affected);

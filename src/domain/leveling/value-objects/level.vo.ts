@@ -19,7 +19,10 @@ export class LevelVO {
   private constructor(private readonly _value: number) {}
 
   static create(raw: number): LevelVO {
-    const clamped = Math.max(LevelVO.MIN, Math.min(LevelVO.MAX, Math.floor(raw)));
+    const clamped = Math.max(
+      LevelVO.MIN,
+      Math.min(LevelVO.MAX, Math.floor(raw)),
+    );
     return new LevelVO(clamped);
   }
 

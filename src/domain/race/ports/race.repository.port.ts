@@ -83,10 +83,7 @@ export interface IRaceRepository {
     updatedAt: Date,
   ): Promise<number>;
   finishRace(raceId: string): Promise<void>;
-  listFinishedRaces(
-    offset: number,
-    limit: number,
-  ): Promise<RaceRecord[]>;
+  listFinishedRaces(offset: number, limit: number): Promise<RaceRecord[]>;
   /** Any race whose interval overlaps [startTime, endTime] (touching endpoints do not count as overlap). */
   findRaceOverlappingTimeRange(
     startTime: Date,

@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 
 import { RedisModule } from './infrastructure/cache/redis.module';
 import { PrismaModule } from './infrastructure/persistance/prisma/prisma.module';
+import { UserStatisticsBumpModule } from './infrastructure/persistance/user-statistics/user-statistics-bump.module';
 import { WorkersModule } from './infrastructure/workers/workers.module';
 import { GameSaveModule } from './infrastructure/queue/game-save/game-save.module';
 import { MinesModule } from './modules/game/mines.module';
@@ -40,6 +41,7 @@ import { InternalMicroserviceModule } from './modules/internal-microservice.modu
       },
     }),
     PrismaModule,
+    UserStatisticsBumpModule,
     RedisModule,
     RouletteRestrictionSyncModule,
     GameSaveModule,
@@ -62,7 +64,7 @@ import { InternalMicroserviceModule } from './modules/internal-microservice.modu
     BetHistoryModule,
     KinguinModule,
     UniwireModule,
-    
+
     ProvablyFairModule,
     RaceModule,
     AffiliateModule,

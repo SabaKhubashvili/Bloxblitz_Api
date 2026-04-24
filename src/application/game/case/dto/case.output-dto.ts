@@ -1,4 +1,4 @@
-import { Variant } from "@prisma/client";
+import { Variant } from '@prisma/client';
 
 export interface CasePetOutputDto {
   id: number;

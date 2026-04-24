@@ -4,12 +4,16 @@ import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import { MinesFairnessDomainService } from '../../../../domain/game/mines/services/mines-fairness.domain-service';
 import type { VerifyMinesGameCommand } from '../dto/verify-mines-game.command';
 import type { VerifyMinesGameOutputDto } from '../dto/verify-mines-game.output-dto';
-import { InvalidMineCountError, MinesError } from '../../../../domain/game/mines/errors/mines.errors';
+import {
+  InvalidMineCountError,
+  MinesError,
+} from '../../../../domain/game/mines/errors/mines.errors';
 
 @Injectable()
-export class VerifyMinesGameUseCase
-  implements IUseCase<VerifyMinesGameCommand, Result<VerifyMinesGameOutputDto, MinesError>>
-{
+export class VerifyMinesGameUseCase implements IUseCase<
+  VerifyMinesGameCommand,
+  Result<VerifyMinesGameOutputDto, MinesError>
+> {
   constructor(private readonly fairnessService: MinesFairnessDomainService) {}
 
   async execute(

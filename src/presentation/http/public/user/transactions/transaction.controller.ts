@@ -8,13 +8,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard }   from '../../../../../shared/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../../shared/guards/jwt-auth.guard';
-import { CurrentUser }    from '../../../../../shared/decorators/current-user.decorator';
+import { CurrentUser } from '../../../../../shared/decorators/current-user.decorator';
 import { DomainExceptionFilter } from '../../../../../shared/filters/domain-exception.filter';
 import { GetUserTransactionHistoryUseCase } from '../../../../../application/user/transactions/use-cases/get-user-transaction-history.use-case';
-import { GetTransactionByIdUseCase }        from '../../../../../application/user/transactions/use-cases/get-transaction-by-id.use-case';
-import { TransactionHistoryQueryDto }       from './dto/transaction-history-query.dto';
+import { GetTransactionByIdUseCase } from '../../../../../application/user/transactions/use-cases/get-transaction-by-id.use-case';
+import { TransactionHistoryQueryDto } from './dto/transaction-history-query.dto';
 
 /**
  * Handles all authenticated transaction-history routes under /user/transactions.
@@ -33,8 +33,8 @@ import { TransactionHistoryQueryDto }       from './dto/transaction-history-quer
 @UseFilters(DomainExceptionFilter)
 export class TransactionController {
   constructor(
-    private readonly getHistoryUseCase:  GetUserTransactionHistoryUseCase,
-    private readonly getByIdUseCase:     GetTransactionByIdUseCase,
+    private readonly getHistoryUseCase: GetUserTransactionHistoryUseCase,
+    private readonly getByIdUseCase: GetTransactionByIdUseCase,
   ) {}
 
   /**
@@ -63,16 +63,16 @@ export class TransactionController {
     @Query() query: TransactionHistoryQueryDto,
   ) {
     const result = await this.getHistoryUseCase.execute({
-      username:  user.username,
-      page:      query.page  ?? 1,
-      limit:     query.limit ?? 10,
-      order:    (query.order ?? 'desc') as 'desc' | 'asc',
-      category:  query.category,
+      username: user.username,
+      page: query.page ?? 1,
+      limit: query.limit ?? 10,
+      order: (query.order ?? 'desc') as 'desc' | 'asc',
+      category: query.category,
       direction: query.direction,
-      status:    query.status,
+      status: query.status,
       assetType: query.assetType,
-      from:      query.from,
-      to:        query.to,
+      from: query.from,
+      to: query.to,
     });
 
     if (!result.ok) throw result.error;
@@ -91,10 +91,7 @@ export class TransactionController {
    */
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getById(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-  ) {
+  async getById(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const result = await this.getByIdUseCase.execute({
       id,
       username: user.username,

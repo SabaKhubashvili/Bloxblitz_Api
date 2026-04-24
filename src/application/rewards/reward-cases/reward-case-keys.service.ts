@@ -36,7 +36,6 @@ const petSelectForPool = {
   mvalue_flyride: true,
 } as const;
 
-
 export type RewardCasePoolItemDto = {
   id: string;
   petId: number;
@@ -117,7 +116,9 @@ export class RewardCaseKeysService {
       this.logger.warn('[RewardCases] listDefinitions: cache read error', err);
     }
 
-    this.logger.debug('[RewardCases] listDefinitions: cache miss — fetching DB');
+    this.logger.debug(
+      '[RewardCases] listDefinitions: cache miss — fetching DB',
+    );
 
     // 2. Try to acquire the populate-lock to prevent stampede.
     //    If the lock is not available another request is already populating —
@@ -608,5 +609,4 @@ export class RewardCaseKeysService {
     }
     return result;
   }
-
 }

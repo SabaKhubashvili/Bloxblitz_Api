@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 
 // ── Use cases ────────────────────────────────────────────────────────────────
-import { AccumulateRakebackUseCase }  from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case';
-import { GetRakebackDataUseCase }     from '../../application/user/rakeback/use-cases/get-rakeback-data.use-case';
-import { ClaimRakebackUseCase }       from '../../application/user/rakeback/use-cases/claim-rakeback.use-case';
-import { OpenClaimWindowUseCase }     from '../../application/user/rakeback/use-cases/open-claim-window.use-case';
-import { CloseClaimWindowUseCase }    from '../../application/user/rakeback/use-cases/close-claim-window.use-case';
-import { ResetMissedStreakUseCase }   from '../../application/user/rakeback/use-cases/reset-missed-streak.use-case';
+import { AccumulateRakebackUseCase } from '../../application/user/rakeback/use-cases/accumulate-rakeback.use-case';
+import { GetRakebackDataUseCase } from '../../application/user/rakeback/use-cases/get-rakeback-data.use-case';
+import { ClaimRakebackUseCase } from '../../application/user/rakeback/use-cases/claim-rakeback.use-case';
+import { OpenClaimWindowUseCase } from '../../application/user/rakeback/use-cases/open-claim-window.use-case';
+import { CloseClaimWindowUseCase } from '../../application/user/rakeback/use-cases/close-claim-window.use-case';
+import { ResetMissedStreakUseCase } from '../../application/user/rakeback/use-cases/reset-missed-streak.use-case';
 
 // ── Tokens ───────────────────────────────────────────────────────────────────
 import {
@@ -19,28 +19,25 @@ import {
 
 // ── Infrastructure ───────────────────────────────────────────────────────────
 import { PrismaRakebackRepository } from '../../infrastructure/persistance/repositories/user/rakeback.repository';
-import { RakebackCacheAdapter }     from '../../infrastructure/cache/adapters/rakeback-cache.adapter';
-import { RakebackBalanceAdapter }   from '../../infrastructure/cache/adapters/rakeback-balance.adapter';
-import { SystemTimeProvider }       from '../../infrastructure/time/system-time-provider';
+import { RakebackCacheAdapter } from '../../infrastructure/cache/adapters/rakeback-cache.adapter';
+import { RakebackBalanceAdapter } from '../../infrastructure/cache/adapters/rakeback-balance.adapter';
+import { SystemTimeProvider } from '../../infrastructure/time/system-time-provider';
 
 // ── Workers ──────────────────────────────────────────────────────────────────
 import { RakebackAccumulationWorker } from '../../infrastructure/workers/rakeback-accumulation.worker';
-import { RakebackSchedulerWorker }    from '../../infrastructure/workers/rakeback-scheduler.worker';
+import { RakebackSchedulerWorker } from '../../infrastructure/workers/rakeback-scheduler.worker';
 
 // ── Presentation ─────────────────────────────────────────────────────────────
 import { RakebackController } from '../../presentation/http/public/rakeback/rakeback.controller';
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard }   from '../../shared/guards/roles.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuthModule } from '../auth.module';
 import { PrismaModule } from '../../infrastructure/persistance/prisma/prisma.module';
 
 @Module({
-  imports: [
-    AuthModule,
-    PrismaModule,
-  ],
+  imports: [AuthModule, PrismaModule],
   controllers: [RakebackController],
   providers: [
     // Use cases
@@ -60,10 +57,10 @@ import { PrismaModule } from '../../infrastructure/persistance/prisma/prisma.mod
     RakebackSchedulerWorker,
 
     // Port bindings
-    { provide: RAKEBACK_REPOSITORY,   useClass: PrismaRakebackRepository },
-    { provide: RAKEBACK_CACHE_PORT,   useClass: RakebackCacheAdapter },
+    { provide: RAKEBACK_REPOSITORY, useClass: PrismaRakebackRepository },
+    { provide: RAKEBACK_CACHE_PORT, useClass: RakebackCacheAdapter },
     { provide: RAKEBACK_BALANCE_PORT, useClass: RakebackBalanceAdapter },
-    { provide: TIME_PROVIDER,         useClass: SystemTimeProvider },
+    { provide: TIME_PROVIDER, useClass: SystemTimeProvider },
   ],
   exports: [
     AccumulateRakebackUseCase,

@@ -38,9 +38,9 @@ import { SetUserLevelHttpDto } from './dto/set-user-level.http-dto';
 @UseFilters(DomainExceptionFilter)
 export class LevelsController {
   constructor(
-    private readonly getUserLevelUseCase:   GetUserLevelUseCase,
-    private readonly addExperienceUseCase:  AddExperienceUseCase,
-    private readonly setUserLevelUseCase:   SetUserLevelUseCase,
+    private readonly getUserLevelUseCase: GetUserLevelUseCase,
+    private readonly addExperienceUseCase: AddExperienceUseCase,
+    private readonly setUserLevelUseCase: SetUserLevelUseCase,
     private readonly getTierByLevelUseCase: GetTierByLevelUseCase,
   ) {}
 
@@ -50,10 +50,10 @@ export class LevelsController {
    */
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getUserLevel(
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const result = await this.getUserLevelUseCase.execute({ username: user.username });
+  async getUserLevel(@CurrentUser() user: JwtPayload) {
+    const result = await this.getUserLevelUseCase.execute({
+      username: user.username,
+    });
     if (!result.ok) throw result.error;
     return result.value;
   }
@@ -72,8 +72,8 @@ export class LevelsController {
   ) {
     const result = await this.addExperienceUseCase.execute({
       username,
-      amount:      dto.amount,
-      source:      dto.source,
+      amount: dto.amount,
+      source: dto.source,
       referenceId: dto.referenceId,
     });
     if (!result.ok) throw result.error;

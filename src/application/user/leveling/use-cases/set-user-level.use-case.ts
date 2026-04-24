@@ -7,7 +7,10 @@ import {
   LevelingError,
 } from '../../../../domain/leveling/errors/leveling.errors';
 import type { ILevelingCachePort } from '../ports/leveling-cache.port';
-import { LEVELING_REPOSITORY, LEVELING_CACHE_PORT } from '../tokens/leveling.tokens';
+import {
+  LEVELING_REPOSITORY,
+  LEVELING_CACHE_PORT,
+} from '../tokens/leveling.tokens';
 import { LevelProgressMapper } from '../mappers/level-progress.mapper';
 import type { SetUserLevelCommand } from '../dto/set-user-level.command';
 import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto';
@@ -17,11 +20,12 @@ import type { LevelProgressOutputDto } from '../dto/level-progress.output-dto';
  * The XP floor for the new level is enforced by the domain entity.
  */
 @Injectable()
-export class SetUserLevelUseCase
-  implements IUseCase<SetUserLevelCommand, Result<LevelProgressOutputDto, LevelingError>>
-{
+export class SetUserLevelUseCase implements IUseCase<
+  SetUserLevelCommand,
+  Result<LevelProgressOutputDto, LevelingError>
+> {
   constructor(
-    @Inject(LEVELING_REPOSITORY) private readonly repo:  ILevelingRepository,
+    @Inject(LEVELING_REPOSITORY) private readonly repo: ILevelingRepository,
     @Inject(LEVELING_CACHE_PORT) private readonly cache: ILevelingCachePort,
   ) {}
 

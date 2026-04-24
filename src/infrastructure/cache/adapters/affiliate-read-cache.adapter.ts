@@ -44,9 +44,7 @@ export class AffiliateReadCacheAdapter implements IAffiliateReadCachePort {
 
   async invalidateAllForUsers(usernames: readonly string[]): Promise<void> {
     const unique = [
-      ...new Set(
-        usernames.map((u) => u.trim()).filter((u) => u.length > 0),
-      ),
+      ...new Set(usernames.map((u) => u.trim()).filter((u) => u.length > 0)),
     ];
     await Promise.all(
       unique.map((username) => this.invalidateAllForUser(username)),
@@ -247,9 +245,7 @@ export class AffiliateReadCacheAdapter implements IAffiliateReadCachePort {
     return {
       code: (o.code as string | null) ?? null,
       lastChangedAt:
-        o.lastChangedAt == null
-          ? null
-          : new Date(String(o.lastChangedAt)),
+        o.lastChangedAt == null ? null : new Date(String(o.lastChangedAt)),
     };
   }
 

@@ -59,17 +59,14 @@ export class PrismaProvablyFairRepository implements IProvablyFairDbPort {
   async rotateClientSeed(
     username: string,
     clientSeed?: string,
-  ): Promise<
-    | {
-        success: boolean;
-        clientSeed: string;
-        serverSeedHash: string;
-        nextServerSeedHash: string;
-        totalGamesPlayed: number;
-        activeGames?: string[];
-      }
-    | null
-  > {
+  ): Promise<{
+    success: boolean;
+    clientSeed: string;
+    serverSeedHash: string;
+    nextServerSeedHash: string;
+    totalGamesPlayed: number;
+    activeGames?: string[];
+  } | null> {
     let userSeed = await this.prisma.userSeed.findUnique({
       where: { userUsername: username },
     });
@@ -144,7 +141,7 @@ export class PrismaProvablyFairRepository implements IProvablyFairDbPort {
     };
   }
 
- async ensureUserSeedExists(username: string) {
+  async ensureUserSeedExists(username: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: { client_seed: true },
@@ -178,7 +175,17 @@ export class PrismaProvablyFairRepository implements IProvablyFairDbPort {
    */
   private async performServerSeedRotationIfNeeded(
     username: string,
-    userSeed: { id: string; activeServerSeed: string; activeServerSeedHash: string; activeClientSeed: string; nextServerSeed: string; nextServerSeedHash: string; seedCreatedAt: Date; maxGamesPerSeed: number; totalGamesPlayed: number },
+    userSeed: {
+      id: string;
+      activeServerSeed: string;
+      activeServerSeedHash: string;
+      activeClientSeed: string;
+      nextServerSeed: string;
+      nextServerSeedHash: string;
+      seedCreatedAt: Date;
+      maxGamesPerSeed: number;
+      totalGamesPlayed: number;
+    },
   ): Promise<void> {
     const nonceKey = RedisKeys.user.nonce(username);
     const cachedNonce = await this.redis.get(nonceKey);

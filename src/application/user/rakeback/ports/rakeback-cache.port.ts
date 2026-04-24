@@ -8,7 +8,11 @@ export interface RakebackSnapshot {
 
 export interface IRakebackCachePort {
   get(username: string): Promise<RakebackSnapshot | null>;
-  set(username: string, data: RakebackSnapshot, ttlSeconds?: number): Promise<void>;
+  set(
+    username: string,
+    data: RakebackSnapshot,
+    ttlSeconds?: number,
+  ): Promise<void>;
   invalidate(username: string): Promise<void>;
   acquireClaimLock(username: string, ttlMs: number): Promise<boolean>;
   releaseClaimLock(username: string): Promise<void>;

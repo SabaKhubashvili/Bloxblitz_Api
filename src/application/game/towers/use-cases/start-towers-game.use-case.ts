@@ -56,19 +56,16 @@ function msSince(start: number): number {
 }
 
 @Injectable()
-export class StartTowersGameUseCase
-  implements
-    IUseCase<
-      {
-        username: string;
-        profilePicture?: string;
-        betAmount: unknown;
-        difficulty: unknown;
-        levels: unknown;
-      },
-      Result<TowersStartGameResponseDto, TowersError>
-    >
-{
+export class StartTowersGameUseCase implements IUseCase<
+  {
+    username: string;
+    profilePicture?: string;
+    betAmount: unknown;
+    difficulty: unknown;
+    levels: unknown;
+  },
+  Result<TowersStartGameResponseDto, TowersError>
+> {
   private readonly logger = new Logger(StartTowersGameUseCase.name);
 
   constructor(
@@ -125,7 +122,10 @@ export class StartTowersGameUseCase
       );
       return Err(new TowersRouletteGameDisabledError());
     }
-    this.logger.log(`[Towers] start roulette_game_enabled user=${cmd.username}`, rouletteGate.gameEnabled);
+    this.logger.log(
+      `[Towers] start roulette_game_enabled user=${cmd.username}`,
+      rouletteGate.gameEnabled,
+    );
     if (!rouletteGate.bettingEnabled) {
       this.logger.warn(
         `[Towers] start blocked roulette_betting_disabled user=${cmd.username}`,
@@ -136,10 +136,7 @@ export class StartTowersGameUseCase
     const runtime = await this.towersRuntimeConfig.getConfig();
 
     const betAmount = roundMoney(betRaw);
-    if (
-      betAmount < runtime.minBet ||
-      betAmount > runtime.maxBet
-    ) {
+    if (betAmount < runtime.minBet || betAmount > runtime.maxBet) {
       return Err(new TowersValidationError('Bet out of allowed range.'));
     }
 
@@ -171,10 +168,8 @@ export class StartTowersGameUseCase
     }
 
     t = performance.now();
-    const restrictionResult = await this.validateTowersRestriction.validateAndReserve(
-      user,
-      betAmount,
-    );
+    const restrictionResult =
+      await this.validateTowersRestriction.validateAndReserve(user, betAmount);
     const restrictionMs = msSince(t);
     if (!restrictionResult.ok) {
       this.logger.debug(

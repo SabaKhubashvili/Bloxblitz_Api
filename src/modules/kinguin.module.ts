@@ -32,12 +32,7 @@ import { PrismaModule } from '../infrastructure/persistance/prisma/prisma.module
 import { AuthModule } from './auth.module';
 
 @Module({
-  imports: [
-    AuthModule,
-    TransactionModule,
-    RedisModule,
-    PrismaModule,
-  ],
+  imports: [AuthModule, TransactionModule, RedisModule, PrismaModule],
   controllers: [KinguinController],
   providers: [
     RedeemKinguinCodeUseCase,
@@ -49,7 +44,10 @@ import { AuthModule } from './auth.module';
     GetKinguinRedemptionLogsUseCase,
     JwtAuthGuard,
     { provide: KINGUIN_CODE_REPOSITORY, useClass: PrismaKinguinCodeRepository },
-    { provide: KINGUIN_BATCH_REPOSITORY, useClass: PrismaKinguinBatchRepository },
+    {
+      provide: KINGUIN_BATCH_REPOSITORY,
+      useClass: PrismaKinguinBatchRepository,
+    },
     {
       provide: KINGUIN_REDEMPTION_LOG_REPOSITORY,
       useClass: PrismaKinguinRedemptionLogRepository,

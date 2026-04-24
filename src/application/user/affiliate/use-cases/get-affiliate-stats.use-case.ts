@@ -18,13 +18,10 @@ import { waitForAffiliateCacheHit } from '../helpers/affiliate-cache-stampede.he
 import { affiliatePopulateLockToken } from '../helpers/affiliate-referrals-cache-digest.helper';
 
 @Injectable()
-export class GetAffiliateStatsUseCase
-  implements
-    IUseCase<
-      GetAffiliateStatsQuery,
-      Result<AffiliateStatsOutputDto, UserNotFoundError>
-    >
-{
+export class GetAffiliateStatsUseCase implements IUseCase<
+  GetAffiliateStatsQuery,
+  Result<AffiliateStatsOutputDto, UserNotFoundError>
+> {
   constructor(
     @Inject(AFFILIATE_REPOSITORY)
     private readonly affiliateRepo: IAffiliateRepository,

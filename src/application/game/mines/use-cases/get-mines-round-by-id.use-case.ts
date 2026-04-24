@@ -1,7 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
-import type { IMinesHistoryRepository, MinesHistoryRecord } from '../../../../domain/game/mines/ports/mines-history.repository.port';
+import type {
+  IMinesHistoryRepository,
+  MinesHistoryRecord,
+} from '../../../../domain/game/mines/ports/mines-history.repository.port';
 import type { IMinesHistoryCachePort } from '../ports/mines-history-cache.port';
 import type { GetMinesRoundByIdQuery } from '../dto/get-mines-round-by-id.query';
 import type { MinesHistoryItemOutputDto } from '../dto/mines-history.output-dto';
@@ -19,14 +22,17 @@ import {
 const ROUND_TTL = 300;
 
 @Injectable()
-export class GetMinesRoundByIdUseCase
-  implements IUseCase<GetMinesRoundByIdQuery, Result<MinesHistoryItemOutputDto, MinesError>>
-{
+export class GetMinesRoundByIdUseCase implements IUseCase<
+  GetMinesRoundByIdQuery,
+  Result<MinesHistoryItemOutputDto, MinesError>
+> {
   private readonly logger = new Logger(GetMinesRoundByIdUseCase.name);
 
   constructor(
-    @Inject(MINES_HISTORY_REPOSITORY) private readonly historyRepo: IMinesHistoryRepository,
-    @Inject(MINES_HISTORY_CACHE_PORT) private readonly historyCache: IMinesHistoryCachePort,
+    @Inject(MINES_HISTORY_REPOSITORY)
+    private readonly historyRepo: IMinesHistoryRepository,
+    @Inject(MINES_HISTORY_CACHE_PORT)
+    private readonly historyCache: IMinesHistoryCachePort,
   ) {}
 
   async execute(
@@ -54,7 +60,10 @@ export class GetMinesRoundByIdUseCase
     try {
       record = await this.historyRepo.findByIdAndUsername(gameId, username);
     } catch (err) {
-      this.logger.error(`[MinesRound] Repository fetch failed — gameId=${gameId}`, err);
+      this.logger.error(
+        `[MinesRound] Repository fetch failed — gameId=${gameId}`,
+        err,
+      );
       return Err(new MinesHistoryFetchError());
     }
 
@@ -67,22 +76,28 @@ export class GetMinesRoundByIdUseCase
     void this.historyCache
       .setRound(gameId, dto, ROUND_TTL)
       .catch((err) =>
-        this.logger.warn(`[MinesRound] Cache write failed — gameId=${gameId}`, err),
+        this.logger.warn(
+          `[MinesRound] Cache write failed — gameId=${gameId}`,
+          err,
+        ),
       );
 
     return Ok(dto);
   }
 }
 
-function toItemOutputDto(record: MinesHistoryRecord): MinesHistoryItemOutputDto {
+function toItemOutputDto(
+  record: MinesHistoryRecord,
+): MinesHistoryItemOutputDto {
   return {
     id: record.id,
     status: record.status,
     betAmount: record.betAmount,
     profit: record.profit,
-    multiplier: record.multiplier !== null
-      ? Math.round(record.multiplier * 10_000) / 10_000
-      : null,
+    multiplier:
+      record.multiplier !== null
+        ? Math.round(record.multiplier * 10_000) / 10_000
+        : null,
     gridSize: Math.sqrt(record.gridSize),
     minesCount: record.minesCount,
     nonce: record.nonce,

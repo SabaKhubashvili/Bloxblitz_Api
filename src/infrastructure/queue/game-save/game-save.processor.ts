@@ -9,6 +9,9 @@ import { Money } from '../../../domain/shared/value-objects/money.vo';
 import { TowersGameRepository } from '../../persistance/repositories/game/towers-game.repository';
 import { PrismaDiceHistoryRepository } from '../../persistance/repositories/game/dice-history.repository';
 import { MinesGameRepository } from '../../persistance/repositories/game/mines-game.repository';
+import { BumpGlobalUserStatisticsUseCase } from '../../persistance/user-statistics/bump-global-user-statistics.use-case';
+import { BumpUserGameStatisticsUseCase } from '../../persistance/user-statistics/bump-user-game-statistics.use-case';
+import { GameType } from '@prisma/client';
 import {
   DICE_SAVE_BET_JOB_NAME,
   GAME_SAVE_QUEUE,
@@ -30,6 +33,8 @@ export class GameSaveProcessor extends WorkerHost {
     private readonly minesRepo: MinesGameRepository,
     @Inject(USER_SEED_REPOSITORY)
     private readonly userSeedRepo: IUserSeedRepository,
+    private readonly bumpUserGame: BumpUserGameStatisticsUseCase,
+    private readonly bumpGlobal: BumpGlobalUserStatisticsUseCase,
   ) {
     super();
   }
@@ -95,6 +100,28 @@ export class GameSaveProcessor extends WorkerHost {
     const data = job.data;
     try {
       const { inserted } = await this.diceHistoryRepo.saveBetIdempotent(data);
+      if (inserted) {
+        const u = data.username.trim().toLowerCase();
+        const won = data.profit > 0;
+        const playedAt = new Date();
+        this.bumpUserGame.scheduleBump({
+          username: u,
+          gameType: GameType.DICE,
+          stake: data.betAmount,
+          won,
+          netProfit: data.profit,
+          playedAt,
+        });
+        this.bumpGlobal.scheduleBump({
+          username: u,
+          gameType: GameType.DICE,
+          stake: data.betAmount,
+          won,
+          netProfit: data.profit,
+          playedAt,
+          multiplier: won && data.multiplier > 0 ? data.multiplier : undefined,
+        });
+      }
       this.logger.log(
         `[game-save] ${DICE_SAVE_BET_JOB_NAME} ok jobId=${job.id} betId=${data.id} inserted=${inserted} processDurationMs=${Date.now() - started}`,
       );

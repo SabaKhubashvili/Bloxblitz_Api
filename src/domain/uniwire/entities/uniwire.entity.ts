@@ -5,7 +5,7 @@
  * (e.g. rate_usd) mirror the external API; map to camelCase in adapters if needed.
  */
 
-import { AvailableCryptos } from "@prisma/client";
+import { AvailableCryptos } from '@prisma/client';
 
 // ── Exchange rates ────────────────────────────────────────────────────────────
 
@@ -13,6 +13,9 @@ export interface UniwireExchangeRate {
   readonly id: string;
   readonly kind: string;
   readonly symbol: string;
+  /**
+   * Uniwire often returns this as a decimal string in JSON; infrastructure normalizes to `number`.
+   */
   readonly rate_usd: number;
   readonly rate_btc: string;
   readonly sign: string;
@@ -60,7 +63,7 @@ export interface UniwireInvoiceResult {
 }
 
 export interface UniwireGetInvoiceResponse {
-  readonly result:{
+  readonly result: {
     readonly id: string;
     readonly kind: string;
     readonly created_at: string;
@@ -76,7 +79,7 @@ export interface UniwireGetInvoiceResponse {
     readonly notes: string | null;
     readonly passthrough: string | null;
     readonly transactions: readonly unknown[];
-  }
+  };
 }
 
 // ── Create deposit address (per-currency) ─────────────────────────────────────

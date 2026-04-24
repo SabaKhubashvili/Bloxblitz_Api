@@ -417,7 +417,9 @@ function toBetHistoryRecord(row: GameHistoryRow): BetHistoryRecord {
     gameType: row.gameType,
     username: row.username,
     status: row.status,
-    betAmount: row.caseOpenHistory ? Number(row.caseOpenHistory.pricePaid) : Number(row.betAmount),
+    betAmount: row.caseOpenHistory
+      ? Number(row.caseOpenHistory.pricePaid)
+      : Number(row.betAmount),
     profit: row.profit !== null ? Number(row.profit) : null,
     multiplier: row.multiplier !== null ? Number(row.multiplier) : null,
     createdAt: row.createdAt,

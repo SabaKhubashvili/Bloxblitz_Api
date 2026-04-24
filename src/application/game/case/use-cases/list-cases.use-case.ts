@@ -18,13 +18,10 @@ import type { CaseSummaryOutputDto } from '../dto/case.output-dto';
 import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 
 @Injectable()
-export class ListCasesUseCase
-  implements
-    IUseCase<
-      CaseListQueryFilter,
-      Result<CaseSummaryOutputDto[], CasePersistenceError>
-    >
-{
+export class ListCasesUseCase implements IUseCase<
+  CaseListQueryFilter,
+  Result<CaseSummaryOutputDto[], CasePersistenceError>
+> {
   private readonly logger = new Logger(ListCasesUseCase.name);
 
   constructor(

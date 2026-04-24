@@ -3,7 +3,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import type { IRaceRepository } from '../../domain/race/ports/race.repository.port';
 import type { IRaceCachePort } from '../../domain/race/ports/race-cache.port';
 import { FinishRaceUseCase } from '../../application/race/use-cases/finish-race.use-case';
-import { RACE_CACHE, RACE_REPOSITORY } from '../../application/race/tokens/race.tokens';
+import {
+  RACE_CACHE,
+  RACE_REPOSITORY,
+} from '../../application/race/tokens/race.tokens';
 
 @Injectable()
 export class RaceLifecycleWorker {

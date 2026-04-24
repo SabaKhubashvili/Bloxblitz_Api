@@ -24,7 +24,10 @@ export class LevelingCacheAdapter implements ILevelingCachePort {
       if (!data) return null;
       return LevelProgressMapper.fromCachePayload(data);
     } catch (err) {
-      this.logger.warn(`[LevelingCache] Redis read failed for ${username}`, err);
+      this.logger.warn(
+        `[LevelingCache] Redis read failed for ${username}`,
+        err,
+      );
       return null;
     }
   }
@@ -41,7 +44,10 @@ export class LevelingCacheAdapter implements ILevelingCachePort {
         ttlSeconds,
       );
     } catch (err) {
-      this.logger.warn(`[LevelingCache] Redis write failed for ${username}`, err);
+      this.logger.warn(
+        `[LevelingCache] Redis write failed for ${username}`,
+        err,
+      );
     }
   }
 
@@ -49,7 +55,10 @@ export class LevelingCacheAdapter implements ILevelingCachePort {
     try {
       await this.redis.del(RedisKeys.leveling.userInfo(username));
     } catch (err) {
-      this.logger.warn(`[LevelingCache] Redis delete failed for ${username}`, err);
+      this.logger.warn(
+        `[LevelingCache] Redis delete failed for ${username}`,
+        err,
+      );
     }
   }
 }

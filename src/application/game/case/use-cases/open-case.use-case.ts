@@ -190,7 +190,7 @@ export class OpenCaseUseCase implements IUseCase<
         return Err(new CaseEmptyPoolError());
       }
 
-      const won = pool.find((p) => p.id === wonCaseItemId) ?? pool[0]!;
+      const won = pool.find((p) => p.id === wonCaseItemId) ?? pool[0];
       const wonPetValue = roundMoney(won.pet.value);
 
       if (wonPetValue > 0) {

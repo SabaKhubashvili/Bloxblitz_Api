@@ -22,7 +22,9 @@ export type PetValueColumnRow = {
   mvalue_flyride: number;
 };
 
-function lineFromVariants(variants: ReadonlySet<string>): 'mvalue' | 'nvalue' | 'rvalue' {
+function lineFromVariants(
+  variants: ReadonlySet<string>,
+): 'mvalue' | 'nvalue' | 'rvalue' {
   if (variants.has('M')) return 'mvalue';
   if (variants.has('N')) return 'nvalue';
   return 'rvalue';

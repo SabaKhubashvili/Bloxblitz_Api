@@ -95,9 +95,7 @@ export class RewardCasesController {
       return { onCooldown: false, cooldownEndsAt: null };
     }
 
-    const cooldownEndsAt = new Date(
-      lastOpenMs + REWARD_CASE_OPEN_COOLDOWN_MS,
-    );
+    const cooldownEndsAt = new Date(lastOpenMs + REWARD_CASE_OPEN_COOLDOWN_MS);
     const onCooldown = cooldownEndsAt.getTime() > Date.now();
     return {
       onCooldown,
@@ -161,7 +159,9 @@ export class RewardCasesController {
         throw new BadRequestException('Case pool is not configured');
       }
       if (err instanceof RewardCaseCooldownError) {
-        throw new ForbiddenException('You can only open one case every 24 hours');
+        throw new ForbiddenException(
+          'You can only open one case every 24 hours',
+        );
       }
       if (err instanceof RewardCaseInsufficientKeysError) {
         throw new BadRequestException('Not enough keys for this case');

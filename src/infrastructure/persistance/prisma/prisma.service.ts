@@ -15,7 +15,6 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -34,7 +33,9 @@ export class PrismaService
     } else {
       bootLogger.error(`❌ Certificate file not found at path: ${certPath}`);
     }
-    bootLogger.log(`🔹 Certificate file content: ${fs.readFileSync(certPath, 'utf8')}`);
+    bootLogger.log(
+      `🔹 Certificate file content: ${fs.readFileSync(certPath, 'utf8')}`,
+    );
 
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL!,

@@ -44,7 +44,8 @@ export class RakebackAccumulationWorker {
 
           const userLevel = await this.resolveUserLevel(event.username);
           const returnedAmount =
-            typeof event.returnedAmount === 'number' && Number.isFinite(event.returnedAmount)
+            typeof event.returnedAmount === 'number' &&
+            Number.isFinite(event.returnedAmount)
               ? Math.max(0, event.returnedAmount)
               : 0;
 

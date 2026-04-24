@@ -3,7 +3,6 @@ import { Webhook, MessageBuilder } from 'discord-webhook-node';
 import { ConfigService } from '@nestjs/config';
 import { Variant } from '@prisma/client';
 
-
 @Injectable()
 export class DiscordNotificationService {
   private readonly flips_webhook: Webhook;
@@ -39,7 +38,6 @@ export class DiscordNotificationService {
       url: this.configService.get<string>('DISCORD_WITHDRAWALS_WEBHOOK') || '',
       retryOnLimit: true,
     });
-    
   }
 
   /**
@@ -298,7 +296,7 @@ export class DiscordNotificationService {
     status,
     provider,
     balanceAfter,
-    additionalData
+    additionalData,
   }: {
     transactionId: string;
     username: string;
@@ -354,7 +352,10 @@ export class DiscordNotificationService {
       const directionText = direction === 'IN' ? 'Deposit' : 'Withdrawal';
 
       // Format amounts with proper decimals
-      const formatAmount = (amount: number | string, decimals: number = 2): string => {
+      const formatAmount = (
+        amount: number | string,
+        decimals: number = 2,
+      ): string => {
         if (typeof amount === 'string') {
           return amount;
         }
@@ -379,9 +380,13 @@ export class DiscordNotificationService {
             `> 💎 **Crypto:** ${formatAmount(amountCrypto, 8)}\n` +
             `> 💵 **USD:** $${formatAmount(amountUsd, 2)}\n` +
             `\n**Direction:** ${direction === 'IN' ? '➡️ Incoming' : '⬅️ Outgoing'}\n` +
-            (balanceAfter !== undefined ? `**Balance After:** ${formatAmount(balanceAfter, 2)}\n` : '') +
-            `**Status:** ${getStatusEmoji()} \`${status}\`` + 
-            (additionalData ? `\n\n**Additional Info:**\n${additionalData}` : '')
+            (balanceAfter !== undefined
+              ? `**Balance After:** ${formatAmount(balanceAfter, 2)}\n`
+              : '') +
+            `**Status:** ${getStatusEmoji()} \`${status}\`` +
+            (additionalData
+              ? `\n\n**Additional Info:**\n${additionalData}`
+              : ''),
         )
         .setTimestamp()
         .setFooter(`Transaction Logger • ${provider}`);
@@ -412,7 +417,7 @@ export class DiscordNotificationService {
       // Send to appropriate webhook based on direction
       const targetWebhook =
         direction === 'IN' ? this.depositsWebhook : this.withdrawalsWebhook;
-        
+
       await targetWebhook.send(message);
 
       this.logger.log(

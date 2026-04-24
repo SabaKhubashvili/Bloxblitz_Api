@@ -43,15 +43,16 @@ export class IncrementRaceWagerUseCase {
   /**
    * Best-effort for game flows: never throws (logs DB / validation failures).
    */
-  async executeBestEffort(
-    params: {
-      username: string;
-      grossBetAmount: number;
-      source: RaceWagerGameSource;
-    },
-  ): Promise<void> {
+  async executeBestEffort(params: {
+    username: string;
+    grossBetAmount: number;
+    source: RaceWagerGameSource;
+  }): Promise<void> {
     try {
-      await this.execute(params, { ifNoActiveRace: 'noop', creditMode: 'from_stake' });
+      await this.execute(params, {
+        ifNoActiveRace: 'noop',
+        creditMode: 'from_stake',
+      });
     } catch (e) {
       this.logger.warn(
         `[IncrementRaceWager] best-effort failed user=${params.username} source=${params.source}`,
@@ -89,7 +90,7 @@ export class IncrementRaceWagerUseCase {
 
     const mode = options?.creditMode ?? 'from_stake';
     const rounded = Math.round(params.grossBetAmount * 100) / 100;
-    let base =
+    const base =
       mode === 'explicit'
         ? rounded
         : computeGrossRaceCredit(params.grossBetAmount);

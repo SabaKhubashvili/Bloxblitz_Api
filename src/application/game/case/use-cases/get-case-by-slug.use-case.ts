@@ -14,13 +14,17 @@ import {
 } from '../../../../domain/game/case/errors/case.errors';
 import { CASE_REPOSITORY, CASE_DETAIL_CACHE } from '../tokens/case.tokens';
 import type { GetCaseBySlugQuery } from '../dto/get-case-by-slug.query';
-import type { CaseDetailOutputDto, CaseItemOutputDto } from '../dto/case.output-dto';
+import type {
+  CaseDetailOutputDto,
+  CaseItemOutputDto,
+} from '../dto/case.output-dto';
 import { CASE_PUBLIC_READ_CACHE_TTL_SECONDS } from '../case-cache.constants';
 
 @Injectable()
-export class GetCaseBySlugUseCase
-  implements IUseCase<GetCaseBySlugQuery, Result<CaseDetailOutputDto, CaseError>>
-{
+export class GetCaseBySlugUseCase implements IUseCase<
+  GetCaseBySlugQuery,
+  Result<CaseDetailOutputDto, CaseError>
+> {
   private readonly logger = new Logger(GetCaseBySlugUseCase.name);
 
   constructor(

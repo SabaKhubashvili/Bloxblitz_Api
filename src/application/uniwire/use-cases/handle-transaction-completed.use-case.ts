@@ -26,13 +26,26 @@ export class HandleTransactionCompletedUseCase {
     query: UniwireCallbackDto,
   ): Promise<HandleTransactionCompletedResult> {
     try {
-      if (query.callback_status !== UniwireCallbackStatus.TRANSACTION_COMPLETED) {
+      if (
+        query.callback_status !== UniwireCallbackStatus.TRANSACTION_COMPLETED
+      ) {
         return Err(new UniwireApiError('Transaction is not completed'));
       }
 
-      const username = this.extractUsername(query.transaction?.invoice.passthrough ?? '');
-      const cryptoAmount = (query.transaction?.amount.paid?.amount as number) ?? 0;
+      const username = this.extractUsername(
+        query.transaction?.invoice.passthrough ?? '',
+      );
+      const cryptoAmount =
+        (query.transaction?.amount.paid?.amount as number) ?? 0;
       const coinAmountPaid = this.getCoinAmountPaid(cryptoAmount);
+
+      let balanceAfter = 0;
+      if (username !== 'unknown' && coinAmountPaid > 0) {
+        balanceAfter = await this.balance.creditBalance(
+          username,
+          coinAmountPaid,
+        );
+      }
 
       await this.repo.updateInvoiceTransactionConfirmed({
         invoiceId: query.transaction?.invoice?.id ?? '',
@@ -54,11 +67,8 @@ export class HandleTransactionCompletedUseCase {
         minConfirmations: query.transaction?.invoice.min_confirmations ?? 0,
         confirmations: query.transaction?.confirmations ?? 0,
         isFullyConfirmed: true,
+        balanceAfter: balanceAfter,
       });
-
-      if (username !== 'unknown' && coinAmountPaid > 0) {
-        await this.balance.creditBalance(username, coinAmountPaid);
-      }
 
       return Ok(void 0);
     } catch (err) {
@@ -75,9 +85,7 @@ export class HandleTransactionCompletedUseCase {
   ): number {
     return quotes[currency] ?? 0;
   }
-  private getCryptoAmountPaid(
-    amount: number,
-  ): number {
+  private getCryptoAmountPaid(amount: number): number {
     return amount ?? 0;
   }
   private getCoinAmountPaid(amount: number): number {

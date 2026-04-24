@@ -19,7 +19,10 @@ export class DecrementUserBalanceUseCase {
     private readonly balance: IUserBalanceRepository,
   ) {}
 
-  async execute(username: string, amount: number): Promise<DecrementBalanceResult> {
+  async execute(
+    username: string,
+    amount: number,
+  ): Promise<DecrementBalanceResult> {
     if (!Number.isFinite(amount) || amount <= 0) {
       this.logger.warn(
         `[DecrementBalance] Rejected non-positive amount=${amount} user=${username}`,
@@ -46,5 +49,17 @@ export class DecrementUserBalanceUseCase {
     }
 
     return result;
+  }
+  async runDatabaseTransaction(
+    username: string,
+    amount: number,
+  ): Promise<DecrementBalanceResult> {
+    const rounded = Math.round(amount * 100) / 100;
+  try {
+    return await this.balance.runDatabaseTransaction(username, rounded);
+  } catch (error) {
+    this.logger.error(`[DecrementBalance] Failed user=${username} amount=-${amount}`, error);
+    return { ok: false, reason: 'insufficient_funds' };
+  }
   }
 }

@@ -27,10 +27,11 @@ export class PrismaProfileRepository implements IProfileRepository {
             totalWithdrawals: true,
             totalProfit: true,
             totalLoss: true,
+            netProfit: true,
             totalWagered: true,
-            totalGamesWon:true,
-            biggestWin:true,
-            totalGamesPlayed:true,
+            totalGamesWon: true,
+            biggestWin: true,
+            totalGamesPlayed: true,
           },
         },
         settings: {
@@ -38,7 +39,6 @@ export class PrismaProfileRepository implements IProfileRepository {
             privateProfile: true,
           },
         },
-        
       },
     });
 
@@ -82,7 +82,6 @@ export class PrismaProfileRepository implements IProfileRepository {
       const usersAbove = await this.prisma.user.count({
         where: { totalXP: { gt: user.totalXP } },
       });
-      
 
       return usersAbove + 1;
     } catch (err) {

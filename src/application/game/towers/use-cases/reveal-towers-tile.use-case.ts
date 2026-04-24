@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { GameStatus, TowersGameStatus } from '@prisma/client';
+import { GameStatus, GameType, TowersGameStatus } from '@prisma/client';
 import type { IUseCase } from '../../../shared/use-case.interface';
 import { Result, Ok, Err } from '../../../../domain/shared/types/result.type';
 import { TowersGameRepository } from '../../../../infrastructure/persistance/repositories/game/towers-game.repository';
@@ -29,6 +29,8 @@ import type { IBetEventPublisherPort } from '../../mines/ports/bet-event-publish
 import { MINES_XP_RATE } from '../../../../shared/config/xp-rates.config';
 import { XpSource } from '../../../../domain/leveling/enums/xp-source.enum';
 import { GrantWagerXpUseCase } from '../../../user/leveling/use-cases/grant-wager-xp.use-case';
+import { BumpGlobalUserStatisticsUseCase } from '../../../../infrastructure/persistance/user-statistics/bump-global-user-statistics.use-case';
+import { BumpUserGameStatisticsUseCase } from '../../../../infrastructure/persistance/user-statistics/bump-user-game-statistics.use-case';
 
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
@@ -65,13 +67,10 @@ type LockedRevealOk = {
 };
 
 @Injectable()
-export class RevealTowersTileUseCase
-  implements
-    IUseCase<
-      { username: string; rowIndex: number; tileIndex: number },
-      Result<TowersRevealResponseDto, TowersError>
-    >
-{
+export class RevealTowersTileUseCase implements IUseCase<
+  { username: string; rowIndex: number; tileIndex: number },
+  Result<TowersRevealResponseDto, TowersError>
+> {
   private readonly logger = new Logger(RevealTowersTileUseCase.name);
 
   constructor(
@@ -83,6 +82,8 @@ export class RevealTowersTileUseCase
     @Inject(BET_EVENT_PUBLISHER)
     private readonly betEventPublisher: IBetEventPublisherPort,
     private readonly grantWagerXp: GrantWagerXpUseCase,
+    private readonly bumpUserGame: BumpUserGameStatisticsUseCase,
+    private readonly bumpGlobal: BumpGlobalUserStatisticsUseCase,
   ) {}
 
   async execute(cmd: {
@@ -140,53 +141,58 @@ export class RevealTowersTileUseCase
         const xpSource =
           t.kind === 'lost' ? XpSource.GAME_LOSE : XpSource.GAME_WIN;
 
-        // Rakeback queue + pub/sub: do not depend on XP (same idea as mines reveal on bust).
-        void this.betEventPublisher
-          .publishBetPlaced(
-            t.kind === 'lost'
-              ? {
-                  type: 'bet',
-                  game: 'towers',
-                  gameId: t.gameHistoryId,
-                  username: t.username,
-                  profilePicture: t.profilePicture,
-                  multiplier: 0,
-                  amount: t.betAmount,
-                  returnedAmount: 0,
-                  level: 1,
-                  profit: -t.betAmount,
-                  createdAt: Date.now(),
-                }
-              : {
-                  type: 'bet',
-                  game: 'towers',
-                  gameId: t.gameHistoryId,
-                  username: t.username,
-                  profilePicture: t.profilePicture,
-                  multiplier: t.multiplier,
-                  amount: t.betAmount,
-                  returnedAmount: t.grossReturned,
-                  level: 1,
-                  profit: t.grossReturned,
-                  createdAt: Date.now(),
-                },
-          )
-          .catch((err) =>
-            this.logger.error(
-              `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
-              err,
-            ),
-          );
-
         const xpAmount = Math.floor(t.betAmount * MINES_XP_RATE);
-        void this.grantWagerXp.execute({
-          username: t.username,
-          xpAmount,
-          wager: t.betAmount,
-          gameId: t.gameHistoryId,
-          source: xpSource,
-          grantContext: 'towers.reveal.terminal',
-        });
+        void this.grantWagerXp
+          .execute({
+            username: t.username,
+            xpAmount,
+            wager: t.betAmount,
+            gameId: t.gameHistoryId,
+            source: xpSource,
+            grantContext: 'towers.reveal.terminal',
+          })
+          .then((response) => {
+            if (response && !response.ok) {
+              return;
+            }
+            // Rakeback queue + pub/sub: do not depend on XP (same idea as mines reveal on bust).
+            void this.betEventPublisher
+              .publishBetPlaced(
+                t.kind === 'lost'
+                  ? {
+                      type: 'bet',
+                      game: 'towers',
+                      gameId: t.gameHistoryId,
+                      username: t.username,
+                      profilePicture: t.profilePicture,
+                      multiplier: 0,
+                      amount: t.betAmount,
+                      returnedAmount: 0,
+                      level: response?.value?.currentLevel ?? 1,
+                      profit: -t.betAmount,
+                      createdAt: Date.now(),
+                    }
+                  : {
+                      type: 'bet',
+                      game: 'towers',
+                      gameId: t.gameHistoryId,
+                      username: t.username,
+                      profilePicture: t.profilePicture,
+                      multiplier: t.multiplier,
+                      amount: t.betAmount,
+                      returnedAmount: t.grossReturned,
+                      level: response?.value?.currentLevel ?? 1,
+                      profit: t.grossReturned,
+                      createdAt: Date.now(),
+                    },
+              )
+              .catch((err) =>
+                this.logger.error(
+                  `[towers.reveal] publishBetPlaced failed user=${t.username} gameId=${t.gameHistoryId}`,
+                  err,
+                ),
+              );
+          });
       });
     }
 
@@ -198,7 +204,7 @@ export class RevealTowersTileUseCase
     rowIndex: number,
     tileIndex: number,
   ): Promise<Result<LockedRevealOk, TowersError>> {
-    let entity =
+    const entity =
       (await this.cache.getActiveForUser(user)) ??
       (await this.repo.findActiveByUser(user));
     if (entity) {
@@ -225,7 +231,10 @@ export class RevealTowersTileUseCase
       return Err(new TowersInvalidMoveError('Invalid tile for this row.'));
     }
 
-    if (entity.picks[rowIndex] !== null && entity.picks[rowIndex] !== undefined) {
+    if (
+      entity.picks[rowIndex] !== null &&
+      entity.picks[rowIndex] !== undefined
+    ) {
       return Err(new TowersInvalidMoveError('This row was already played.'));
     }
 
@@ -243,7 +252,7 @@ export class RevealTowersTileUseCase
 
     if (!gem) {
       const secured =
-        rowIndex === 0 ? 1 : entity.multiplierLadder[rowIndex - 1] ?? 1;
+        rowIndex === 0 ? 1 : (entity.multiplierLadder[rowIndex - 1] ?? 1);
 
       const patch: UpdateTowersGameParams = {
         status: TowersGameStatus.LOST,
@@ -403,6 +412,12 @@ export class RevealTowersTileUseCase
           netProfit: terminal.netProfit,
           finalMultiplier: terminal.finalMultiplier,
         });
+        this.scheduleTowersStatsBumpsIfFallback({
+          username: user,
+          betAmount: before.betAmount,
+          netProfit: terminal.netProfit,
+          finalMultiplier: terminal.finalMultiplier,
+        });
       } catch (syncErr) {
         this.logger.error('[towers.reveal] emergency DB sync failed', syncErr);
       }
@@ -413,11 +428,40 @@ export class RevealTowersTileUseCase
         towersRowId: before.id,
         gameHistoryId: before.gameHistoryId,
         username: user,
+        betAmount: before.betAmount,
         towersPatch: patch,
         parentStatus: terminal.parentStatus,
         netProfit: terminal.netProfit,
         finalMultiplier: terminal.finalMultiplier,
       });
     }
+  }
+
+  private scheduleTowersStatsBumpsIfFallback(args: {
+    username: string;
+    betAmount: number;
+    netProfit: number;
+    finalMultiplier: number;
+  }): void {
+    const won = args.netProfit > 0;
+    const playedAt = new Date();
+    this.bumpUserGame.scheduleBump({
+      username: args.username,
+      gameType: GameType.TOWERS,
+      stake: args.betAmount,
+      won,
+      netProfit: args.netProfit,
+      playedAt,
+    });
+    this.bumpGlobal.scheduleBump({
+      username: args.username,
+      gameType: GameType.TOWERS,
+      stake: args.betAmount,
+      won,
+      netProfit: args.netProfit,
+      playedAt,
+      multiplier:
+        won && args.finalMultiplier > 0 ? args.finalMultiplier : undefined,
+    });
   }
 }

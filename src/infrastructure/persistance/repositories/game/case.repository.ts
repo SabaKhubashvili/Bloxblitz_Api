@@ -22,12 +22,18 @@ import {
   CaseSlugTakenError,
   CaseUnknownPetsError,
 } from '../../../../domain/game/case/errors/case.errors';
+import { BumpGlobalUserStatisticsUseCase } from '../../user-statistics/bump-global-user-statistics.use-case';
+import { BumpUserGameStatisticsUseCase } from '../../user-statistics/bump-user-game-statistics.use-case';
 
 @Injectable()
 export class PrismaCaseRepository implements ICaseRepository {
   private readonly logger = new Logger(PrismaCaseRepository.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bumpUserGame: BumpUserGameStatisticsUseCase,
+    private readonly bumpGlobal: BumpGlobalUserStatisticsUseCase,
+  ) {}
 
   async findAllActive(
     filters: CaseListQueryFilter = {},
@@ -111,7 +117,7 @@ export class PrismaCaseRepository implements ICaseRepository {
           value: roundPetValue(
             resolvePetValueForCaseItemVariants(i.pet, i.variant),
           ),
-          variant: i.variant.map(String)
+          variant: i.variant.map(String),
         },
       })),
     };
@@ -144,7 +150,9 @@ export class PrismaCaseRepository implements ICaseRepository {
     };
   }
 
-  async createWithItems(input: CreateCaseWithItemsInput): Promise<{ id: string }> {
+  async createWithItems(
+    input: CreateCaseWithItemsInput,
+  ): Promise<{ id: string }> {
     const distinctPetIds = [...new Set(input.items.map((i) => i.petId))];
 
     try {
@@ -195,7 +203,10 @@ export class PrismaCaseRepository implements ICaseRepository {
         }
       });
     } catch (err) {
-      if (err instanceof CaseSlugTakenError || err instanceof CaseUnknownPetsError) {
+      if (
+        err instanceof CaseSlugTakenError ||
+        err instanceof CaseUnknownPetsError
+      ) {
         throw err;
       }
       this.logger.error('[CaseRepo] createWithItems failed', err);
@@ -215,7 +226,9 @@ export class PrismaCaseRepository implements ICaseRepository {
               status: GameStatus.FINISHED,
               betAmount: new Prisma.Decimal(o.pricePaid),
               profit: new Prisma.Decimal(o.wonPetValue - o.pricePaid),
-              multiplier: new Prisma.Decimal((o.wonPetValue / o.pricePaid).toFixed(4)),
+              multiplier: new Prisma.Decimal(
+                (o.wonPetValue / o.pricePaid).toFixed(4),
+              ),
             },
           });
           await tx.caseOpenHistory.create({
@@ -236,6 +249,30 @@ export class PrismaCaseRepository implements ICaseRepository {
           });
         }
       });
+      for (const o of opens) {
+        const u = o.username.trim().toLowerCase();
+        const pricePaid = Number(o.pricePaid);
+        const wonV = Number(o.wonPetValue);
+        const netP = wonV - pricePaid;
+        const won = netP > 0;
+        const playedAt = new Date();
+        this.bumpUserGame.scheduleBump({
+          username: u,
+          gameType: GameType.CASE,
+          stake: pricePaid,
+          won,
+          netProfit: netP,
+          playedAt,
+        });
+        this.bumpGlobal.scheduleBump({
+          username: u,
+          gameType: GameType.CASE,
+          stake: pricePaid,
+          won,
+          netProfit: netP,
+          playedAt,
+        });
+      }
     } catch (err) {
       this.logger.error('[CaseRepo] saveOpens transaction failed', err);
       throw err;

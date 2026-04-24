@@ -17,13 +17,10 @@ export interface GetProvablyFairDataOutputDto {
 }
 
 @Injectable()
-export class GetProvablyFairDataUseCase
-  implements
-    IUseCase<
-      GetProvablyFairDataCommand,
-      Result<GetProvablyFairDataOutputDto, ProvablyFairNotFoundError>
-    >
-{
+export class GetProvablyFairDataUseCase implements IUseCase<
+  GetProvablyFairDataCommand,
+  Result<GetProvablyFairDataOutputDto, ProvablyFairNotFoundError>
+> {
   constructor(
     @Inject(PROVABLY_FAIR_DB_PORT)
     private readonly provablyFairDb: IProvablyFairDbPort,
@@ -31,9 +28,7 @@ export class GetProvablyFairDataUseCase
 
   async execute(
     cmd: GetProvablyFairDataCommand,
-  ): Promise<
-    Result<GetProvablyFairDataOutputDto, ProvablyFairNotFoundError>
-  > {
+  ): Promise<Result<GetProvablyFairDataOutputDto, ProvablyFairNotFoundError>> {
     const data = await this.provablyFairDb.getProvablyFairData(cmd.username);
 
     if (!data) {

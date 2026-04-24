@@ -6,7 +6,11 @@ import {
   buildRaceStatusCacheRecord,
   raceAndRewardsToStatusDto,
 } from '../../../domain/race/race-status-snapshot';
-import { RACE_CACHE, RACE_REPOSITORY, RACE_CACHE_TTL } from '../tokens/race.tokens';
+import {
+  RACE_CACHE,
+  RACE_REPOSITORY,
+  RACE_CACHE_TTL,
+} from '../tokens/race.tokens';
 
 export type RaceStatusDto = {
   isActive: boolean;
